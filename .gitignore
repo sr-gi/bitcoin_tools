@@ -1,0 +1,8 @@
+.private/
+.idea/
+.dataTrader
+.customer
+*.pyc
+*_tx.txt
+
+
