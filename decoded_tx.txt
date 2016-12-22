@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/home/sdelgado/git/rawTxBuilder/raw_tx_decoder.py", line 15, in <module>
+a
+    tx.scriptSig_len.append(parse_varint(tx))
+  File "/home/sdelgado/git/rawTxBuilder/tools.py", line 24, in parse_varint
+    assert (len(data) > 0)
+AssertionError

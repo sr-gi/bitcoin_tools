@@ -1,109 +1,34 @@
-import struct
+from tools import decode_varint, parse_varint, parse_element
+from tx import TX
 
-offset = 0
+tx = TX()
+# tx.hex = "0100000001f4843b3c6b9f243075ff25a8dfba528315ccef25b27302a68cec2653d43b1564000000008b483045022100f4f442faba1c1acc7e21bc9cfd667915220174c1d411f0cc3594d0b09c477f2b0220365fa8c60dce4cdae969544c3e53e03e7b692fae1d2f13775073a7f1c1668824014104c87acf509bb7957ca833445e63bfa821422cae0266eb83064c226d7bfb75dcdc4340c1396bb2c177565c201bf83876969f0b9ebc9d382f8f5b7d3e7d27d4f889ffffffff01d007000000000000cc63761453def8f9491c649da664302bbaa7ba0a4277f07ead820147884700000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000000000000000000000844700000022014baeee14bd64bd64e0c0c765c9acf89f2db1c5477f53dd2240f2a16dd7012b5020000000000000000000000000000000000000000000000000000000000000000000876703bc2e10b17514b34bbaac4e9606c9a8a6a720acaf3018c9bc77c9ac6800000000"
+f = open("raw_tx.txt", 'r')
+tx.hex = f.read()
 
+tx.version = parse_element(tx, 4)
+tx.inputs = parse_varint(tx)
 
-def toLittleEndian(x):
-    # If there is a odd number of elements, we make it even by adding a 0
-    if (len(x) % 2) == 1:
-        x += "0"
-    y = x.decode('hex')
-    z = y[::-1]
-    return z.encode('hex')
+for i in range(decode_varint(tx.inputs)):
+    tx.prev_tx_id.append(parse_element(tx, 32))
+    tx.prev_out_index.append(parse_element(tx, 4))
+    tx.scriptSig_len.append(parse_varint(tx))
+    tx.scriptSig.append(parse_element(tx, decode_varint(tx.scriptSig_len[i])))
+    tx.nSequence.append(parse_element(tx, 4))
 
+tx.outputs = parse_varint(tx)
 
-def decode_varint(data):
-    global offset
-    assert(len(data) > 0)
-    size = int(data[:2], 16)
-    assert(size <= 255)
+for i in range(decode_varint(tx.outputs)):
+    tx.value.append(parse_element(tx, 8))
+    tx.scriptPubKey_len.append(parse_varint(tx))
+    tx.scriptPubKey.append(parse_element(tx, decode_varint(tx.scriptPubKey_len[i])))
 
-    if size <= 252:
-        storage_length = 1
-        varint = data[:2]
-        decoded_varint = int(varint, 16)
-    else:
-        if size == 253:  # 0xFD
-            storage_length = 3
-        elif size == 254:  # 0xFE
-            storage_length = 5
-        elif size == 255:  # 0xFF
-            storage_length = 9
+tx.nLockTime = parse_element(tx, 4)
 
-        varint = data[:storage_length*2]
-        decoded_varint = int(toLittleEndian(varint[2:]), 16)
-        
-    offset += storage_length * 2
+assert tx.offset == len(tx.hex)
 
-    return varint, decoded_varint
+tx.print_elements()
 
-
-def int2bytes(a, b):
-    return ('%0'+str(2*b)+'x') % a
-
-
-def extract_element(tx, size):
-    global offset
-    element = tx[0:size*2]
-    offset += size*2
-    return element
-
-
-def doVerbose(version, inputs, inputs_dec, prev_tx_id, prev_out_index, scriptSig_len, scriptSig, nSequence, outputs, outputs_dec, value, scriptPubKey_len, scriptPubKey, nLockTime):
-    print "version: " + version
-    print "number of inputs: " + inputs + " (" + str(inputs_dec) + ")"
-    for i in range(len(scriptSig)):
-        print "input " + str(i)
-        print "\t previous txid (little endian): " + prev_tx_id[i] + " (" + toLittleEndian(prev_tx_id[i]) + ")"
-        print "\t previous tx output (little endian): " + prev_out_index[i] + " (" + str(int(toLittleEndian(prev_out_index[i]), 16)) + ")"
-        print "\t input script (scriptSig) length: " + scriptSig_len[i] + " (" + str(int(scriptSig_len[i], 16)) + ")"
-        print "\t input script (scriptSig): " + scriptSig[i]
-        print "\t nSequence: " + nSequence[i]
-    print "number of outputs: " + outputs + " (" + str(outputs_dec) + ")"
-    for i in range(len(scriptPubKey)):
-        print "output " + str(i)
-        print "\t Satoshis to be spent (little endian): " + value[i] + " (" + str(int(toLittleEndian(value[i]), 16)) + ")"
-        print "\t output script (scriptPubKey) length: " + scriptPubKey_len[i] + " (" + str(int(toLittleEndian(scriptPubKey_len[i]), 16)) + ")"
-        print "\t output script (scriptPubKey): " + scriptPubKey[i]
-    print "nLockTime: " + nLockTime
-
-f = open('raw_tx.txt', 'r')
-tx = f.read()
-
-prev_tx_id = []
-prev_out_index = []
-scriptSig_len = []
-scriptSig = []
-nSequence = []
-value = []
-scriptPubKey_len = []
-scriptPubKey = []
-
-
-version = extract_element(tx, 4)
-inputs, inputs_dec = decode_varint(tx[offset:])
-
-for i in range(inputs_dec):
-    prev_tx_id.append(extract_element(tx[offset:], 32))
-    prev_out_index.append(extract_element(tx[offset:], 4))
-    l, l_dec = decode_varint(tx[offset:])
-    scriptSig_len.append(l)
-    scriptSig.append(extract_element(tx[offset:], l_dec))
-    nSequence.append(extract_element(tx[offset:], 4))
-
-outputs, outputs_dec = decode_varint(tx[offset:])
-
-for i in range(outputs_dec):
-    value.append(extract_element(tx[offset:], 8))
-    l, l_dec = decode_varint(tx[offset:])
-    scriptPubKey_len.append(l)
-    scriptPubKey.append(extract_element(tx[offset:], l_dec))
-
-nLockTime = extract_element(tx[offset:], 4)
-
-assert offset == len(tx)
-
-doVerbose(version, inputs, inputs_dec, prev_tx_id, prev_out_index, scriptSig_len, scriptSig, nSequence, outputs, outputs_dec, value, scriptPubKey_len, scriptPubKey, nLockTime)
 
 
 
