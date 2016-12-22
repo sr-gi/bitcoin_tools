@@ -5,8 +5,7 @@
 from bitcoin.transaction import sign
 from utils.bitcoin.tools import get_priv_key_hex
 
-S_KEY = 'private/paysense.key'
-
+S_KEY = 'customer/private/0/key.pem'
 
 def int2bytes(a, b):
     return ('%0'+str(2*b)+'x') % a
@@ -30,10 +29,10 @@ def doVerbose(version, inputs, prev_tx_id, prev_out_index, scriptSig_len, script
         print "\t previous tx output (little endian): " + prev_out_index[i]
         print "\t input script (scriptSig) length: " + scriptSig_len[i]
         print "\t input script (scriptSig): " + scriptSig[i]
-    print "nSequence: " + nSequence
+        print "\t nSequence: " + nSequence[i]
+    print "number of outputs: " + outputs
     for i in range(len(scriptPubKey)):
         print "output " + str(i)
-        print "\t number of outputs: " + outputs[i]
         print "\t Satoshis to be spent (little endian): " + value[i]
         print "\t output script (scriptPubKey) length: " + scriptPubKey_len[i]
         print "\t output script (scriptPubKey): " + scriptPubKey[i]
@@ -68,6 +67,7 @@ def build_tx(prev_tx_id, prev_out_index, value, scriptPubKey, scriptSig='0', ver
     # Temporary filled with "0" "0" for standard script transactions (Signature)
 
     scriptSig_len = []
+    nSequence = []
 
     for i in range(n_inputs):
         if scriptSig[i] is '0':
@@ -75,9 +75,9 @@ def build_tx(prev_tx_id, prev_out_index, value, scriptPubKey, scriptSig='0', ver
         else:
             scriptSig_len[i] = int2bytes(len(scriptSig[i])/2, 1)
 
-    # 4-byte sequence number (default:ffffffff).
+        # 4-byte sequence number (default:ffffffff).
 
-    nSequence = "ffffffff"
+        nSequence.append("ffffffff")
 
     #############
     #  OUTPUTS  #
@@ -114,9 +114,9 @@ def build_tx(prev_tx_id, prev_out_index, value, scriptPubKey, scriptSig='0', ver
     raw_transaction = version + inputs
 
     for i in range(n_inputs):
-        raw_transaction += prev_tx_id[i] + prev_out_index[i] + scriptSig_len[i] + scriptSig[i]
+        raw_transaction += prev_tx_id[i] + prev_out_index[i] + scriptSig_len[i] + scriptSig[i] + nSequence[i]
 
-    raw_transaction += nSequence + outputs
+    raw_transaction +=  outputs
 
     for i in range(n_outputs):
         raw_transaction += value[i] + scriptPubKey_len[i] + scriptPubKey[i]
@@ -127,9 +127,11 @@ def build_tx(prev_tx_id, prev_out_index, value, scriptPubKey, scriptSig='0', ver
 
 private_key_hex = get_priv_key_hex(S_KEY)
 
-raw_tx = build_tx(['23a489224ff651426b7130176be2e7d50aa451d1ee823bc48a219619973f8bc9'], [1], [20000], ['031616160315151584'], verbose=1)
+total = 100000
+amount = 2*total/10
+fee = 5000
+
+raw_tx = build_tx(['b220807ca11babf373af15d9d82a0d5264c649d58153165b1ba61e37871f080d'], [1], [amount, total-amount-fee], ['761453def8f9491c649da664302bbaa7ba0a4277f07ead820147884700000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000000000000000000000844700000022014baeee14bd64bd64e0c0c765c9acf89f2db1c5477f53dd2240f2a16dd7012b502000000000000000000000000000000000000000000000000000000000000000000087', '76a914b34bbaac4e9606c9a8a6a720acaf3018c9bc77c988ac'], verbose=1)
 signed_tx = sign(raw_tx, 0, private_key_hex)
 
 print signed_tx
-
-
