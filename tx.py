@@ -1,4 +1,4 @@
-from tools import change_endianness, decode_varint
+from tools import change_endianness, decode_varint, int2bytes
 
 
 class TX:
@@ -79,7 +79,7 @@ class TX:
 
     def to_hex(self):
         if self.hex is None:
-            self.hex += self.version + self.inputs
+            self.hex = self.version + self.inputs
 
             for i in range(len(self.prev_tx_id)):
                 self.hex += self.prev_tx_id[i] + self.prev_out_index[i] + self.scriptSig_len[i] \
@@ -93,6 +93,72 @@ class TX:
             self.hex += self.nLockTime
 
         return self.hex
+
+    def build_default_tx(self, prev_tx_id, prev_out_index, value, scriptPubKey, scriptSig=None):
+
+        # 4-byte version number (default: 01 little endian).
+        self.version = "01000000"
+
+        #############
+        #   INPUTS  #
+        #############
+
+        # 1-byte number of inputs.
+        n_inputs = len(prev_tx_id)
+        self.inputs = int2bytes(n_inputs, 1)  # e.g "01"
+
+        # Reference to the UTXO to redeem.
+
+        # 32-byte hash of the previous transaction (little endian).
+        for i in range(n_inputs):
+            self.prev_tx_id.append(change_endianness(prev_tx_id[i])) # e.g "c7495bd4c5102d7e40c231279eaf9877e825364847ddebc34911f5a0f0d79ea5"
+
+            # 4-byte output index (little endian).
+            self.prev_out_index.append(change_endianness(int2bytes(prev_out_index[i], 4)))  # e.g "00000000"
+
+        # ScriptSig
+
+        # The order in the tx is: scriptSig_len, scriptSig.
+        # Temporary filled with "0" "0" for standard script transactions (Signature)
+
+        for i in range(n_inputs):
+            if scriptSig is None:
+                self.scriptSig.append("0")
+                self.scriptSig_len.append("0")
+
+            else:
+                self.scriptSig_len.append(int2bytes(len(scriptSig[i]) / 2, 1))
+
+            # 4-byte sequence number (default:ffffffff).
+
+            self.nSequence.append("ffffffff")
+
+        #############
+        #  OUTPUTS  #
+        #############
+
+        # 1-byte number of outputs.
+        n_outputs = len(scriptPubKey)
+        self.outputs = int2bytes(n_outputs, 1)  # e.g "01"
+
+        # 8-byte field (64 bit integer) representing the amount of Satoshis to be spent (little endian).
+        # 0.00349815 (UTXO value) - 0.00005000 (fee) =  0.00344815 BTC = 344815 (Satoshi) = ef4250 (Little endian)
+
+        for i in range(n_outputs):
+            self.value.append(change_endianness(int2bytes(value[i], 8)))  # e.g "ef42050000000000"
+
+            # Output script and its length (bytes) (HEX)
+
+            # e.g scriptPubKey = ["010301029488"]
+
+            self.scriptPubKey_len.append(int2bytes(len(scriptPubKey[i]) / 2, 1))  # e.g "06"
+            self.scriptPubKey = scriptPubKey  # e.g scriptPubKey = "010301029488"
+
+        # 4-byte lock time field (default: 0)
+
+        self.nLockTime = "00000000"
+
+        self.to_hex()
 
 
 
