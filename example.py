@@ -32,12 +32,14 @@ prev_out_index = [0]
 value = [2000]
 # Bitcoin address where the bitcoins come from. It should match with the address referenced by the prev_tx_id.
 # The address will be used as an identifier to choose the proper keys when signing the transaction.
-src_file_btc_addr = [btc_addr]
+# Use the above generated Bitcoin address (btc_addr), or load some previously generated ones using the Bitcoin
+# address that matches with the folder names.
+src_btc_addr = [btc_addr]
 # Destination Bitcoin address, where the value in bitcoins will be sent, and lock until the owner redeems it.
 destination_btc_addr = ["mkpKXgxN9tqoFDosG2Rjh1KvqrteXZ1kk9"]
 
 # Build the raw transaction using all the provided inputs.
-signed_tx = build_raw_tx(prev_tx_id, prev_out_index, value, src_file_btc_addr, destination_btc_addr)
+signed_tx = build_raw_tx(prev_tx_id, prev_out_index, value, src_btc_addr, destination_btc_addr)
 
 # Display the transaction
 print signed_tx

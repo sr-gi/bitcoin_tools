@@ -1,6 +1,6 @@
 from binascii import a2b_hex, b2a_hex
 from hashlib import new, sha256
-from os import mkdir,path
+from os import mkdir, path
 from keys import get_pub_key_hex, get_priv_key_hex
 from base58 import b58encode, b58decode
 from qrcode import make as qr_make

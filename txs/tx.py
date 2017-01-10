@@ -111,7 +111,8 @@ class TX:
 
         # 32-byte hash of the previous transaction (little endian).
         for i in range(n_inputs):
-            self.prev_tx_id.append(change_endianness(prev_tx_id[i])) # e.g "c7495bd4c5102d7e40c231279eaf9877e825364847ddebc34911f5a0f0d79ea5"
+            self.prev_tx_id.append(change_endianness(prev_tx_id[i]))
+            # e.g "c7495bd4c5102d7e40c231279eaf9877e825364847ddebc34911f5a0f0d79ea5"
 
             # 4-byte output index (little endian).
             self.prev_out_index.append(change_endianness(int2bytes(prev_out_index[i], 4)))  # e.g "00000000"
