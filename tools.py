@@ -19,7 +19,7 @@ def parse_element(tx, size):
 
 def parse_varint(tx):
     data = tx.hex[tx.offset:]
-    if len(data)<= 0:
+    if len(data) <= 0:
         exit(0)
     assert (len(data) > 0)
     size = int(data[:2], 16)
@@ -35,6 +35,8 @@ def parse_varint(tx):
             storage_length = 5
         elif size == 255:  # 0xFF
             storage_length = 9
+        else:
+            raise Exception("Wrong input data size")
 
         varint = data[:storage_length * 2]
 
