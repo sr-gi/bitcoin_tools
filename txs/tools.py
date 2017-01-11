@@ -1,5 +1,5 @@
 def change_endianness(x):
-    # If there is a odd number of elements, we make it even by adding a 0
+    # If there is an odd number of elements, we make it even by adding a 0
     if (len(x) % 2) == 1:
         x += "0"
     y = x.decode('hex')

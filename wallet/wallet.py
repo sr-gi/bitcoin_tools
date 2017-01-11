@@ -171,8 +171,8 @@ def private_key_to_wif(sk, mode='image', v='main'):
 
 
 def generate_wif(btc_addr, mode='image', v='main'):
-    """ Generates a Wallet Import Format (WIF) file into disk. Uses a elliptic curve private key from disk as a input
-    using the btc_addr associated to the public key of the same key pair as a identifier.
+    """ Generates a Wallet Import Format (WIF) file into disk. Uses an elliptic curve private key from disk as an input
+    using the btc_addr associated to the public key of the same key pair as an identifier.
 
     :param btc_addr: Bitcoin address associated to the public key of the same key pair as the private key.
     :type btc_addr: hex str

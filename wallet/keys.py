@@ -1,5 +1,5 @@
 from os import mkdir, path
-from M2Crypto import EC
+from ecdsa import SigningKey, SECP256k1
 from subprocess import check_output, STDOUT
 from pyasn1.codec.der import decoder
 
@@ -8,22 +8,23 @@ def generate_keys():
     """ Gets a new  elliptic curve key pair using the SECP256K1 elliptic curve (the one used by Bitcoin).
 
     :return: elliptic curve key pair.
-    :rtype: EC
+    :rtype: list
     """
 
-    # Generate the parameters of the SECP256K1 elliptic curve.
-    ec = EC.gen_params(EC.NID_secp256k1)
-    # Generate a new key pair.
-    ec.gen_key()
+    # Generate the key pair from a SECP256K1 elliptic curve.
+    sk = SigningKey.generate(curve=SECP256k1)
+    pk = sk.get_verifying_key()
 
-    return ec
+    return sk, pk
 
 
-def store_keys(ec, btc_addr):
-    """ Gets a new  elliptic curve key pair using the SECP256K1 elliptic curve (the one used by Bitcoin).
+def store_keys(sk, pk, btc_addr):
+    """ Stores an elliptic curve key pair in PEM format into disk.
 
-    :param ec: Elliptic curve key pair.
-    :type ec: EC
+    :param sk: PEM encoded elliptic curve private key.
+    :type sk: str
+    :param pk: PEM encoded elliptic curve public key.
+    :type pk: str
     :param btc_addr: Bitcoin address associated to the public key of the key pair.
     :type btc_addr: str
     :return: None.
@@ -33,22 +34,22 @@ def store_keys(ec, btc_addr):
     if not path.exists(btc_addr):
         mkdir(btc_addr)
 
-    # Save both keys into disk using the Bitcoin address as a identifier.
-    ec.save_key(btc_addr + '/sk.pem', None)
-    ec.save_pub_key(btc_addr + '/pk.pem')
+    # Save both keys into disk using the Bitcoin address as an identifier.
+    open(btc_addr + '/sk.pem', "w").write(sk)
+    open(btc_addr + '/pk.pem', "w").write(pk)
 
 
-def get_pub_key_hex(pk):
-    """ Gets a public key in hexadecimal format from a OpenSSL public key object.
+def get_pub_key_hex(pk_der):
+    """ Converts a public key in hexadecimal format from a DER encoded public key.
 
-    :param pk: public key.
-    :type pk: OpenSSL.PublicKey
+    :param pk_der: DER encoded public key
+    :type pk_der: bytes
     :return: public key.
     :rtype: hex str
     """
 
     # Get the asn1 representation of the public key DER data.
-    asn1_pk, _ = decoder.decode(str(pk.get_der()))
+    asn1_pk, _ = decoder.decode(str(pk_der))
 
     # Get the public key as a BitString. The public key corresponds to the second component
     # of the asn1 public key structure.
@@ -75,7 +76,7 @@ def get_priv_key_hex(sk_file_path):
     :rtype: hex str
     """
 
-    # Obtain the private key using a openssl system call.
+    # Obtain the private key using an OpenSSL system call.
     cmd = ['openssl', 'ec', '-in', sk_file_path, '-text', '-noout']
     response = check_output(cmd, stderr=STDOUT)
 
