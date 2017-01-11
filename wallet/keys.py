@@ -19,7 +19,8 @@ def generate_keys():
 
 
 def store_keys(sk, pk, btc_addr):
-    """ Stores an elliptic curve key pair in PEM format into disk.
+    """ Stores an elliptic curve key pair in PEM format into disk. Both keys are stored in a folder named after the
+    Bitcoin address derived from the public key.
 
     :param sk: PEM encoded elliptic curve private key.
     :type sk: str

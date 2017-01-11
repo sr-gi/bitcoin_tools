@@ -11,7 +11,7 @@ sk, pk = generate_keys()
 # The Bitcoin address is derived from the public key created above.
 btc_addr = generate_btc_addr(pk.to_der(), v='test')
 # Both the public and private key are stored in disk. The Bitcoin address is used as an identifier in the name
-# of the file.
+# of the folder that contains both keys.
 store_keys(sk.to_pem(), pk.to_pem(), btc_addr)
 # Finally, the private key is encoded as WIF and also stored in disk, ready to be imported in a wallet.
 generate_wif(btc_addr, mode='image', v='test')
@@ -21,11 +21,12 @@ generate_wif(btc_addr, mode='image', v='test')
 #################################################
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Down bellow he inputs of the raw transaction builder can be found. Each item should be inserted in the corresponding
-# list, separated by commas.
+# Down bellow he inputs of the raw transaction builder can be found. Each item should be inserted in the
+# corresponding list, separated by commas.
 # ---------------------------------------------------------------------------------------------------------------------
 
-# Reference to the previous transaction where the funds will be redeemed and spent. Consists in an id an an output.
+# Reference to the previous transaction where the funds will be redeemed and spent. Consists in an id and
+# an output index.
 prev_tx_id = ['64153bd45326ec8ca60273b225efcc158352badfa825ff7530249f6b3c3b84f4']
 prev_out_index = [0]
 # Amount to be spent, in Satoshis.
@@ -35,11 +36,11 @@ value = [2000]
 # Use the above generated Bitcoin address (btc_addr), or load some previously generated ones using the Bitcoin
 # address that matches with the folder names.
 src_btc_addr = [btc_addr]
-# Destination Bitcoin address, where the value in bitcoins will be sent, and lock until the owner redeems it.
+# Destination Bitcoin address where the value in bitcoins will be sent and locked until the owner redeems it.
 destination_btc_addr = ["mkpKXgxN9tqoFDosG2Rjh1KvqrteXZ1kk9"]
 
-# Build the raw transaction using all the provided inputs.
+# Finally, the raw transaction can be build using all the provided inputs.
 signed_tx = build_raw_tx(prev_tx_id, prev_out_index, value, src_btc_addr, destination_btc_addr)
 
-# Display the transaction
-print signed_tx
+# Displays the transaction.
+print "hex: " + signed_tx
