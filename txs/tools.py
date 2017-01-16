@@ -19,8 +19,6 @@ def parse_element(tx, size):
 
 def parse_varint(tx):
     data = tx.hex[tx.offset:]
-    if len(data) <= 0:
-        exit(0)
     assert (len(data) > 0)
     size = int(data[:2], 16)
     assert (size <= 255)
@@ -52,3 +50,23 @@ def decode_varint(varint):
         decoded_varint = int(varint, 16)
 
     return decoded_varint
+
+
+def encode_varint(value):
+    size = len(format(value, 'x'))
+    if size == 1:
+        varint = int2bytes(value, size)
+    else:
+        size /= 2
+        if size == 2:
+            prefix = 253  # 0xFD
+        elif size == 4:
+            prefix = 254  # 0xFE
+        elif size == 8:
+            prefix = 255  # 0xFF
+        else:
+            raise Exception("Wrong input data size")
+
+        varint = format(prefix, 'x') + change_endianness(int2bytes(value, size))
+
+    return varint

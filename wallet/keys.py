@@ -40,17 +40,17 @@ def store_keys(sk, pk, btc_addr):
     open(btc_addr + '/pk.pem', "w").write(pk)
 
 
-def get_pub_key_hex(pk_der):
+def get_pub_key_hex(pk):
     """ Converts a public key in hexadecimal format from a DER encoded public key.
 
-    :param pk_der: DER encoded public key
-    :type pk_der: bytes
+    :param pk: DER encoded public key
+    :type pk: bytes
     :return: public key.
     :rtype: hex str
     """
 
     # Get the asn1 representation of the public key DER data.
-    asn1_pk, _ = decoder.decode(str(pk_der))
+    asn1_pk, _ = decoder.decode(str(pk))
 
     # Get the public key as a BitString. The public key corresponds to the second component
     # of the asn1 public key structure.

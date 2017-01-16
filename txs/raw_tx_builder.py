@@ -5,7 +5,7 @@ from wallet.wallet import generate_std_scriptpubkey, get_priv_key_hex
 
 def build_raw_tx(prev_tx_id, prev_out_index, value, src_btc_addr, dest_btc_addr):
 
-    assert len(prev_tx_id) == len(prev_out_index) == len(value) == len(src_btc_addr)
+    assert len(prev_tx_id) == len(prev_out_index) == len(value)
 
     scriptPubKey = []
     for i in range(len(dest_btc_addr)):

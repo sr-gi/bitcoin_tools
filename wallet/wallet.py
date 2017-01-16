@@ -107,15 +107,15 @@ def public_key_to_btc_address(pk, v='main'):
 def generate_btc_addr(pk, v='main'):
     """ Calculates Bitcoin address associated to a given elliptic curve public key and a given network.
 
-    :param pk: elliptic curve public key (in hexadecimal format).
-    :type pk: EC_pub
+    :param pk: DER encoded public key
+    :type pk: bytes
     :param v: version (prefix) used to calculate the WIF, it depends on the type of network.
     :type v: str
     :return: The Bitcoin address associated to the given public key and network.
     :rtype: str
     """
 
-    # Get the hex representation of the provided EC_pub.
+    # Get the hex representation of the provided DER encoded public key.
     public_key_hex = get_pub_key_hex(pk)
     # Generate the Bitcoin address of de desired network.
     btc_addr = public_key_to_btc_address(public_key_hex, v)

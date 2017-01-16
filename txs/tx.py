@@ -1,4 +1,4 @@
-from tools import change_endianness, decode_varint, int2bytes
+from tools import change_endianness, decode_varint, encode_varint, int2bytes
 
 
 class TX:
@@ -105,7 +105,7 @@ class TX:
 
         # 1-byte number of inputs.
         n_inputs = len(prev_tx_id)
-        self.inputs = int2bytes(n_inputs, 1)  # e.g "01"
+        self.inputs = encode_varint(n_inputs)  # e.g "01"
 
         # Reference to the UTXO to redeem.
 
@@ -140,7 +140,7 @@ class TX:
 
         # 1-byte number of outputs.
         n_outputs = len(scriptPubKey)
-        self.outputs = int2bytes(n_outputs, 1)  # e.g "01"
+        self.outputs = encode_varint(n_outputs)  # e.g "01"
 
         # 8-byte field (64 bit integer) representing the amount of Satoshis to be spent (little endian).
         # 0.00349815 (UTXO value) - 0.00005000 (fee) =  0.00344815 BTC = 344815 (Satoshi) = ef4250 (Little endian)
@@ -152,7 +152,7 @@ class TX:
 
             # e.g scriptPubKey = ["010301029488"]
 
-            self.scriptPubKey_len.append(int2bytes(len(scriptPubKey[i]) / 2, 1))  # e.g "06"
+            self.scriptPubKey_len.append(encode_varint(len(scriptPubKey[i]) / 2))  # e.g "06"
             self.scriptPubKey = scriptPubKey  # e.g scriptPubKey = "010301029488"
 
         # 4-byte lock time field (default: 0)
