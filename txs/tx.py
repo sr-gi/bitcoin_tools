@@ -2,6 +2,9 @@ from tools import change_endianness, decode_varint, encode_varint, int2bytes
 
 
 class TX:
+    """ Defines a class TX (transaction) that holds all the modifiable fields of a Bitcoin transaction, such as
+    version, number of inputs, reference to previous transactions, input and output scripts, value, etc.
+    """
 
     def __init__(self, version=None, inputs=None, prev_tx_id=None, prev_out_index=None, scriptSig_len=None, scriptSig=None,
                  nSequence=None, outputs=None, value=None, scriptPubKey_len=None, scriptPubKey=None, nLockTime=None):
@@ -56,6 +59,14 @@ class TX:
         self.offset = 0
 
     def print_elements(self):
+        """ Displays all the information related to the transaction object, properly split and arranged.
+
+        :param self: self
+        :type self: TX
+        :return: None.
+        :rtype: None
+        """
+
         print "version: " + self.version
         print "number of inputs: " + self.inputs + " (" + str(decode_varint(self.inputs)) + ")"
         for i in range(len(self.scriptSig)):
@@ -78,6 +89,15 @@ class TX:
         print "nLockTime: " + self.nLockTime
 
     def to_hex(self):
+        """ Serialize all the transaction fields arranged in the proper order, resulting in a hexadecimal string
+        ready to be broadcast to the network.
+
+        :param self: self
+        :type self: TX
+        :return: Hexadecimal transaction representation.
+        :rtype: hex str
+        """
+
         if self.hex is None:
             self.hex = self.version + self.inputs
 
@@ -95,6 +115,27 @@ class TX:
         return self.hex
 
     def build_default_tx(self, prev_tx_id, prev_out_index, value, scriptPubKey, scriptSig=None):
+        """ Builds a standard P2PKH transaction using default parameters such as version = 01000000 or
+        nSequence = FFFFFFFF.
+
+        :param self: self
+        :type self: TX
+        :param prev_tx_id: List of references to the previous transactions from where the current transaction will
+        redeem some bitcoins.
+        :type prev_tx_id: str list
+        :param prev_out_index: List of references transaction output from where the funds will be redeemed.
+        :type prev_out_index: int list
+        :param value: List of value to be transferred to the desired destinations, in Satoshis (The difference between
+        the total input value and the total output value will be charged as fee).
+        :type value: int list
+        :param scriptPubKey: List of scripts that will lock the outputs of the current transaction.
+        :type scriptPubKey: hex str list
+        :param scriptSig: List of scripts that will provide proof of fulfillment of the redeem conditions from the
+        previous transactions (referenced by the prev_tx_id and prev_out_index).
+        :type scriptSig: hex str list
+        :return: None.
+        :rtype: None
+        """
 
         # 4-byte version number (default: 01 little endian).
         self.version = "01000000"
@@ -103,7 +144,7 @@ class TX:
         #   INPUTS  #
         #############
 
-        # 1-byte number of inputs.
+        # Number of inputs (varint, between 1-9 bytes long).
         n_inputs = len(prev_tx_id)
         self.inputs = encode_varint(n_inputs)  # e.g "01"
 

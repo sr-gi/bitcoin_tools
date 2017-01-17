@@ -40,7 +40,7 @@ src_btc_addr = [btc_addr]
 destination_btc_addr = ["mkpKXgxN9tqoFDosG2Rjh1KvqrteXZ1kk9"]
 
 # Finally, the raw transaction can be build using all the provided inputs.
-signed_tx = build_raw_tx(prev_tx_id, prev_out_index, value, src_btc_addr, destination_btc_addr)
+signed_tx = build_raw_tx(prev_tx_id, prev_out_index, src_btc_addr, value, destination_btc_addr)
 
 # Displays the transaction.
 print "hex: " + signed_tx
