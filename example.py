@@ -5,7 +5,9 @@ from wallet.wallet import generate_wif, generate_btc_addr
 #################################################
 # Key management and Bitcoin address generation #
 #################################################
-# Uncomment this part to generate fresh keys and Bitcoin address
+# ---------------------------------------------------------------------------------------------------------------------
+# Uncomment down bellow to generate fresh keys and Bitcoin address.
+# ---------------------------------------------------------------------------------------------------------------------
 
 # First of all the elliptic curve keys are generated.
 sk, pk = generate_keys()
@@ -17,11 +19,12 @@ store_keys(sk.to_pem(), pk.to_pem(), btc_addr)
 # Finally, the private key is encoded as WIF and also stored in disk, ready to be imported in a wallet.
 generate_wif(btc_addr, mode='image', v='test')
 
-
 #################################################
-# Key loading, if they'd been already generated #
+#               Key loading                     #
 #################################################
-# Uncomment this part to load already generated keys. Replace the Bitcoin address for the one that matches yours.
+# ---------------------------------------------------------------------------------------------------------------------
+# Uncomment down bellow to load already generated keys. Replace the Bitcoin address for the one that matches yours.
+# ---------------------------------------------------------------------------------------------------------------------
 
 # btc_addr = "mwryy9YdVezq2Wo1DukA5ADhrNemqCKTmy"
 # sk, pk = load_keys(btc_addr)
@@ -29,7 +32,6 @@ generate_wif(btc_addr, mode='image', v='test')
 #################################################
 #           Raw transaction building            #
 #################################################
-
 # ---------------------------------------------------------------------------------------------------------------------
 # Down bellow he inputs of the raw transaction builder can be found. Each item should be inserted in the
 # corresponding list, separated by commas.
