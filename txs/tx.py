@@ -1,4 +1,5 @@
 from tools import change_endianness, decode_varint, encode_varint, int2bytes
+from constants import MAX_SIG_LEN, PK_LEN, OP_PUSH_LEN, MIN_TX_FEE
 
 
 class TX:
@@ -6,8 +7,9 @@ class TX:
     version, number of inputs, reference to previous transactions, input and output scripts, value, etc.
     """
 
-    def __init__(self, version=None, inputs=None, prev_tx_id=None, prev_out_index=None, scriptSig_len=None, scriptSig=None,
-                 nSequence=None, outputs=None, value=None, scriptPubKey_len=None, scriptPubKey=None, nLockTime=None):
+    def __init__(self, version=None, inputs=None, prev_tx_id=None, prev_out_index=None, scriptSig_len=None,
+                 scriptSig=None, nSequence=None, outputs=None, value=None, scriptPubKey_len=None,
+                 scriptPubKey=None, nLockTime=None):
         if prev_tx_id is None:
             prev_tx_id = []
         self.version = version
@@ -98,23 +100,68 @@ class TX:
         :rtype: hex str
         """
 
-        if self.hex is None:
-            self.hex = self.version + self.inputs
+        self.hex = self.version + self.inputs
 
-            for i in range(len(self.prev_tx_id)):
-                self.hex += self.prev_tx_id[i] + self.prev_out_index[i] + self.scriptSig_len[i] \
-                            + self.scriptSig[i] + self.nSequence[i]
+        for i in range(len(self.prev_tx_id)):
+            self.hex += self.prev_tx_id[i] + self.prev_out_index[i] + self.scriptSig_len[i] \
+                        + self.scriptSig[i] + self.nSequence[i]
 
-            self.hex += self.outputs
+        self.hex += self.outputs
 
-            for i in range(len(self.scriptPubKey)):
-                self.hex += self.value[i] + self.scriptPubKey_len[i] + self.scriptPubKey[i]
+        for i in range(len(self.scriptPubKey)):
+            self.hex += self.value[i] + self.scriptPubKey_len[i] + self.scriptPubKey[i]
 
-            self.hex += self.nLockTime
+        self.hex += self.nLockTime
 
         return self.hex
 
-    def build_default_tx(self, prev_tx_id, prev_out_index, value, scriptPubKey, scriptSig=None):
+    def add_fees(self, output=0, amount=None):
+        """ Adds the chosen fees to the chosen output of the transaction.
+       :param self: self
+       :type self: TX
+       :param output: The output where the fees will be charged. The first input will be chosen by default (output=0).
+       :type output: int
+       :param amount: The amount of fees to be charged. The minimum fees wil be charged by default (amount=None).
+       :type amount: int.
+       :return: The maximum size of the transaction.
+       :rtype: int
+       """
+
+        # Minimum fees will be applied
+        if amount is None:
+            fees = self.get_p2pkh_tx_max_len() * MIN_TX_FEE
+
+        else:
+            fees = amount
+
+        # Get the bitcoin amount from the chosen output, cast it into integer and subtract the fees.
+        amount = int(change_endianness(self.value[output]), 16) - fees
+        # Fill all the missing bytes up to the value length(8 bytes) and get the value back to its LE representation.
+        self.value[output] = change_endianness(int2bytes(amount, 8))
+        # Update the hex representation of the transaction
+        self.to_hex()
+
+    def get_p2pkh_tx_max_len(self):
+        """ Computes the maximum transaction length for a default Bitcoin transactions, that is, all the scriptSig
+        values are P2PKH scripts. The method can be used approximate the final transaction length and in that way
+        calculate the minimum transactions fees than can be applied to the transaction.
+       :param self: self
+       :type self: TX
+       :return: The maximum size of the transaction.
+       :rtype: int
+       """
+
+        # Max length is approximated by calculating the length of the non-signed transaction, and adding the maximum
+        # length of a standard P2PKH sigScript, which corresponds to the length of two data pushes (2 * OP_PUSH_LEN)
+        # plus the size of the signature (at most MAX_SIG_LEN) plus the length of a Bitcoin public key (PK_LEN).
+        max_len = len(self.hex) / 2 + ((2 * OP_PUSH_LEN + MAX_SIG_LEN + PK_LEN) * int(self.inputs))
+        # An additional byte for each input should be added to the max length representing the sigScript length
+        # of each input. However, since we had previously added a byte to temporary fill both sigScript and
+        # sigScript_len field (00) for each input, it will not be necessary.
+
+        return max_len
+
+    def build_p2pkh_std_tx(self, prev_tx_id, prev_out_index, value, scriptPubKey, scriptSig=None, fees=None):
         """ Builds a standard P2PKH transaction using default parameters such as version = 01000000 or
         nSequence = FFFFFFFF.
 
@@ -165,8 +212,8 @@ class TX:
 
         for i in range(n_inputs):
             if scriptSig is None:
+                self.scriptSig_len.append("0")  # Input script length (varint, between 1-9 bytes long)
                 self.scriptSig.append("0")
-                self.scriptSig_len.append("0")
 
             else:
                 self.scriptSig_len.append(int2bytes(len(scriptSig[i]) / 2, 1))
@@ -179,7 +226,7 @@ class TX:
         #  OUTPUTS  #
         #############
 
-        # 1-byte number of outputs.
+        # Number of outputs (varint, between 1-9 bytes long).
         n_outputs = len(scriptPubKey)
         self.outputs = encode_varint(n_outputs)  # e.g "01"
 
@@ -189,18 +236,18 @@ class TX:
         for i in range(n_outputs):
             self.value.append(change_endianness(int2bytes(value[i], 8)))  # e.g "ef42050000000000"
 
-            # Output script and its length (bytes) (HEX)
-
-            # e.g scriptPubKey = ["010301029488"]
+            # Output script and its length (varint, between 1-9 bytes long)
 
             self.scriptPubKey_len.append(encode_varint(len(scriptPubKey[i]) / 2))  # e.g "06"
-            self.scriptPubKey = scriptPubKey  # e.g scriptPubKey = "010301029488"
+            self.scriptPubKey = scriptPubKey  # e.g "010301029488"
 
         # 4-byte lock time field (default: 0)
 
         self.nLockTime = "00000000"
 
         self.to_hex()
+
+        self.add_fees()
 
 
 

@@ -1,5 +1,5 @@
 from os import mkdir, path
-from ecdsa import SigningKey, SECP256k1
+from ecdsa import SigningKey, VerifyingKey, SECP256k1
 from subprocess import check_output, STDOUT
 from pyasn1.codec.der import decoder
 
@@ -38,6 +38,22 @@ def store_keys(sk, pk, btc_addr):
     # Save both keys into disk using the Bitcoin address as an identifier.
     open(btc_addr + '/sk.pem', "w").write(sk)
     open(btc_addr + '/pk.pem', "w").write(pk)
+
+
+def load_keys(btc_addr):
+    """ Loads an elliptic curve key pair in PEM format from disk. Keys are stored in their proper objects from the ecdsa
+    python library (SigningKey and VerifyingKey respectively)
+
+    :param btc_addr: Bitcoin address associated to the public key of the key pair.
+    :type btc_addr: str
+    :return: ecdsa key pair as a tuple.
+    :rtype: SigningKey, VerifyingKey
+    """
+
+    sk_pem = open(btc_addr + '/sk.pem', "r").read()
+    pk_pem = open(btc_addr + '/pk.pem', "r").read()
+
+    return SigningKey.from_pem(sk_pem), VerifyingKey.from_pem(pk_pem)
 
 
 def get_pub_key_hex(pk):
