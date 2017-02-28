@@ -194,6 +194,9 @@ def b128_encode(n):
     The encoding is used to store Satoshi amounts into the Bitcoin LevelDB (chainstate). Before encoding, values are
     compressed using txout_compress.
 
+    The encoding can also be used to encode block height values into the format use in the LevelDB, however, those are
+    encoded not compressed.
+
     Explanation can be found in:
         https://github.com/bitcoin/bitcoin/blob/v0.13.2/src/serialize.h#L307L329
     And code:
@@ -244,6 +247,9 @@ def b128_decode(data):
 
     The decoding is used to decode Satoshi amounts stored in the Bitcoin LevelDB (chainstate). After decoding, values
     are decompressed using txout_decompress.
+
+    The decoding can be also used to decode block height values stored in the LevelDB. In his case, values are not
+    compressed.
 
     Original code can be found in:
         https://github.com/bitcoin/bitcoin/blob/v0.13.2/src/serialize.h#L360#L372
