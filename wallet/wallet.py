@@ -200,6 +200,11 @@ def generate_wif(btc_addr, mode='image', v='main'):
         raise Exception("Invalid mode, used either 'image' or 'text'.")
 
 
+def sign(tx, i, priv, hashcode='SIGHASH_ALL'):
+    # ToDo
+    pass
+
+
 def generate_std_scriptpubkey(target_btc_addr):
     """ Generates a standard Bitcoin ScriptPubKey (AKA P2PKH) bound to a target Bitcoin address. A signature from
     the later will be mandatory to redeem the funds locked by the script.

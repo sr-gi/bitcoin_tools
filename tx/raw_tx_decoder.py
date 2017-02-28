@@ -1,5 +1,5 @@
-from tools import decode_varint, parse_varint, parse_element
 from tx import TX
+from utils.utils import decode_varint, parse_varint, parse_element
 
 
 def decode_raw_tx(tx_hex):

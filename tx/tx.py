@@ -1,5 +1,5 @@
-from tools import change_endianness, decode_varint, encode_varint, int2bytes
 from constants import MAX_SIG_LEN, PK_LEN, OP_PUSH_LEN, MIN_TX_FEE
+from utils.utils import change_endianness, decode_varint, encode_varint, int2bytes
 
 
 class TX:

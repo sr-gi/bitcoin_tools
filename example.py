@@ -1,4 +1,4 @@
-from txs.raw_tx_builder import build_raw_tx
+from tx.raw_tx_builder import build_raw_tx
 from wallet.keys import generate_keys, store_keys, load_keys
 from wallet.wallet import generate_wif, generate_btc_addr
 
@@ -57,3 +57,4 @@ signed_tx = build_raw_tx(prev_tx_id, prev_out_index, src_btc_addr, value, destin
 
 # Displays the transaction.
 print "hex: " + signed_tx
+

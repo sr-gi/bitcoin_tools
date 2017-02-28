@@ -1,5 +1,4 @@
 .*/
 *.pyc
-data/
-test.py
-
+test/*
+ToDo
