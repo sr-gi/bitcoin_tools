@@ -331,7 +331,7 @@ def decode_utxo(utxo):
         # In order to identify which outs are non-spent, the binary representation of the obtained value is checked.
         # Every position(i) with a 1 encodes the index of a non-spent output as i+n, being n the number of non-spent
         # outputs. (e.g: 0440 (LE) = 4004 (BE) = 0100 0000 0000 0100. It encodes outs 4 (i+n = 2+2) and 16 (i+n = 14+2).
-        index = [i+n for i in xrange(len(data)) if bin_data.find('1', i) == i]  # Finds the index of '1's and adds n.
+        index = [i+n for i in xrange(len(bin_data)) if bin_data.find('1', i) == i]  # Finds the index of '1's and adds n.
     else:
         # If out 0 and/or out 1 is set the index is included to be decoded.
         index = [i for i in xrange(len(vout)) if vout[i] is not 0]
