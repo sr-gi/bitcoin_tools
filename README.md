@@ -26,7 +26,7 @@ store_keys(sk.to_pem(), pk.to_pem(), btc_addr)
 generate_wif(btc_addr, mode='image', v='test') 
 ```
 
-### Raw transaction building  
+#### Raw transaction building  
 ```python
 # Reference to the previous transaction where the funds will be redeemed and spent. Consists in an id and
 # an output index.
