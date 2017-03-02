@@ -26,11 +26,6 @@ store_keys(sk.to_pem(), pk.to_pem(), btc_addr)
 generate_wif(btc_addr, mode='image', v='test') 
 ```
 
-### Key loading  
-```python
-btc_addr = "mwryy9YdVezq2Wo1DukA5ADhrNemqCKTmy"
-sk, pk = load_keys(btc_addr)
-```
 ### Raw transaction building  
 ```python
 # Reference to the previous transaction where the funds will be redeemed and spent. Consists in an id and
