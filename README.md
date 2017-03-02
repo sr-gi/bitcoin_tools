@@ -43,7 +43,6 @@ src_btc_addr = [btc_addr]
 destination_btc_addr = ["mwryy9YdVezq2Wo1DukA5ADhrNemqCKTmy"]
 
 # Finally, the raw transaction can be build using all the provided inputs.
-# ToDo: Choose how to deal with fees. Currently they are set as minimum by default and can not be changed.
 signed_tx = build_raw_tx(prev_tx_id, prev_out_index, src_btc_addr, value, destination_btc_addr)
 
 # Displays the transaction.
