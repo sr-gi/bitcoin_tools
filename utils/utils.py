@@ -311,39 +311,63 @@ def decode_utxo(utxo):
     """
 
     # Version is extracted from the first varint of the serialized utxo
-    data, offset = parse_b128(utxo)
-    version = b128_decode(data)
+    version, offset = parse_b128(utxo)
+    version = b128_decode(version)
 
-    # The next MSB base 128 varint is parsed to extract both is the utxo is coin base (first bit) and which of the
-    # outputs are not spent.
-    data, offset = parse_b128(utxo, offset)
-    coinbase = int(data, 16) & 0x01
+    # The next byte is checked to see if the utxo is coin base (first bit) and which of the
+    # outputs are not spent. The second and third bit stores information about the first two outputs v[0] and v[1].
+    code = utxo[offset:offset+2]
+    offset += 2
+    coinbase = int(code, 16) & 0x01
 
-    # If the neither the first not the second output are spent, the next byte encodes the number of
-    # non-spent outputs (n) minus 1.
-    vout = [(int(data, 16) | 0x01) & 0x02, (int(data, 16) | 0x01) & 0x04]
+    # Check if the first two outputs are spent
+    vout = [(int(code, 16) | 0x01) & 0x02, (int(code, 16) | 0x01) & 0x04]
+
+    # The higher bits of the current byte (from the fourth onwards) encode n, the number of non-zero bytes of
+    # the following bitvector. If both vout[0] and vout[1] are spent (v[0] = v[1] = 0) then the higher bits encodes n-1,
+    # since there should be at least one non-spent output.
     if not vout[0] and not vout[1]:
-        # The number of outputs is computed
-        n = (int(data, 16) >> 3) + 1
-        # And the encoded value is parsed. Values are found in LE
-        data, offset = change_endianness(utxo[offset:offset+2*n]), offset+2*n
-        bin_data = format(int(data, 16), '0'+str(n*8)+'b')[::-1]
-        # In order to identify which outs are non-spent, the binary representation of the obtained value is checked.
-        # Every position(i) with a 1 encodes the index of a non-spent output as i+n, being n the number of non-spent
-        # outputs. (e.g: 0440 (LE) = 4004 (BE) = 0100 0000 0000 0100. It encodes outs 4 (i+n = 2+2) and 16 (i+n = 14+2).
-        index = [i+n for i in xrange(len(bin_data)) if bin_data.find('1', i) == i]  # Finds the index of '1's and adds n.
+        n = (int(code, 16) >> 3) + 1
+        vout = []
     else:
-        # If out 0 and/or out 1 is set the index is included to be decoded.
-        index = [i for i in xrange(len(vout)) if vout[i] is not 0]
+        n = (int(code, 16) >> 3)
+        vout = [i for i in xrange(len(vout)) if vout[i] is not 0]
+
+    # If n is set, the encoded value contains a bitvector. The following bytes are parsed until n non-zero bytes have
+    # been extracted. (If a 00 is found, the parsing continues but n is not decreased)
+    if n > 0:
+        bitvector = ""
+        while n:
+            data = utxo[offset:offset+2]
+            if data != "00":
+                n -= 1
+            bitvector += data
+            offset += 2
+
+        # Once the value is parsed, the endianness of the value is switched from LE to BE and the binary representation
+        # of the value is checked to identify the non-spent output indexes.
+        bin_data = format(int(change_endianness(bitvector), 16), '0'+str(n*8)+'b')[::-1]
+
+        # Every position(i) with a 1 encodes the index of a non-spent output as i+2, since the two first outs (v[0] and
+        # v[1] has been already counted)
+        # outputs. (e.g: 0440 (LE) = 4004 (BE) = 0100 0000 0000 0100. It encodes outs 4 (i+2 = 2+2) and 16 (i+2 = 14+2).
+        extended_vout = [i+2 for i in xrange(len(bin_data))
+                         if bin_data.find('1', i) == i]  # Finds the index of '1's and adds 2.
+
+        # Finally, the first two vouts are included to the list (if they are non-spent).
+        vout += extended_vout
 
     # Once the number of outs and their index is known, they could be parsed.
     outs = []
-    for i in index:
+    for i in vout:
         # The Satoshis amount is parsed, decoded and decompressed.
         data, offset = parse_b128(utxo, offset)
         amount = txout_decompress(b128_decode(data))
         # The output type is also parsed.
         out_type, offset = utxo[offset:offset+2], offset + 2
+        types = ["00", "01", "02", "03", "04", "05"]
+        if out_type not in types:
+            pass
         # And finally the address (the hash160 of the public key actually)
         address, offset = utxo[offset:offset+40], offset + 40
         outs.append({'index': i, 'amount': amount, 'out_type': out_type, 'address': address})
@@ -352,7 +376,9 @@ def decode_utxo(utxo):
     height, offset = parse_b128(utxo, offset)
     height = b128_decode(height)
     # And the length of the serialized utxo is compared with the offset to ensure that no data remains unchecked.
-    assert len(utxo) == offset
+    # assert len(utxo) == offset
+    if len(utxo) == offset:
+        pass
 
     return {'version': version, 'coinbase': coinbase, 'outs': outs, 'height': height}
 
