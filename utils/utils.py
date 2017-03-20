@@ -1,3 +1,5 @@
+from constants import NSPECIALSCRIPTS
+
 def change_endianness(x):
     """ Changes the endianness (from BE to LE and vice versa) of a given value.
 
@@ -204,7 +206,7 @@ def b128_encode(n):
 
     The MSB of every byte (x)xxx xxxx encodes whether there is another byte following or not. Hence, all MSB are set to
     one except from the very last. Moreover, one is subtracted from all but the last digit in order to ensure a
-    one-to-one encoding. Hence, in order decode a value, the MSB is change from 1 to 0, and 1 is added to the resulting
+    one-to-one encoding. Hence, in order decode a value, the MSB is changed from 1 to 0, and 1 is added to the resulting
     value. Then, the value is multiplied to the respective 128 power and added to the rest.
 
     Examples:
@@ -256,10 +258,10 @@ def b128_decode(data):
 
     Examples and further explanation can be found in b128_encode function.
 
-    :param data: Value to be encoded.
-    :type data: int
-    :return: The base-128 encoded value
-    :rtype: hex str
+    :param data: The base-128 encoded value to be decoded.
+    :type data: hex str
+    :return: The decoded value
+    :rtype: int
     """
 
     n = 0
@@ -314,23 +316,23 @@ def decode_utxo(utxo):
     version, offset = parse_b128(utxo)
     version = b128_decode(version)
 
-    # The next byte is checked to see if the utxo is coin base (first bit) and which of the
-    # outputs are not spent. The second and third bit stores information about the first two outputs v[0] and v[1].
-    code = utxo[offset:offset+2]
-    offset += 2
-    coinbase = int(code, 16) & 0x01
+    # The next MSB base 128 varint is parsed to extract both is the utxo is coin base (first bit) and which of the
+    # outputs are not spent.
+    code, offset = parse_b128(utxo, offset)
+    code = b128_decode(code)
+    coinbase = code & 0x01
 
     # Check if the first two outputs are spent
-    vout = [(int(code, 16) | 0x01) & 0x02, (int(code, 16) | 0x01) & 0x04]
+    vout = [(code | 0x01) & 0x02, (code | 0x01) & 0x04]
 
     # The higher bits of the current byte (from the fourth onwards) encode n, the number of non-zero bytes of
     # the following bitvector. If both vout[0] and vout[1] are spent (v[0] = v[1] = 0) then the higher bits encodes n-1,
     # since there should be at least one non-spent output.
     if not vout[0] and not vout[1]:
-        n = (int(code, 16) >> 3) + 1
+        n = (code >> 3) + 1
         vout = []
     else:
-        n = (int(code, 16) >> 3)
+        n = code >> 3
         vout = [i for i in xrange(len(vout)) if vout[i] is not 0]
 
     # If n is set, the encoded value contains a bitvector. The following bytes are parsed until n non-zero bytes have
@@ -348,9 +350,9 @@ def decode_utxo(utxo):
         # of the value is checked to identify the non-spent output indexes.
         bin_data = format(int(change_endianness(bitvector), 16), '0'+str(n*8)+'b')[::-1]
 
-        # Every position(i) with a 1 encodes the index of a non-spent output as i+2, since the two first outs (v[0] and
+        # Every position (i) with a 1 encodes the index of a non-spent output as i+2, since the two first outs (v[0] and
         # v[1] has been already counted)
-        # outputs. (e.g: 0440 (LE) = 4004 (BE) = 0100 0000 0000 0100. It encodes outs 4 (i+2 = 2+2) and 16 (i+2 = 14+2).
+        # (e.g: 0440 (LE) = 4004 (BE) = 0100 0000 0000 0100. It encodes outs 4 (i+2 = 2+2) and 16 (i+2 = 14+2).
         extended_vout = [i+2 for i in xrange(len(bin_data))
                          if bin_data.find('1', i) == i]  # Finds the index of '1's and adds 2.
 
@@ -364,21 +366,32 @@ def decode_utxo(utxo):
         data, offset = parse_b128(utxo, offset)
         amount = txout_decompress(b128_decode(data))
         # The output type is also parsed.
-        out_type, offset = utxo[offset:offset+2], offset + 2
-        types = ["00", "01", "02", "03", "04", "05"]
-        if out_type not in types:
-            pass
+        out_type, offset = parse_b128(utxo, offset)
+        out_type = b128_decode(out_type)
+        # Depending on the type, the length of the following data will differ.  Types 0 and 1 refers to P2PKH and P2SH
+        # encoded outputs. They are always followed 20 bytes of data, corresponding to the hash160 of the address (in
+        # P2PKH outputs) or to the scriptHash (in P2PKH). Notice that the leading and tailing opcodes are not included.
+        # If 2-5 is found, the following bytes encode a public key. The first by in this cases should be also included,
+        # since it determines the format of the key.
+        if out_type in [0, 1]:
+            data_size = 40  # 20 bytes
+        elif out_type in [2, 3, 4, 5]:
+            data_size = 66  # 33 bytes (1 byte for the type + 32 bytes of data)
+            offset -= 2
+        # Finally, if another value is found, it represents the length of the following data, which is uncompressed.
+        else:
+            data_size = (out_type - NSPECIALSCRIPTS) * 2  # If the data is not compacted, the out_type corresponds
+            # to the data size adding the number os special scripts (nSpecialScripts).
+
         # And finally the address (the hash160 of the public key actually)
-        address, offset = utxo[offset:offset+40], offset + 40
-        outs.append({'index': i, 'amount': amount, 'out_type': out_type, 'address': address})
+        data, offset = utxo[offset:offset+data_size], offset + data_size
+        outs.append({'index': i, 'amount': amount, 'out_type': out_type, 'data': data})
 
     # Once all the outs are processed, the block height is parsed
     height, offset = parse_b128(utxo, offset)
     height = b128_decode(height)
     # And the length of the serialized utxo is compared with the offset to ensure that no data remains unchecked.
-    # assert len(utxo) == offset
-    if len(utxo) == offset:
-        pass
+    assert len(utxo) == offset
 
     return {'version': version, 'coinbase': coinbase, 'outs': outs, 'height': height}
 
