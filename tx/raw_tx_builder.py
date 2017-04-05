@@ -24,11 +24,11 @@ def build_raw_tx(prev_tx_id, prev_out_index, src_btc_addr, value, dest_btc_addr,
         for i in range(len(src_btc_addr)):
             priv_key = src_btc_addr[i] + "/sk.pem"
             priv_key_hex = get_priv_key_hex(priv_key)
-            raw_tx = sign(raw_tx, i, priv_key_hex, hashcode=SIGHASH_SINGLE)
+            raw_tx = sign(raw_tx, i, priv_key_hex)
 
     else:
         assert len(scriptPubKey) == len(src_btc_addr)
-        tx.build_p2pkh_std_tx(prev_tx_id, prev_out_index, value, scriptPubKey, scriptSig, scriptSig)
+        tx.build_p2pkh_std_tx(prev_tx_id, prev_out_index, value, scriptPubKey, scriptSig)
         raw_tx = tx.hex
 
     return raw_tx

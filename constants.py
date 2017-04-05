@@ -20,7 +20,7 @@ OP_PUSH_LEN = 1  # Every data push, regardless of the data size to be pushed, si
 
 # Fees
 MIN_TX_FEE = 5  # Satoshis/byte according (just for testnet, in mainnet it could be too low)
-RECOMMENDED_MIN_TX_FEE = 80  # Satoshis/byte according to https://bitcoinfees.21.co/
+RECOMMENDED_MIN_TX_FEE = 120  # Satoshis/byte according to https://bitcoinfees.21.co/
 
 # LevelDB
 NSPECIALSCRIPTS = 6

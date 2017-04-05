@@ -1,4 +1,4 @@
-from constants import MAX_SIG_LEN, PK_LEN, OP_PUSH_LEN, MIN_TX_FEE
+from constants import MAX_SIG_LEN, PK_LEN, OP_PUSH_LEN, RECOMMENDED_MIN_TX_FEE
 from utils.utils import change_endianness, decode_varint, encode_varint, int2bytes
 
 
@@ -129,7 +129,7 @@ class TX:
 
         # Minimum fees will be applied
         if amount is None:
-            fees = self.get_p2pkh_tx_max_len() * MIN_TX_FEE
+            fees = self.get_p2pkh_tx_max_len() * RECOMMENDED_MIN_TX_FEE
 
         else:
             fees = amount
@@ -246,6 +246,8 @@ class TX:
         self.nLockTime = "00000000"
 
         self.to_hex()
+
+        # ToDO: Define a proper way of selecting the fees
 
         self.add_fees()
 
