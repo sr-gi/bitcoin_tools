@@ -1,5 +1,5 @@
-from constants import MAX_SIG_LEN, PK_LEN, OP_PUSH_LEN, MIN_TX_FEE
-from utils.utils import change_endianness, decode_varint, encode_varint, int2bytes
+from constants import MAX_SIG_LEN, PK_LEN, OP_PUSH_LEN, RECOMMENDED_MIN_TX_FEE
+from utils.utils import change_endianness, decode_varint, encode_varint, int2bytes, deserialize_script
 
 
 class TX:
@@ -79,6 +79,7 @@ class TX:
             print "\t input script (scriptSig) length: " + self.scriptSig_len[i] + " (" + str(
                 int(self.scriptSig_len[i], 16)) + ")"
             print "\t input script (scriptSig): " + self.scriptSig[i]
+            print "\t decoded scriptSig: " + deserialize_script(self.scriptSig[i])
             print "\t nSequence: " + self.nSequence[i]
         print "number of outputs: " + self.outputs + " (" + str(decode_varint(self.outputs)) + ")"
         for i in range(len(self.scriptPubKey)):
@@ -88,6 +89,8 @@ class TX:
             print "\t output script (scriptPubKey) length: " + self.scriptPubKey_len[i] + " (" + str(
                 int(change_endianness(self.scriptPubKey_len[i]), 16)) + ")"
             print "\t output script (scriptPubKey): " + self.scriptPubKey[i]
+            print "\t decoded scriptPubKey: " + deserialize_script(self.scriptPubKey[i])
+
         print "nLockTime: " + self.nLockTime
 
     def to_hex(self):
@@ -121,7 +124,8 @@ class TX:
        :type self: TX
        :param output: The output where the fees will be charged. The first input will be chosen by default (output=0).
        :type output: int
-       :param amount: The amount of fees to be charged. The minimum fees wil be charged by default (amount=None).
+       :param amount: The amount of fees to be charged. The minimum fees wfrom bitcoin.core.script import CScript
+from binascii import a2b_hexil be charged by default (amount=None).
        :type amount: int.
        :return: The maximum size of the transaction.
        :rtype: int
@@ -129,7 +133,7 @@ class TX:
 
         # Minimum fees will be applied
         if amount is None:
-            fees = self.get_p2pkh_tx_max_len() * MIN_TX_FEE
+            fees = self.get_p2pkh_tx_max_len() * RECOMMENDED_MIN_TX_FEE
 
         else:
             fees = amount
@@ -217,6 +221,7 @@ class TX:
 
             else:
                 self.scriptSig_len.append(int2bytes(len(scriptSig[i]) / 2, 1))
+                self.scriptSig.append(scriptSig[i])
 
             # 4-byte sequence number (default:ffffffff).
 
@@ -247,7 +252,9 @@ class TX:
 
         self.to_hex()
 
-        self.add_fees()
+        # ToDO: Define a proper way of selecting the fees
+
+        #self.add_fees()
 
 
 

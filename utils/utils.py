@@ -1,3 +1,5 @@
+from bitcoin.core.script import *
+from binascii import a2b_hex, b2a_hex
 from constants import NSPECIALSCRIPTS
 
 def change_endianness(x):
@@ -409,3 +411,36 @@ def display_decoded_utxo(decoded_utxo):
         print "\tHash160 (Address): " + out['address']
 
     print "Block height: " + str(decoded_utxo['height'])
+
+
+def deserialize_script(script):
+    start = "CScript(["
+    end = "])"
+
+    ps = CScript(a2b_hex(script)).__repr__()
+    ps = ps[ps.index(start)+len(start): ps.index(end)].split(", ")
+
+    for i in range(len(ps)):
+        if ps[i].startswith('x('):
+            ps[i] = ps[i][3:-2]
+            ps[i] = '<' + ps[i] + '>'
+
+    return " ".join(ps)
+
+
+def serialize_script(data):
+    hex_string = ""
+    for e in data.split(" "):
+        if e[0] == "<" and e[-1] == ">":
+            hex_string += b2a_hex(CScriptOp.encode_op_pushdata(a2b_hex(e[1:-1])))
+        elif eval(e) in OPCODE_NAMES:
+            hex_string += hex(eval(e))[2:]
+        else:
+            raise Exception
+
+    return hex_string
+
+
+
+
+
