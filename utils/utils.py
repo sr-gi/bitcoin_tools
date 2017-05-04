@@ -2,6 +2,7 @@ from bitcoin.core.script import *
 from binascii import a2b_hex, b2a_hex
 from constants import NSPECIALSCRIPTS
 
+
 def change_endianness(x):
     """ Changes the endianness (from BE to LE and vice versa) of a given value.
 
@@ -413,6 +414,43 @@ def display_decoded_utxo(decoded_utxo):
     print "Block height: " + str(decoded_utxo['height'])
 
 
+def check_signature(signature):
+    l = (len(signature[4:]) - 2) / 2
+
+    if signature[:2] != "30":
+        raise Exception("Wrong signature format.")
+    elif int(signature[2:4], 16) != l:
+        raise Exception("Wrong signature length " + str(l))
+    else:
+        return True
+
+
+def check_public_key(pk):
+    prefix = pk[0:2]
+    l = len(pk)
+
+    if prefix not in ["02", "03", "04"]:
+        raise Exception("Wrong public key format.")
+    if prefix == "04" and l != 130:
+        raise Exception("Wrong length for an uncompressed public key: " + str(l))
+    elif prefix in ["02", "03"] and l != 64:
+        raise Exception("Wrong length for a compressed public key: " + str(l))
+    else:
+        return True
+
+
+def check_address(btc_addr, network='test'):
+    if network in ['test', "testnet"] and btc_addr[0] not in ['m', 'n']:
+        raise Exception("Wrong testnet address format.")
+    elif network in ['main', 'mainnet'] and btc_addr[0] != '1':
+        raise Exception("Wrong mainnet address format.")
+    elif network not in ['test', 'testnet', 'main', 'mainnet']:
+        raise Exception("Network must be test/testnet or main/mainnet")
+    else:
+        return True
+
+
+# ToDo: Change for script
 def deserialize_script(script):
     start = "CScript(["
     end = "])"
@@ -434,7 +472,7 @@ def serialize_script(data):
         if e[0] == "<" and e[-1] == ">":
             hex_string += b2a_hex(CScriptOp.encode_op_pushdata(a2b_hex(e[1:-1])))
         elif eval(e) in OPCODE_NAMES:
-            hex_string += hex(eval(e))[2:]
+            hex_string += format(eval(e), '02x')
         else:
             raise Exception
 
