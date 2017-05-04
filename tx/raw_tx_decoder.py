@@ -27,7 +27,7 @@ def decode_raw_tx(tx_hex):
 
     assert tx.offset == len(tx.hex)
 
-    tx.print_elements()
+    tx.deserialize()
 
 
 
