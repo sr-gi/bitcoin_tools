@@ -107,6 +107,8 @@ class OutputScript(Script):
         if n != len(pks):
             raise Exception("The provided number of keys does not match the expected one: " + str(len(pks)) +
                             "!=" + str(n))
+        elif m not in range(1, 15) or n not in range(1, 15):
+            raise Exception("Multisig transactions must be 15-15 at max")
         else:
             script = "OP_" + str(m)
             for pk in pks:

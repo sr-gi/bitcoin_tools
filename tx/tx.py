@@ -1,6 +1,10 @@
+from copy import deepcopy
 from constants import MAX_SIG_LEN, PK_LEN, OP_PUSH_LEN, RECOMMENDED_MIN_TX_FEE
-from utils.utils import change_endianness, decode_varint, encode_varint, int2bytes, deserialize_script
+from utils.utils import change_endianness, decode_varint, encode_varint, int2bytes, deserialize_script, \
+    is_public_key, is_btc_addr, is_signature
 from script.script import InputScript, OutputScript
+
+
 
 
 class TX:
@@ -42,8 +46,8 @@ class TX:
                 int(change_endianness(self.prev_out_index[i]), 16)) + ")"
             print "\t input script (scriptSig) length: " + self.scriptSig_len[i] + " (" + str(
                 int(self.scriptSig_len[i], 16)) + ")"
-            print "\t input script (scriptSig): " + self.scriptSig[i]
-            print "\t decoded scriptSig: " + deserialize_script(self.scriptSig[i])
+            print "\t input script (scriptSig): " + self.scriptSig[i].content
+            print "\t decoded scriptSig: " + deserialize_script(self.scriptSig[i].content)
             print "\t nSequence: " + self.nSequence[i]
         print "number of outputs: " + self.outputs + " (" + str(decode_varint(self.outputs)) + ")"
         for i in range(len(self.scriptPubKey)):
@@ -52,8 +56,8 @@ class TX:
                 int(change_endianness(self.value[i]), 16)) + ")"
             print "\t output script (scriptPubKey) length: " + self.scriptPubKey_len[i] + " (" + str(
                 int(change_endianness(self.scriptPubKey_len[i]), 16)) + ")"
-            print "\t output script (scriptPubKey): " + self.scriptPubKey[i]
-            print "\t decoded scriptPubKey: " + deserialize_script(self.scriptPubKey[i])
+            print "\t output script (scriptPubKey): " + self.scriptPubKey[i].content
+            print "\t decoded scriptPubKey: " + deserialize_script(self.scriptPubKey[i].content)
 
         print "nLockTime: " + self.nLockTime
 
@@ -71,19 +75,21 @@ class TX:
 
         for i in range(len(self.prev_tx_id)):
             serialized_tx += self.prev_tx_id[i] + self.prev_out_index[i] + self.scriptSig_len[i] \
-                             + self.scriptSig[i] + self.nSequence[i]
+                             + self.scriptSig[i].content + self.nSequence[i]
 
         serialized_tx += self.outputs
 
         for i in range(len(self.scriptPubKey)):
-            serialized_tx += self.value[i] + self.scriptPubKey_len[i] + self.scriptPubKey[i]
+            serialized_tx += self.value[i] + self.scriptPubKey_len[i] + self.scriptPubKey[i].content
 
         serialized_tx += self.nLockTime
 
         return serialized_tx
 
-    def build_from_scripts(self, prev_tx_id, prev_out_index, value, scriptPubKey, scriptSig, fees=None):
-        if len(scriptSig) == 0 or len(scriptPubKey) == 0:
+    def build_from_scripts(self, prev_tx_id, prev_out_index, value, scriptSig, scriptPubKey,fees=None):
+        if len(prev_tx_id) is not len(prev_out_index) or len(prev_tx_id) is not len(scriptSig):
+            raise Exception("The number ofs UTXOs to spend must match with the number os ScriptSigs to set.")
+        elif len(scriptSig) == 0 or len(scriptPubKey) == 0:
             raise Exception("Scripts can't be empty")
         # ToDo: add more strict checks
         else:
@@ -98,7 +104,7 @@ class TX:
 
             # ScriptSig
             for i in range(n_inputs):
-                self.scriptSig_len.append(int2bytes(len(scriptSig[i]) / 2, 1))  # Input script length (varint).
+                self.scriptSig_len.append(int2bytes(len(scriptSig[i].content) / 2, 1))  # Input script length (varint).
                 self.scriptSig.append(scriptSig[i])  # Input script.
 
                 self.nSequence.append("ffffffff")  # 4-byte sequence number
@@ -111,8 +117,8 @@ class TX:
             for i in range(n_outputs):
                 self.value.append(change_endianness(int2bytes(value[i], 8)))  # 8-byte field (64 bit int) Satoshi value
 
-                self.scriptPubKey_len.append(encode_varint(len(scriptPubKey[i]) / 2))  # Output script length (varint).
-                self.scriptPubKey = scriptPubKey  # Output script.
+                self.scriptPubKey_len.append(encode_varint(len(scriptPubKey[i].content) / 2))  # Output script length (varint).
+                self.scriptPubKey.append(scriptPubKey[i])  # Output script.
 
             self.nLockTime = "00000000"  # 4-byte lock time field
 
@@ -122,10 +128,86 @@ class TX:
         scriptSig = InputScript()
         scriptPubKey = OutputScript()
 
-        self.build_from_scripts(prev_tx_id, prev_out_index, value, scriptSig.from_hex("0"),
-                                scriptPubKey.P2PKH(outputs), fees)
+        ins = []
+        outs = []
+        if isinstance(prev_tx_id, str):
+            prev_tx_id = [prev_tx_id]
+        if isinstance(prev_out_index, str):
+            prev_out_index = [prev_out_index]
+        if isinstance(value, int):
+            value = [value]
+        if isinstance(outputs, str):
+            outputs = [outputs]
+        if isinstance(inputs, str):
+            inputs = [inputs]
 
-        
+        # ToDo: Deal with fees
+
+        for o in outputs:
+            if isinstance(o, list) and o[0] in range(1, 15):
+                pks = [is_public_key(pk) for pk in o]
+                if all(pks):
+                    scriptPubKey.P2MS(o[0], len(o) - 1, o[1:])
+            elif is_public_key(o):
+                scriptPubKey.P2PK(o)
+            elif is_btc_addr(o):
+                scriptPubKey.P2PKH(o)
+            else:
+                # ToDo: Handle P2SH outputs as an additional elif
+                raise Exception("Bad output")
+
+            outs.append(deepcopy(scriptPubKey))
+
+        for i in range(len(inputs)):
+            scriptSig.from_human("OP_0")
+            ins.append(scriptSig)
+
+        self.build_from_scripts(prev_tx_id, prev_out_index, value, ins, outs)
+
+        from pybitcointools import signature_form, SIGHASH_ALL, ecdsa_tx_sign
+        from wallet.wallet import get_priv_key_hex
+
+        ########################
+        ####### SIGNATURE ######
+        ########################
+
+        btc_addr = "mgwpBW3g4diqasfxzWDgSi5fBrsFKmNdva"
+        priv_key = btc_addr + "/sk.pem"
+        priv_key_hex = get_priv_key_hex(priv_key)
+        unsigned_tx = self.serialize()
+        sig_hash = SIGHASH_ALL
+
+        for i in range(len(inputs)):
+            sf = signature_form(unsigned_tx, i, scriptPubKey.content, sig_hash)
+            sig = ecdsa_tx_sign(sf, priv_key_hex)
+            scriptSig.P2PKH(sig, inputs[i])
+            self.scriptSig[i] = scriptSig
+            self.scriptSig_len[i] = encode_varint(len(scriptSig.content) / 2)
+            print self.serialize()
+            self.deserialize()
+
+        ########################
+
+
+        # for i in inputs:
+        #     if isinstance(i, list):
+        #         sigs = [is_signature(sig) for sig in i]
+        #         if all(sigs):
+        #             inputScripts.append(scriptSig.P2MS(i))
+        #     elif is_public_key(i):
+        #         inputScripts.append(scriptSig.P2PK(i))
+        #     elif is_btc_addr(i):
+        #         inputScripts.append(scriptSig.P2PKH(i))
+        #     else:
+        #         # ToDo: Handle P2SH outputs as an additional elif
+        #         raise Exception("Bad input")
+
+
+
+        # self.build_from_scripts(prev_tx_id, prev_out_index, value, scriptSig.from_hex("0"),
+        #                         scriptPubKey.P2PKH(outputs), fees)
+
+
 
         # ToDo: sign the tx and replace the scriptSig for a new one including the signature
 

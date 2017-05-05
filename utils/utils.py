@@ -450,6 +450,27 @@ def check_address(btc_addr, network='test'):
         return True
 
 
+def is_public_key(pk):
+    try:
+        return check_public_key(pk)
+    except:
+        return False
+
+
+def is_btc_addr(pk):
+    try:
+        return check_address(pk)
+    except:
+        return False
+
+
+def is_signature(pk):
+    try:
+        return check_signature(pk)
+    except:
+        return False
+
+
 # ToDo: Change for script
 def deserialize_script(script):
     start = "CScript(["
