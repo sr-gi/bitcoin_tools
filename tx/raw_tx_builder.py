@@ -1,6 +1,6 @@
 from pybitcointools import sign
 from tx import TX
-from wallet.wallet import generate_std_scriptpubkey, get_priv_key_hex
+from wallet.wallet import generate_std_scriptpubkey, serialize_sk
 
 
 def build_raw_tx(prev_tx_id, prev_out_index, src_btc_addr, value, dest_btc_addr, scriptPubKey=None, scriptSig=None):
@@ -24,7 +24,7 @@ def build_raw_tx(prev_tx_id, prev_out_index, src_btc_addr, value, dest_btc_addr,
         raw_tx = tx.serialize()
         for i in range(len(src_btc_addr)):
             priv_key = src_btc_addr[i] + "/sk.pem"
-            priv_key_hex = get_priv_key_hex(priv_key)
+            priv_key_hex = serialize_sk(priv_key)
             raw_tx = sign(raw_tx, i, priv_key_hex)
 
     else:

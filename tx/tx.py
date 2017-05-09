@@ -1,10 +1,11 @@
 from copy import deepcopy
-from constants import MAX_SIG_LEN, PK_LEN, OP_PUSH_LEN, RECOMMENDED_MIN_TX_FEE
 from utils.utils import change_endianness, decode_varint, encode_varint, int2bytes, deserialize_script, \
-    is_public_key, is_btc_addr, is_signature
+    is_public_key, is_btc_addr
 from script.script import InputScript, OutputScript
-
-
+from utils.utils import get_prev_ScriptPubKey
+from pybitcointools import ecdsa_tx_sign
+from ecdsa import SigningKey
+from wallet.keys import serialize_pk, serialize_sk
 
 
 class TX:
@@ -86,7 +87,7 @@ class TX:
 
         return serialized_tx
 
-    def build_from_scripts(self, prev_tx_id, prev_out_index, value, scriptSig, scriptPubKey,fees=None):
+    def build_from_scripts(self, prev_tx_id, prev_out_index, value, scriptSig, scriptPubKey, fees=None):
         if len(prev_tx_id) is not len(prev_out_index) or len(prev_tx_id) is not len(scriptSig):
             raise Exception("The number ofs UTXOs to spend must match with the number os ScriptSigs to set.")
         elif len(scriptSig) == 0 or len(scriptPubKey) == 0:
@@ -117,22 +118,23 @@ class TX:
             for i in range(n_outputs):
                 self.value.append(change_endianness(int2bytes(value[i], 8)))  # 8-byte field (64 bit int) Satoshi value
 
-                self.scriptPubKey_len.append(encode_varint(len(scriptPubKey[i].content) / 2))  # Output script length (varint).
+                self.scriptPubKey_len.append(encode_varint(
+                    len(scriptPubKey[i].content) / 2))  # Output script length (varint).
                 self.scriptPubKey.append(scriptPubKey[i])  # Output script.
 
             self.nLockTime = "00000000"  # 4-byte lock time field
 
             # ToDo: add fees
 
-    def build_from_io(self, prev_tx_id, prev_out_index, value, inputs, outputs, fees=None):
+    def build_from_io(self, prev_tx_id, prev_out_index, value, inputs, outputs, fees=None, network='test'):
         scriptSig = InputScript()
         scriptPubKey = OutputScript()
-
         ins = []
         outs = []
+
         if isinstance(prev_tx_id, str):
             prev_tx_id = [prev_tx_id]
-        if isinstance(prev_out_index, str):
+        if isinstance(prev_out_index, int):
             prev_out_index = [prev_out_index]
         if isinstance(value, int):
             value = [value]
@@ -145,7 +147,7 @@ class TX:
 
         for o in outputs:
             if isinstance(o, list) and o[0] in range(1, 15):
-                pks = [is_public_key(pk) for pk in o]
+                pks = [is_public_key(pk) for pk in o[1:]]
                 if all(pks):
                     scriptPubKey.P2MS(o[0], len(o) - 1, o[1:])
             elif is_public_key(o):
@@ -159,57 +161,44 @@ class TX:
             outs.append(deepcopy(scriptPubKey))
 
         for i in range(len(inputs)):
-            scriptSig.from_human("OP_0")
+            script, t = get_prev_ScriptPubKey(prev_tx_id[i], prev_out_index[i], network)
+            scriptSig.from_hex(script)
+            scriptSig.type = t
             ins.append(scriptSig)
 
         self.build_from_scripts(prev_tx_id, prev_out_index, value, ins, outs)
 
-        from pybitcointools import signature_form, SIGHASH_ALL, ecdsa_tx_sign
-        from wallet.wallet import get_priv_key_hex
+    def sign(self, sk, index):
+        if isinstance(sk, SigningKey):
+            sk = [sk]
+        if isinstance(index, int):
+            index = [index]
 
-        ########################
-        ####### SIGNATURE ######
-        ########################
-
-        btc_addr = "mgwpBW3g4diqasfxzWDgSi5fBrsFKmNdva"
-        priv_key = btc_addr + "/sk.pem"
-        priv_key_hex = get_priv_key_hex(priv_key)
         unsigned_tx = self.serialize()
-        sig_hash = SIGHASH_ALL
+        scriptSig = InputScript()
 
-        for i in range(len(inputs)):
-            sf = signature_form(unsigned_tx, i, scriptPubKey.content, sig_hash)
-            sig = ecdsa_tx_sign(sf, priv_key_hex)
-            scriptSig.P2PKH(sig, inputs[i])
+        for i in range(len(sk)):
+            if isinstance(sk[i], list) and self.scriptSig[index[i]].type is "P2MS":
+                sigs = []
+                for k in sk[i]:
+                    sigs.append(ecdsa_tx_sign(unsigned_tx, serialize_sk(k)))
+                scriptSig.P2MS(sigs)
+            elif self.scriptSig[index[i]].type is "P2PK":
+                s = ecdsa_tx_sign(unsigned_tx, serialize_sk(sk[i]))
+                scriptSig.P2PK(s)
+            elif self.scriptSig[index[i]].type is "P2PKH":
+                s = ecdsa_tx_sign(unsigned_tx, serialize_sk(sk[i]))
+                pk = serialize_pk(sk[i].get_verifying_key())
+                scriptSig.P2PKH(s, pk)
+            elif self.scriptSig[index[i]].type is "unknown":
+                raise Exception("Unknown previous transaction output script type. Can't sign the transaction.")
+            else:
+                # ToDo: Handle P2SH outputs as an additional elif
+                raise Exception("Can't sign input " + str(i) + " with the provided data.")
+
             self.scriptSig[i] = scriptSig
             self.scriptSig_len[i] = encode_varint(len(scriptSig.content) / 2)
-            print self.serialize()
-            self.deserialize()
 
-        ########################
-
-
-        # for i in inputs:
-        #     if isinstance(i, list):
-        #         sigs = [is_signature(sig) for sig in i]
-        #         if all(sigs):
-        #             inputScripts.append(scriptSig.P2MS(i))
-        #     elif is_public_key(i):
-        #         inputScripts.append(scriptSig.P2PK(i))
-        #     elif is_btc_addr(i):
-        #         inputScripts.append(scriptSig.P2PKH(i))
-        #     else:
-        #         # ToDo: Handle P2SH outputs as an additional elif
-        #         raise Exception("Bad input")
-
-
-
-        # self.build_from_scripts(prev_tx_id, prev_out_index, value, scriptSig.from_hex("0"),
-        #                         scriptPubKey.P2PKH(outputs), fees)
-
-
-
-        # ToDo: sign the tx and replace the scriptSig for a new one including the signature
 
     #     def add_fees(self, output=0, amount=None):
     #         """ Adds the chosen fees to the chosen output of the transaction.

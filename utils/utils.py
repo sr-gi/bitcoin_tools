@@ -1,6 +1,8 @@
 from bitcoin.core.script import *
 from binascii import a2b_hex, b2a_hex
 from constants import NSPECIALSCRIPTS
+from urllib2 import urlopen, Request
+from json import loads
 
 
 def change_endianness(x):
@@ -469,6 +471,43 @@ def is_signature(pk):
         return check_signature(pk)
     except:
         return False
+
+
+def get_prev_ScriptPubKey(tx_id, index, network='test'):
+    if network in ['main', 'mainnet']:
+        base_url = "http://btc.blockr.io/api/v1/tx/info/"
+    elif network in ['test', 'testnet']:
+        base_url = "http://tbtc.blockr.io/api/v1/tx/info/"
+    else:
+        raise Exception("Bad network.")
+
+    request = Request(base_url + tx_id)
+    header = 'User-agent', 'Mozilla/5.0'
+    request.add_header("User-agent", header)
+
+    r = urlopen(request)
+
+    data = loads(r.read())
+
+    script = data.get('data').get('vouts')[index].get('extras').get('script')
+    t = data.get('data').get('vouts')[index].get('extras').get('type')
+
+    return script, parse_script_type(t)
+
+
+def parse_script_type(t):
+    if t == 'multisig':
+        r = "P2MS";
+    elif t == 'pubkey':
+        r = "P2PK"
+    elif t == 'pubkeyhash':
+        r = "P2PKH"
+    elif t == 'scripthash':
+        r = "P2PSH"
+    else:
+        r = "unknown"
+
+    return r
 
 
 # ToDo: Change for script
