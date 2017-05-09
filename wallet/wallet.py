@@ -1,7 +1,7 @@
 from binascii import a2b_hex, b2a_hex
 from hashlib import new, sha256
 from os import mkdir, path
-from keys import get_pub_key_hex, get_priv_key_hex
+from keys import serialize_pk, serialize_sk
 from base58 import b58encode, b58decode
 from qrcode import make as qr_make
 from constants import PUBKEY_HASH, TESTNET_PUBKEY_HASH, WIF, TESTNET_WIF, OP_DUP, OP_HASH_160, OP_EQUALVERIFY, \
@@ -54,7 +54,7 @@ def hash_160_to_btc_address(h160, v):
     return addr
 
 
-def btc_address_to_hash_160(btc_addr):
+def btc_addr_to_hash_160(btc_addr):
     """ Calculates the RIPEMD-160 hash from a given Bitcoin address
 
     :param btc_addr: Bitcoin address.
@@ -74,7 +74,7 @@ def btc_address_to_hash_160(btc_addr):
     return h160
 
 
-def public_key_to_btc_address(pk, v='main'):
+def pk_to_btc_addr(pk, v='main'):
     """ Calculates the Bitcoin address of a given elliptic curve public key.
 
     :param pk: elliptic curve public key.
@@ -116,14 +116,14 @@ def generate_btc_addr(pk, v='main'):
     """
 
     # Get the hex representation of the provided DER encoded public key.
-    public_key_hex = get_pub_key_hex(pk)
+    public_key_hex = serialize_pk(pk)
     # Generate the Bitcoin address of de desired network.
-    btc_addr = public_key_to_btc_address(public_key_hex, v)
+    btc_addr = pk_to_btc_addr(public_key_hex, v)
 
     return btc_addr
 
 
-def private_key_to_wif(sk, mode='image', v='main'):
+def sk_to_wif(sk, mode='image', v='main'):
     """ Generates a Wallet Import Format (WIF) representation of a provided elliptic curve private key.
 
     :param sk: elliptic curve private key.
@@ -170,7 +170,7 @@ def private_key_to_wif(sk, mode='image', v='main'):
     return response
 
 
-def generate_wif(btc_addr, mode='image', v='main'):
+def generate_wif(btc_addr, sk, mode='image', v='main'):
     """ Generates a Wallet Import Format (WIF) file into disk. Uses an elliptic curve private key from disk as an input
     using the btc_addr associated to the public key of the same key pair as an identifier.
 
@@ -185,7 +185,7 @@ def generate_wif(btc_addr, mode='image', v='main'):
     """
 
     # Get a private key in hex format and create the WIF representation.
-    wif = private_key_to_wif(get_priv_key_hex(btc_addr + '/sk.pem'), mode, v)
+    wif = sk_to_wif(serialize_sk(sk), mode, v)
 
     # Store the result depending on the selected mode.
     if not path.exists(btc_addr):
@@ -200,25 +200,20 @@ def generate_wif(btc_addr, mode='image', v='main'):
         raise Exception("Invalid mode, used either 'image' or 'text'.")
 
 
-def sign(tx, i, priv, hashcode='SIGHASH_ALL'):
-    # ToDo
-    pass
-
-
-def generate_std_scriptpubkey(target_btc_addr):
-    """ Generates a standard Bitcoin ScriptPubKey (AKA P2PKH) bound to a target Bitcoin address. A signature from
-    the later will be mandatory to redeem the funds locked by the script.
-
-    :param target_btc_addr: A target Bitcoin address necessary to redeem the funds.
-    :type target_btc_addr: str
-    :return: A hex representation of the desired script.
-    :rtype: hex str
-    """
-
-    # Obtain the RIPEMD-160 hash of the target Bitcoin address
-    h160 = btc_address_to_hash_160(target_btc_addr)
-    # Encode the obtained RIPEMD-160 hash in the P2PKH script
-    scriptpubkey = format(OP_DUP, 'x') + format(OP_HASH_160, 'x') + format(len(h160) / 2, 'x') + h160 + \
-                   format(OP_EQUALVERIFY, 'x') + format(OP_CHECKSIG, 'x')
-
-    return scriptpubkey
+# def generate_std_scriptpubkey(target_btc_addr):
+#     """ Generates a standard Bitcoin ScriptPubKey (AKA P2PKH) bound to a target Bitcoin address. A signature from
+#     the later will be mandatory to redeem the funds locked by the script.
+#
+#     :param target_btc_addr: A target Bitcoin address necessary to redeem the funds.
+#     :type target_btc_addr: str
+#     :return: A hex representation of the desired script.
+#     :rtype: hex str
+#     """
+#
+#     # Obtain the RIPEMD-160 hash of the target Bitcoin address
+#     h160 = btc_addr_to_hash_160(target_btc_addr)
+#     # Encode the obtained RIPEMD-160 hash in the P2PKH script
+#     scriptpubkey = format(OP_DUP, 'x') + format(OP_HASH_160, 'x') + format(len(h160) / 2, 'x') + h160 + \
+#                    format(OP_EQUALVERIFY, 'x') + format(OP_CHECKSIG, 'x')
+#
+#     return scriptpubkey

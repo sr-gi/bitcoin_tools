@@ -1,7 +1,6 @@
+from binascii import b2a_hex
 from os import mkdir, path
 from ecdsa import SigningKey, VerifyingKey, SECP256k1
-from subprocess import check_output, STDOUT
-from pyasn1.codec.der import decoder
 
 
 def generate_keys():
@@ -56,59 +55,26 @@ def load_keys(btc_addr):
     return SigningKey.from_pem(sk_pem), VerifyingKey.from_pem(pk_pem)
 
 
-def get_pub_key_hex(pk):
-    """ Converts a public key in hexadecimal format from a DER encoded public key.
+def serialize_pk(pk):
+    """ Serializes a ecdsa.VerifyingKey (public key).
 
-    :param pk: DER encoded public key
-    :type pk: bytes
-    :return: public key.
+    :param pk: ECDSA VerifyingKey object (public key to be serialized).
+    :type pk: ecdsa.VerifyingKey
+    :return: serialized public key.
     :rtype: hex str
     """
 
-    # Get the asn1 representation of the public key DER data.
-    asn1_pk, _ = decoder.decode(str(pk))
-
-    # Get the public key as a BitString. The public key corresponds to the second component
-    # of the asn1 public key structure.
-    pk_bit = asn1_pk.getComponentByPosition(1)
-
-    # Convert the BitString into a String.
-    pk_str = ""
-    for i in range(len(pk_bit)):
-        pk_str += str(pk_bit[i])
-
-    # Parse the data to get it in the desired form.
-    pk_hex = '0' + hex(int(pk_str, 2))[2:-1]
-
-    return pk_hex
+    return '04' + b2a_hex(pk.to_string())
 
 
-# ToDO: Find a way to get the SK without a system call
-def get_priv_key_hex(sk_file_path):
-    """ Gets the EC private key in hexadecimal format from a key file.
+def serialize_sk(sk):
+    """ Serializes a ecdsa.SigningKey (private key).
 
-    :param sk_file_path: system path where the EC private key is found.
-    :type sk_file_path: str
-    :return: private key.
+    :param sk: ECDSA SigningKey object (private key to be serialized).
+    :type sk: ecdsa.SigningKey
+    :return: serialized private key.
     :rtype: hex str
     """
-
-    # Obtain the private key using an OpenSSL system call.
-    cmd = ['openssl', 'ec', '-in', sk_file_path, '-text', '-noout']
-    response = check_output(cmd, stderr=STDOUT)
-
-    # Parse the result to remove all the undesired spacing characters.
-    raw_key = response[response.find('priv:') + 8: response.find('pub:')]
-    raw_key = raw_key.replace(":", "")
-    raw_key = raw_key.replace(" ", "")
-    raw_key = raw_key.replace("\n", "")
-
-    # If the key starts with 00, the two first characters are removed.
-    if raw_key[:2] == '00':
-        sk_hex = raw_key[2:]
-    else:
-        sk_hex = raw_key
-
-    return sk_hex
+    return b2a_hex(sk.to_string())
 
 

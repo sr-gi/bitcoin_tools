@@ -12,12 +12,12 @@ from wallet.wallet import generate_wif, generate_btc_addr
 # First of all the elliptic curve keys are generated.
 sk, pk = generate_keys()
 # The Bitcoin address is derived from the public key created above.
-btc_addr = generate_btc_addr(pk.to_der(), v='test')
+btc_addr = generate_btc_addr(pk, v='test')
 # Both the public and private key are stored in disk. The Bitcoin address is used as an identifier in the name
 # of the folder that contains both keys.
 store_keys(sk.to_pem(), pk.to_pem(), btc_addr)
 # Finally, the private key is encoded as WIF and also stored in disk, ready to be imported in a wallet.
-generate_wif(btc_addr, mode='image', v='test')
+generate_wif(btc_addr, sk, mode='image', v='test')
 
 #################################################
 #               Key loading                     #
