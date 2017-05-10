@@ -4,8 +4,7 @@ from os import mkdir, path
 from keys import serialize_pk, serialize_sk
 from base58 import b58encode, b58decode
 from qrcode import make as qr_make
-from constants import PUBKEY_HASH, TESTNET_PUBKEY_HASH, WIF, TESTNET_WIF, OP_DUP, OP_HASH_160, OP_EQUALVERIFY, \
-    OP_CHECKSIG
+from constants import PUBKEY_HASH, TESTNET_PUBKEY_HASH, WIF, TESTNET_WIF
 
 
 def hash_160(pk):
@@ -198,22 +197,3 @@ def generate_wif(btc_addr, sk, mode='image', v='main'):
         f.write(wif)
     else:
         raise Exception("Invalid mode, used either 'image' or 'text'.")
-
-
-# def generate_std_scriptpubkey(target_btc_addr):
-#     """ Generates a standard Bitcoin ScriptPubKey (AKA P2PKH) bound to a target Bitcoin address. A signature from
-#     the later will be mandatory to redeem the funds locked by the script.
-#
-#     :param target_btc_addr: A target Bitcoin address necessary to redeem the funds.
-#     :type target_btc_addr: str
-#     :return: A hex representation of the desired script.
-#     :rtype: hex str
-#     """
-#
-#     # Obtain the RIPEMD-160 hash of the target Bitcoin address
-#     h160 = btc_addr_to_hash_160(target_btc_addr)
-#     # Encode the obtained RIPEMD-160 hash in the P2PKH script
-#     scriptpubkey = format(OP_DUP, 'x') + format(OP_HASH_160, 'x') + format(len(h160) / 2, 'x') + h160 + \
-#                    format(OP_EQUALVERIFY, 'x') + format(OP_CHECKSIG, 'x')
-#
-#     return scriptpubkey

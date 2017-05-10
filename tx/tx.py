@@ -1,7 +1,7 @@
 from copy import deepcopy
-from utils.utils import change_endianness, decode_varint, encode_varint, int2bytes, deserialize_script, \
-    is_public_key, is_btc_addr
-from script.script import InputScript, OutputScript
+from utils.utils import change_endianness, decode_varint, encode_varint, int2bytes, \
+    is_public_key, is_btc_addr, parse_element, parse_varint
+from script.script import InputScript, OutputScript, Script
 from utils.utils import get_prev_ScriptPubKey
 from pybitcointools import ecdsa_tx_sign
 from ecdsa import SigningKey
@@ -26,7 +26,9 @@ class TX:
         self.value = []
         self.scriptPubKey = []
         self.scriptPubKey_len = []
+
         self.offset = 0
+        self.hex = ""
 
     def deserialize(self):
         """ Displays all the information related to the transaction object, properly split and arranged.
@@ -48,7 +50,7 @@ class TX:
             print "\t input script (scriptSig) length: " + self.scriptSig_len[i] + " (" + str(
                 int(self.scriptSig_len[i], 16)) + ")"
             print "\t input script (scriptSig): " + self.scriptSig[i].content
-            print "\t decoded scriptSig: " + deserialize_script(self.scriptSig[i].content)
+            print "\t decoded scriptSig: " + Script.deserialize(self.scriptSig[i].content)
             print "\t nSequence: " + self.nSequence[i]
         print "number of outputs: " + self.outputs + " (" + str(decode_varint(self.outputs)) + ")"
         for i in range(len(self.scriptPubKey)):
@@ -58,7 +60,7 @@ class TX:
             print "\t output script (scriptPubKey) length: " + self.scriptPubKey_len[i] + " (" + str(
                 int(change_endianness(self.scriptPubKey_len[i]), 16)) + ")"
             print "\t output script (scriptPubKey): " + self.scriptPubKey[i].content
-            print "\t decoded scriptPubKey: " + deserialize_script(self.scriptPubKey[i].content)
+            print "\t decoded scriptPubKey: " + Script.deserialize(self.scriptPubKey[i].content)
 
         print "nLockTime: " + self.nLockTime
 
@@ -86,6 +88,40 @@ class TX:
         serialized_tx += self.nLockTime
 
         return serialized_tx
+
+    def build_from_hex(self, hex_tx):
+
+        self.hex = hex_tx
+
+        scriptSig = InputScript()
+        scriptPubKey = OutputScript()
+
+        self.version = parse_element(self, 4)
+        self.inputs = parse_varint(self)
+
+        for i in range(decode_varint(self.inputs)):
+            self.prev_tx_id.append(parse_element(self, 32))
+            self.prev_out_index.append(parse_element(self, 4))
+            self.scriptSig_len.append(parse_varint(self))
+            scriptSig.from_hex(parse_element(self, decode_varint(self.scriptSig_len[i])))
+            self.scriptSig.append(scriptSig)
+            self.nSequence.append(parse_element(self, 4))
+
+        self.outputs = parse_varint(self)
+
+        for i in range(decode_varint(self.outputs)):
+            self.value.append(parse_element(self, 8))
+            self.scriptPubKey_len.append(parse_varint(self))
+            scriptPubKey.from_hex(parse_element(self, decode_varint(self.scriptPubKey_len[i])))
+            self.scriptPubKey.append(scriptPubKey)
+
+        self.nLockTime = parse_element(self, 4)
+
+        if self.offset != len(self.hex):
+            raise Exception("There is some error in the serialized transaction passed as input. Transaction can't"
+                            "be build")
+        else:
+            self.offset = 0
 
     def build_from_scripts(self, prev_tx_id, prev_out_index, value, scriptSig, scriptPubKey, fees=None):
         if len(prev_tx_id) is not len(prev_out_index) or len(prev_tx_id) is not len(scriptSig):
@@ -124,9 +160,11 @@ class TX:
 
             self.nLockTime = "00000000"  # 4-byte lock time field
 
+            self.hex = self.serialize()
+
             # ToDo: add fees
 
-    def build_from_io(self, prev_tx_id, prev_out_index, value, inputs, outputs, fees=None, network='test'):
+    def build_from_io(self, prev_tx_id, prev_out_index, value, outputs, fees=None, network='test'):
         scriptSig = InputScript()
         scriptPubKey = OutputScript()
         ins = []
@@ -138,12 +176,16 @@ class TX:
             prev_out_index = [prev_out_index]
         if isinstance(value, int):
             value = [value]
-        if isinstance(outputs, str):
+        if isinstance(outputs, str) or (isinstance(outputs, list) and isinstance(outputs[0], int)):
             outputs = [outputs]
-        if isinstance(inputs, str):
-            inputs = [inputs]
 
         # ToDo: Deal with fees
+
+        if len(prev_tx_id) != len(prev_out_index):
+            raise Exception("Previous transaction id and index number of elements must match. " + str(len(prev_tx_id))
+                            + "!= " + str(len(prev_out_index)))
+        elif len(value) != len(outputs):
+            raise Exception("Each output must have set a Satoshi amount. Use 0 if no value is going to be transferred.")
 
         for o in outputs:
             if isinstance(o, list) and o[0] in range(1, 15):
@@ -160,7 +202,7 @@ class TX:
 
             outs.append(deepcopy(scriptPubKey))
 
-        for i in range(len(inputs)):
+        for i in range(len(prev_tx_id)):
             script, t = get_prev_ScriptPubKey(prev_tx_id[i], prev_out_index[i], network)
             scriptSig.from_hex(script)
             scriptSig.type = t
@@ -169,6 +211,8 @@ class TX:
         self.build_from_scripts(prev_tx_id, prev_out_index, value, ins, outs)
 
     def sign(self, sk, index):
+        if isinstance(sk, list) and isinstance(index, int):  # In case a list for multisig is received as only input.
+            sk = [sk]
         if isinstance(sk, SigningKey):
             sk = [sk]
         if isinstance(index, int):
@@ -198,6 +242,8 @@ class TX:
 
             self.scriptSig[i] = scriptSig
             self.scriptSig_len[i] = encode_varint(len(scriptSig.content) / 2)
+
+        self.hex = self.serialize()
 
 
     #     def add_fees(self, output=0, amount=None):
