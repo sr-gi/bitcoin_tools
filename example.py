@@ -52,12 +52,9 @@ fee = 230 * 240
 # Destination Bitcoin address where the value in bitcoins will be sent and locked until the owner redeems it.
 destination_btc_addr = "mwryy9YdVezq2Wo1DukA5ADhrNemqCKTmy"
 
-# Now, the raw transaction can be built.
-# First, we construct a transaction object
-tx = TX()
-# Next, we  build out transaction from io (input/output) using the previous transaction references, the value, and the
+# First, we  build our transaction from io (input/output) using the previous transaction references, the value, and the
 # destination.
-tx.build_from_io(prev_tx_id, prev_out_index, value - fee, destination_btc_addr)
+tx = TX.build_from_io(prev_tx_id, prev_out_index, value - fee, destination_btc_addr)
 # Finally, the transaction is signed using the private key associated with the Bitcoin address from each input.
 # Input 0 will be signed, since we have only created one input.
 tx.sign(sk, 0)

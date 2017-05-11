@@ -89,84 +89,89 @@ class TX:
 
         return serialized_tx
 
-    def build_from_hex(self, hex_tx):
+    @classmethod
+    def build_from_hex(cls, hex_tx):
+        tx = cls()
+        tx.hex = hex_tx
 
-        self.hex = hex_tx
+        tx.version = parse_element(tx, 4)
+        tx.inputs = parse_varint(tx)
 
-        scriptSig = InputScript()
-        scriptPubKey = OutputScript()
+        for i in range(decode_varint(tx.inputs)):
+            tx.prev_tx_id.append(parse_element(tx, 32))
+            tx.prev_out_index.append(parse_element(tx, 4))
+            tx.scriptSig_len.append(parse_varint(tx))
+            iscript = InputScript.from_hex(parse_element(tx, decode_varint(tx.scriptSig_len[i])))
+            tx.scriptSig.append(iscript)
+            tx.nSequence.append(parse_element(tx, 4))
 
-        self.version = parse_element(self, 4)
-        self.inputs = parse_varint(self)
+        tx.outputs = parse_varint(tx)
 
-        for i in range(decode_varint(self.inputs)):
-            self.prev_tx_id.append(parse_element(self, 32))
-            self.prev_out_index.append(parse_element(self, 4))
-            self.scriptSig_len.append(parse_varint(self))
-            scriptSig.from_hex(parse_element(self, decode_varint(self.scriptSig_len[i])))
-            self.scriptSig.append(scriptSig)
-            self.nSequence.append(parse_element(self, 4))
+        for i in range(decode_varint(tx.outputs)):
+            tx.value.append(parse_element(tx, 8))
+            tx.scriptPubKey_len.append(parse_varint(tx))
+            tx.scriptPubKey.append(OutputScript.from_hex(parse_element(tx, decode_varint(tx.scriptPubKey_len[i]))))
 
-        self.outputs = parse_varint(self)
+        tx.nLockTime = parse_element(tx, 4)
 
-        for i in range(decode_varint(self.outputs)):
-            self.value.append(parse_element(self, 8))
-            self.scriptPubKey_len.append(parse_varint(self))
-            scriptPubKey.from_hex(parse_element(self, decode_varint(self.scriptPubKey_len[i])))
-            self.scriptPubKey.append(scriptPubKey)
-
-        self.nLockTime = parse_element(self, 4)
-
-        if self.offset != len(self.hex):
+        if tx.offset != len(tx.hex):
             raise Exception("There is some error in the serialized transaction passed as input. Transaction can't"
                             "be build")
         else:
-            self.offset = 0
+            tx.offset = 0
 
-    def build_from_scripts(self, prev_tx_id, prev_out_index, value, scriptSig, scriptPubKey, fees=None):
+        return tx
+
+    @classmethod
+    def build_from_scripts(cls, prev_tx_id, prev_out_index, value, scriptSig, scriptPubKey, fees=None):
+        tx = cls()
+
         if len(prev_tx_id) is not len(prev_out_index) or len(prev_tx_id) is not len(scriptSig):
             raise Exception("The number ofs UTXOs to spend must match with the number os ScriptSigs to set.")
         elif len(scriptSig) == 0 or len(scriptPubKey) == 0:
             raise Exception("Scripts can't be empty")
         # ToDo: add more strict checks
         else:
-            self.version = "01000000"  # 4-byte version number
+            tx.version = "01000000"  # 4-byte version number
 
             # INPUTS
             n_inputs = len(prev_tx_id)  # Number of inputs (varint).
-            self.inputs = encode_varint(n_inputs)
+            tx.inputs = encode_varint(n_inputs)
             for i in range(n_inputs):
-                self.prev_tx_id.append(change_endianness(prev_tx_id[i]))  # 32-byte hash of the previous transaction.
-                self.prev_out_index.append(change_endianness(int2bytes(prev_out_index[i], 4)))  # 4-byte output index
+                tx.prev_tx_id.append(change_endianness(prev_tx_id[i]))  # 32-byte hash of the previous transaction.
+                tx.prev_out_index.append(change_endianness(int2bytes(prev_out_index[i], 4)))  # 4-byte output index
 
             # ScriptSig
             for i in range(n_inputs):
-                self.scriptSig_len.append(int2bytes(len(scriptSig[i].content) / 2, 1))  # Input script length (varint).
-                self.scriptSig.append(scriptSig[i])  # Input script.
+                tx.scriptSig_len.append(int2bytes(len(scriptSig[i].content) / 2, 1))  # Input script length (varint).
+                tx.scriptSig.append(scriptSig[i])  # Input script.
 
-                self.nSequence.append("ffffffff")  # 4-byte sequence number
+                tx.nSequence.append("ffffffff")  # 4-byte sequence number
 
             # OUTPUTS
             n_outputs = len(scriptPubKey)  # Number of outputs (varint).
-            self.outputs = encode_varint(n_outputs)
+            tx.outputs = encode_varint(n_outputs)
 
             # ScriptPubKey
             for i in range(n_outputs):
-                self.value.append(change_endianness(int2bytes(value[i], 8)))  # 8-byte field (64 bit int) Satoshi value
+                tx.value.append(change_endianness(int2bytes(value[i], 8)))  # 8-byte field (64 bit int) Satoshi value
 
-                self.scriptPubKey_len.append(encode_varint(
+                tx.scriptPubKey_len.append(encode_varint(
                     len(scriptPubKey[i].content) / 2))  # Output script length (varint).
-                self.scriptPubKey.append(scriptPubKey[i])  # Output script.
+                tx.scriptPubKey.append(scriptPubKey[i])  # Output script.
 
-            self.nLockTime = "00000000"  # 4-byte lock time field
+            tx.nLockTime = "00000000"  # 4-byte lock time field
 
-            self.hex = self.serialize()
+            tx.hex = tx.serialize()
 
             # ToDo: add fees
 
-    def build_from_io(self, prev_tx_id, prev_out_index, value, outputs, fees=None, network='test'):
-        scriptSig = InputScript()
-        scriptPubKey = OutputScript()
+        return tx
+
+    @classmethod
+    def build_from_io(cls, prev_tx_id, prev_out_index, value, outputs, fees=None, network='test'):
+        tx = cls()
+
         ins = []
         outs = []
 
@@ -191,24 +196,26 @@ class TX:
             if isinstance(o, list) and o[0] in range(1, 15):
                 pks = [is_public_key(pk) for pk in o[1:]]
                 if all(pks):
-                    scriptPubKey.P2MS(o[0], len(o) - 1, o[1:])
+                    oscript = OutputScript.P2MS(o[0], len(o) - 1, o[1:])
             elif is_public_key(o):
-                scriptPubKey.P2PK(o)
+                oscript = OutputScript.P2PK(o)
             elif is_btc_addr(o):
-                scriptPubKey.P2PKH(o)
+                oscript = OutputScript.P2PKH(o)
             else:
                 # ToDo: Handle P2SH outputs as an additional elif
                 raise Exception("Bad output")
 
-            outs.append(deepcopy(scriptPubKey))
+            outs.append(deepcopy(oscript))
 
         for i in range(len(prev_tx_id)):
             script, t = get_prev_ScriptPubKey(prev_tx_id[i], prev_out_index[i], network)
-            scriptSig.from_hex(script)
-            scriptSig.type = t
-            ins.append(scriptSig)
+            iscript = InputScript.from_hex(script)
+            iscript.type = t
+            ins.append(iscript)
 
-        self.build_from_scripts(prev_tx_id, prev_out_index, value, ins, outs)
+        tx = cls.build_from_scripts(prev_tx_id, prev_out_index, value, ins, outs)
+
+        return tx
 
     def sign(self, sk, index):
         if isinstance(sk, list) and isinstance(index, int):  # In case a list for multisig is received as only input.
@@ -219,29 +226,28 @@ class TX:
             index = [index]
 
         unsigned_tx = self.serialize()
-        scriptSig = InputScript()
 
         for i in range(len(sk)):
             if isinstance(sk[i], list) and self.scriptSig[index[i]].type is "P2MS":
                 sigs = []
                 for k in sk[i]:
                     sigs.append(ecdsa_tx_sign(unsigned_tx, serialize_sk(k)))
-                scriptSig.P2MS(sigs)
+                iscript = InputScript.P2MS(sigs)
             elif self.scriptSig[index[i]].type is "P2PK":
                 s = ecdsa_tx_sign(unsigned_tx, serialize_sk(sk[i]))
-                scriptSig.P2PK(s)
+                iscript = InputScript.P2PK(s)
             elif self.scriptSig[index[i]].type is "P2PKH":
                 s = ecdsa_tx_sign(unsigned_tx, serialize_sk(sk[i]))
                 pk = serialize_pk(sk[i].get_verifying_key())
-                scriptSig.P2PKH(s, pk)
+                iscript = InputScript.P2PKH(s, pk)
             elif self.scriptSig[index[i]].type is "unknown":
                 raise Exception("Unknown previous transaction output script type. Can't sign the transaction.")
             else:
                 # ToDo: Handle P2SH outputs as an additional elif
                 raise Exception("Can't sign input " + str(i) + " with the provided data.")
 
-            self.scriptSig[i] = scriptSig
-            self.scriptSig_len[i] = encode_varint(len(scriptSig.content) / 2)
+            self.scriptSig[i] = iscript
+            self.scriptSig_len[i] = encode_varint(len(iscript.content) / 2)
 
         self.hex = self.serialize()
 

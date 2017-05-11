@@ -12,13 +12,19 @@ class Script:
         self.content = ""
         self.type = "unknown"
 
-    def from_hex(self, script):
-        self.__init__()
-        self.content = script
+    @classmethod
+    def from_hex(cls, hex):
+        script = cls()
+        script.content = hex
 
-    def from_human(self, data):
-        self.__init__()
-        self.content = self.serialize(data)
+        return script
+
+    @classmethod
+    def from_human(cls, data):
+        script = cls()
+        script.content = script.serialize(data)
+
+        return script
 
     @staticmethod
     def deserialize(script):
@@ -66,62 +72,95 @@ class Script:
 
 
 class InputScript(Script):
-    def P2PK(self, signature):
+
+    @classmethod
+    def P2PK(cls, signature):
+        script = cls()
         if check_signature(signature):
-            self.type = "P2PK"
-            self.content = self.serialize("<" + signature + ">")
+            script.type = "P2PK"
+            script.content = script.serialize("<" + signature + ">")
 
-    def P2PKH(self, signature, pk):
+        return script
+
+    @classmethod
+    def P2PKH(cls, signature, pk):
+        script = cls()
         if check_signature(signature) and check_public_key(pk):
-            self.type = "P2PKH"
-            self.content = self.serialize("<" + signature + "> <" + pk + ">")
+            script.type = "P2PKH"
+            script.content = script.serialize("<" + signature + "> <" + pk + ">")
 
-    def P2MS(self, sigs):
-        script = "OP_0"
+        return script
+
+    @classmethod
+    def P2MS(cls, sigs):
+        script = cls()
+        s = "OP_0"
         for sig in sigs:
             if check_signature(sig):
-                script += " <" + sig + ">"
+                s += " <" + sig + ">"
 
-        self.type = "P2MS"
-        self.content = self.serialize(script)
+        script.type = "P2MS"
+        script.content = script.serialize(s)
 
-    def P2SH(self, script):
+        return script
+
+    @classmethod
+    def P2SH(cls, s):
+        script = cls()
         # ToDo: Should we run any validation?
-        self.type = "P2SH"
-        self.content = self.serialize("<" + self.serialize(script) + ">")
+        script.type = "P2SH"
+        script.content = script.serialize("<" + script.serialize(s) + ">")
+
+        return script
 
 
 class OutputScript(Script):
-    def P2PK(self, pk):
+    @classmethod
+    def P2PK(cls, pk):
+        script = cls()
         if check_public_key(pk):
-            self.type = "P2PK"
-            self.content = self.serialize("<"+pk+"> OP_CHECKSIG")
+            script.type = "P2PK"
+            script.content = script.serialize("<"+pk+"> OP_CHECKSIG")
 
-    def P2PKH(self, btc_addr, network='test'):
+        return script
+
+    @classmethod
+    def P2PKH(cls, btc_addr, network='test'):
+        script = cls()
         if check_address(btc_addr, network):
-            self.type = "P2PKH"
-            self.content = self.serialize("OP_DUP OP_HASH160 <" + btc_addr_to_hash_160(btc_addr)
-                                          + "> OP_EQUALVERIFY OP_CHECKSIG")
+            script.type = "P2PKH"
+            script.content = script.serialize("OP_DUP OP_HASH160 <" + btc_addr_to_hash_160(btc_addr)
+                                              + "> OP_EQUALVERIFY OP_CHECKSIG")
 
-    def P2MS(self, m, n, pks):
+        return script
+
+    @classmethod
+    def P2MS(cls, m, n, pks):
+        script = cls()
         if n != len(pks):
             raise Exception("The provided number of keys does not match the expected one: " + str(len(pks)) +
                             "!=" + str(n))
         elif m not in range(1, 15) or n not in range(1, 15):
             raise Exception("Multisig transactions must be 15-15 at max")
         else:
-            script = "OP_" + str(m)
+            s = "OP_" + str(m)
             for pk in pks:
                 if check_public_key(pk):
-                    script += " <" + pk + ">"
+                    s += " <" + pk + ">"
 
-        self.type = "P2MS"
-        self.content = self.serialize(script + " OP_" + str(n) + " OP_CHECKMULTISIG")
+        script.type = "P2MS"
+        script.content = script.serialize(s + " OP_" + str(n) + " OP_CHECKMULTISIG")
 
-    def P2SH(self, script_hash):
+        return script
+
+    @classmethod
+    def P2SH(cls, script_hash):
+        script = cls()
         l = len(script_hash)
         if l != 40:
             raise Exception("Wrong RIPEMD-160 hash length: " + str(l))
         else:
-            self.type = "P2SH"
-            self.content = self.serialize("OP_HASH160 <" + script_hash + "> OP_EQUAL")
+            script.type = "P2SH"
+            script.content = script.serialize("OP_HASH160 <" + script_hash + "> OP_EQUAL")
+
+        return script
