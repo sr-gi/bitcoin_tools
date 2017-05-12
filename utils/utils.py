@@ -280,6 +280,7 @@ def b128_decode(data):
 
 
 def parse_b128(utxo, offset=0):
+    # ToDo: Add documentation
     data = utxo[offset:offset+2]
     offset += 2
     more_bytes = int(data, 16) & 0x80  # MSB b128 Varints have set the bit 128 for every byte but the last one,
@@ -398,6 +399,7 @@ def decode_utxo(utxo):
 
     return {'version': version, 'coinbase': coinbase, 'outs': outs, 'height': height}
 
+# ToDo: Add documentation to the rest of the utils lib
 
 def display_decoded_utxo(decoded_utxo):
     print "version: " + str(decoded_utxo['version'])

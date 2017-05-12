@@ -90,6 +90,8 @@ class TX:
 
         return serialized_tx
 
+    # ToDo: Add documentation to the rest of the TX class
+
     @classmethod
     def build_from_hex(cls, hex_tx):
         tx = cls()
@@ -234,10 +236,10 @@ class TX:
                 for k in sk[i]:
                     sigs.append(ecdsa_tx_sign(unsigned_tx, serialize_sk(k)))
                 iscript = InputScript.P2MS(sigs)
-            elif self.scriptSig[index[i]].type is "P2PK":
+            elif isinstance(sk[i], SigningKey) and self.scriptSig[index[i]].type is "P2PK":
                 s = ecdsa_tx_sign(unsigned_tx, serialize_sk(sk[i]))
                 iscript = InputScript.P2PK(s)
-            elif self.scriptSig[index[i]].type is "P2PKH":
+            elif isinstance(sk[i], SigningKey) and self.scriptSig[index[i]].type is "P2PKH":
                 s = ecdsa_tx_sign(unsigned_tx, serialize_sk(sk[i]))
                 pk = serialize_pk(sk[i].get_verifying_key())
                 iscript = InputScript.P2PKH(s, pk)
