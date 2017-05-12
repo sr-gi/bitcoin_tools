@@ -3,9 +3,10 @@ from utils.utils import change_endianness, decode_varint, encode_varint, int2byt
     is_public_key, is_btc_addr, parse_element, parse_varint
 from script.script import InputScript, OutputScript, Script
 from utils.utils import get_prev_ScriptPubKey
-from pybitcointools import ecdsa_tx_sign
+from pybitcointools.transaction import ecdsa_tx_sign
 from ecdsa import SigningKey
 from wallet.keys import serialize_pk, serialize_sk
+from binascii import a2b_hex
 
 
 class TX:
@@ -225,7 +226,7 @@ class TX:
         if isinstance(index, int):
             index = [index]
 
-        unsigned_tx = self.serialize()
+        unsigned_tx = a2b_hex(self.serialize())
 
         for i in range(len(sk)):
             if isinstance(sk[i], list) and self.scriptSig[index[i]].type is "P2MS":
