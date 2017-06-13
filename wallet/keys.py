@@ -2,7 +2,7 @@ from binascii import b2a_hex, a2b_hex
 from os import mkdir, path
 from hashlib import sha256
 from ecdsa import SigningKey, VerifyingKey, SECP256k1
-from ecdsa.util import sigencode_der
+from ecdsa.util import sigencode_der_canonize
 from utils.utils import change_endianness, int2bytes
 
 
@@ -81,14 +81,14 @@ def serialize_sk(sk):
     return b2a_hex(sk.to_string())
 
 
-def ecdsa_tx_sign(unsigned_tx, pk, hashcode="SIGHASH_ALL"):
+def ecdsa_tx_sign(unsigned_tx, sk, hashcode="SIGHASH_ALL"):
     # ToDo: Add all hashcodes
     if hashcode == "SIGHASH_ALL":
         hc = change_endianness(int2bytes(1, 4))
         hc_ret = change_endianness(int2bytes(1, 1))
 
     h = sha256(unsigned_tx + a2b_hex(hc)).digest()
-    s = pk.sign_deterministic(h, hashfunc=sha256, sigencode=sigencode_der)
+    s = sk.sign_deterministic(h, hashfunc=sha256, sigencode=sigencode_der_canonize)
 
     return b2a_hex(s) + hc_ret
 
