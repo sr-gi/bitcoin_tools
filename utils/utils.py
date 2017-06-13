@@ -401,6 +401,7 @@ def decode_utxo(utxo):
 
 # ToDo: Add documentation to the rest of the utils lib
 
+
 def display_decoded_utxo(decoded_utxo):
     print "version: " + str(decoded_utxo['version'])
     print "isCoinbase: " + str(decoded_utxo['coinbase'])

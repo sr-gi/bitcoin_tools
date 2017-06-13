@@ -3,9 +3,8 @@ from utils.utils import change_endianness, decode_varint, encode_varint, int2byt
     is_public_key, is_btc_addr, parse_element, parse_varint
 from script.script import InputScript, OutputScript, Script
 from utils.utils import get_prev_ScriptPubKey
-from pybitcointools.transaction import ecdsa_tx_sign
 from ecdsa import SigningKey
-from wallet.keys import serialize_pk, serialize_sk
+from wallet.keys import serialize_pk, serialize_sk, ecdsa_tx_sign
 from binascii import a2b_hex
 
 
@@ -173,8 +172,6 @@ class TX:
 
     @classmethod
     def build_from_io(cls, prev_tx_id, prev_out_index, value, outputs, fees=None, network='test'):
-        tx = cls()
-
         ins = []
         outs = []
 
@@ -200,6 +197,8 @@ class TX:
                 pks = [is_public_key(pk) for pk in o[1:]]
                 if all(pks):
                     oscript = OutputScript.P2MS(o[0], len(o) - 1, o[1:])
+                else:
+                    raise Exception("Bad output")
             elif is_public_key(o):
                 oscript = OutputScript.P2PK(o)
             elif is_btc_addr(o):
@@ -234,13 +233,13 @@ class TX:
             if isinstance(sk[i], list) and self.scriptSig[index[i]].type is "P2MS":
                 sigs = []
                 for k in sk[i]:
-                    sigs.append(ecdsa_tx_sign(unsigned_tx, serialize_sk(k)))
+                    sigs.append(ecdsa_tx_sign(unsigned_tx, k))
                 iscript = InputScript.P2MS(sigs)
             elif isinstance(sk[i], SigningKey) and self.scriptSig[index[i]].type is "P2PK":
-                s = ecdsa_tx_sign(unsigned_tx, serialize_sk(sk[i]))
+                s = ecdsa_tx_sign(unsigned_tx, sk[i])
                 iscript = InputScript.P2PK(s)
             elif isinstance(sk[i], SigningKey) and self.scriptSig[index[i]].type is "P2PKH":
-                s = ecdsa_tx_sign(unsigned_tx, serialize_sk(sk[i]))
+                s = ecdsa_tx_sign(unsigned_tx, sk[i])
                 pk = serialize_pk(sk[i].get_verifying_key())
                 iscript = InputScript.P2PKH(s, pk)
             elif self.scriptSig[index[i]].type is "unknown":
