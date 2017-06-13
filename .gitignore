@@ -3,6 +3,6 @@ bitcoin_addresses
 .idea
 *.pyc
 ToDo
-test.py
+test/*
 
 
