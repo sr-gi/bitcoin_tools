@@ -1,11 +1,10 @@
+from bitcoin_tools.keys import serialize_pk, ecdsa_tx_sign
+from bitcoin_tools.script import InputScript, OutputScript, Script, SIGHASH_ALL, SIGHASH_SINGLE, SIGHASH_NONE, \
+    SIGHASH_ANYONECANPAY
+from bitcoin_tools.utils import change_endianness, decode_varint, encode_varint, int2bytes, \
+    is_public_key, is_btc_addr, parse_element, parse_varint, get_prev_ScriptPubKey
 from copy import deepcopy
-from utils.utils import change_endianness, decode_varint, encode_varint, int2bytes, \
-    is_public_key, is_btc_addr, parse_element, parse_varint
-from script.script import InputScript, OutputScript, Script
-from utils.utils import get_prev_ScriptPubKey
 from ecdsa import SigningKey
-from wallet.keys import serialize_pk, serialize_sk, ecdsa_tx_sign
-from binascii import a2b_hex
 
 
 class TX:
@@ -76,14 +75,15 @@ class TX:
 
         serialized_tx = self.version + self.inputs
 
-        for i in range(len(self.prev_tx_id)):
+        for i in range(decode_varint(self.inputs)):
             serialized_tx += self.prev_tx_id[i] + self.prev_out_index[i] + self.scriptSig_len[i] \
                              + self.scriptSig[i].content + self.nSequence[i]
 
         serialized_tx += self.outputs
 
-        for i in range(len(self.scriptPubKey)):
-            serialized_tx += self.value[i] + self.scriptPubKey_len[i] + self.scriptPubKey[i].content
+        if decode_varint(self.outputs) != 0:
+            for i in range(len(self.scriptPubKey)):
+                serialized_tx += self.value[i] + self.scriptPubKey_len[i] + self.scriptPubKey[i].content
 
         serialized_tx += self.nLockTime
 
@@ -210,16 +210,49 @@ class TX:
             outs.append(deepcopy(oscript))
 
         for i in range(len(prev_tx_id)):
-            script, t = get_prev_ScriptPubKey(prev_tx_id[i], prev_out_index[i], network)
-            iscript = InputScript.from_hex(script)
-            iscript.type = t
+            # Temporarily set IS content to 0, since data will be signed afterwards.
+            iscript = InputScript()
             ins.append(iscript)
 
         tx = cls.build_from_scripts(prev_tx_id, prev_out_index, value, ins, outs)
 
         return tx
 
-    def sign(self, sk, index):
+    def signature_form(self, index, hashflag=SIGHASH_ALL, network='test'):
+
+        tx = deepcopy(self)
+        for i in range(len(tx.scriptSig)):
+            if i is index:
+                # Since tx_id and out_index has been already encoded into the tx format, they should be parsed to
+                # perform the query to the server API.
+                tx_id = change_endianness(tx.prev_tx_id[i])
+                out_index = int(change_endianness(self.prev_out_index[i]), 16)
+                script, t = get_prev_ScriptPubKey(tx_id, out_index, network)
+                # Once we get the previous UTXO script, the inputScript is temporarily set to it in order to sign
+                # the transaction.
+                tx.scriptSig[i] = InputScript.from_hex(script)
+                tx.scriptSig[i].type = t
+                tx.scriptSig_len[i] = int2bytes(len(tx.scriptSig[i].content) / 2, 1)
+            elif tx.scriptSig[i].content != "":
+                # All other scriptSig field are emptied and their length is set to 0.
+                tx.scriptSig[i] = InputScript()
+                tx.scriptSig_len[i] = int2bytes(len(tx.scriptSig[i].content) / 2, 1)
+
+        if hashflag is SIGHASH_SINGLE:
+            # ToDo: Deal with SIGHASH_SINGLE
+            pass
+        elif hashflag is SIGHASH_NONE:
+            # Empty all the scriptPubKeys and set the length and the output counter to 0.
+            tx.outputs = encode_varint(0)
+            tx.scriptPubKey = OutputScript()
+            tx.scriptPubKey_len = int2bytes(len(tx.scriptPubKey.content) / 2, 1)
+        elif hashflag is SIGHASH_ANYONECANPAY:
+            # ToDo: Deal with SIGHASH_ANYONECANPAY
+            pass
+
+        return tx
+
+    def sign(self, sk, index, hashflag=SIGHASH_ALL):
         if isinstance(sk, list) and isinstance(index, int):  # In case a list for multisig is received as only input.
             sk = [sk]
         if isinstance(sk, SigningKey):
@@ -227,22 +260,21 @@ class TX:
         if isinstance(index, int):
             index = [index]
 
-        unsigned_tx = a2b_hex(self.serialize())
-
         for i in range(len(sk)):
-            if isinstance(sk[i], list) and self.scriptSig[index[i]].type is "P2MS":
+            unsigned_tx = self.signature_form(index[i], hashflag)
+            if isinstance(sk[i], list) and unsigned_tx.scriptSig[index[i]].type is "P2MS":
                 sigs = []
                 for k in sk[i]:
-                    sigs.append(ecdsa_tx_sign(unsigned_tx, k))
+                    sigs.append(ecdsa_tx_sign(unsigned_tx.serialize(), k, hashflag))
                 iscript = InputScript.P2MS(sigs)
-            elif isinstance(sk[i], SigningKey) and self.scriptSig[index[i]].type is "P2PK":
-                s = ecdsa_tx_sign(unsigned_tx, sk[i])
+            elif isinstance(sk[i], SigningKey) and unsigned_tx.scriptSig[index[i]].type is "P2PK":
+                s = ecdsa_tx_sign(unsigned_tx.serialize(), sk[i], hashflag)
                 iscript = InputScript.P2PK(s)
-            elif isinstance(sk[i], SigningKey) and self.scriptSig[index[i]].type is "P2PKH":
-                s = ecdsa_tx_sign(unsigned_tx, sk[i])
+            elif isinstance(sk[i], SigningKey) and unsigned_tx.scriptSig[index[i]].type is "P2PKH":
+                s = ecdsa_tx_sign(unsigned_tx.serialize(), sk[i], hashflag)
                 pk = serialize_pk(sk[i].get_verifying_key())
                 iscript = InputScript.P2PKH(s, pk)
-            elif self.scriptSig[index[i]].type is "unknown":
+            elif unsigned_tx.scriptSig[index[i]].type is "unknown":
                 raise Exception("Unknown previous transaction output script type. Can't sign the transaction.")
             else:
                 # ToDo: Handle P2SH outputs as an additional elif
@@ -252,136 +284,3 @@ class TX:
             self.scriptSig_len[i] = encode_varint(len(iscript.content) / 2)
 
         self.hex = self.serialize()
-
-
-    #     def add_fees(self, output=0, amount=None):
-    #         """ Adds the chosen fees to the chosen output of the transaction.
-    #        :param self: self
-    #        :type self: TX
-    #        :param output: The output where the fees will be charged. The first input will be chosen by default (output=0).
-    #        :type output: int
-    #        :param amount: The amount of fees to be charged. The minimum fees wfrom bitcoin.core.script import CScript
-    # from binascii import a2b_hexil be charged by default (amount=None).
-    #        :type amount: int.
-    #        :return: The maximum size of the transaction.
-    #        :rtype: int
-    #        """
-    #
-    #         # Minimum fees will be applied
-    #         if amount is None:
-    #             fees = self.get_p2pkh_tx_max_len() * RECOMMENDED_MIN_TX_FEE
-    #
-    #         else:
-    #             fees = amount
-    #
-    #         # Get the bitcoin amount from the chosen output, cast it into integer and subtract the fees.
-    #         amount = int(change_endianness(self.value[output]), 16) - fees
-    #         # Fill all the missing bytes up to the value length(8 bytes) and get the value back to its LE representation.
-    #         self.value[output] = change_endianness(int2bytes(amount, 8))
-    #         # Update the hex representation of the transaction
-    #         self.to_hex()
-    #
-    #     def get_p2pkh_tx_max_len(self):
-    #         """ Computes the maximum transaction length for a default Bitcoin transactions, that is, all the scriptSig
-    #         values are P2PKH scripts. The method can be used approximate the final transaction length and in that way
-    #         calculate the minimum transactions fees than can be applied to the transaction.
-    #        :param self: self
-    #        :type self: TX
-    #        :return: The maximum size of the transaction.
-    #        :rtype: int
-    #        """
-    #
-    #         # Max length is approximated by calculating the length of the non-signed transaction, and adding the maximum
-    #         # length of a standard P2PKH sigScript, which corresponds to the length of two data pushes (2 * OP_PUSH_LEN)
-    #         # plus the size of the signature (at most MAX_SIG_LEN) plus the length of a Bitcoin public key (PK_LEN).
-    #         max_len = len(self.hex) / 2 + ((2 * OP_PUSH_LEN + MAX_SIG_LEN + PK_LEN) * int(self.inputs))
-    #         # An additional byte for each input should be added to the max length representing the sigScript length
-    #         # of each input. However, since we had previously added a byte to temporary fill both sigScript and
-    #         # sigScript_len field (00) for each input, it will not be necessary.
-    #
-    #         return max_len
-    #
-    # def build_p2pkh_std_tx(self, prev_tx_id, prev_out_index, value, scriptPubKey, scriptSig=None, fees=None):
-    #     """ Builds a standard P2PKH transaction using default parameters such as version = 01000000 or
-    #     nSequence = FFFFFFFF.
-    #
-    #     :param self: self
-    #     :type self: TX
-    #     :param prev_tx_id: List of references to the previous transactions from where the current transaction will
-    #     redeem some bitcoins.
-    #     :type prev_tx_id: str list
-    #     :param prev_out_index: List of references transaction output from where the funds will be redeemed.
-    #     :type prev_out_index: int list
-    #     :param value: List of value to be transferred to the desired destinations, in Satoshis (The difference between
-    #     the total input value and the total output value will be charged as fee).
-    #     :type value: int list
-    #     :param scriptPubKey: List of scripts that will lock the outputs of the current transaction.
-    #     :type scriptPubKey: hex str list
-    #     :param scriptSig: List of scripts that will provide proof of fulfillment of the redeem conditions from the
-    #     previous transactions (referenced by the prev_tx_id and prev_out_index).
-    #     :type scriptSig: hex str list
-    #     :return: None.
-    #     :rtype: None
-    #     """
-    #
-    #     # 4-byte version number (default: 01 little endian).
-    #     self.version = "01000000"
-    #
-    #     #############
-    #     #   INPUTS  #
-    #     #############
-    #
-    #     # Number of inputs (varint, between 1-9 bytes long).
-    #     n_inputs = len(prev_tx_id)
-    #     self.inputs = encode_varint(n_inputs)  # e.g "01"
-    #
-    #     # Reference to the UTXO to redeem.
-    #
-    #     # 32-byte hash of the previous transaction (little endian).
-    #     for i in range(n_inputs):
-    #         self.prev_tx_id.append(change_endianness(prev_tx_id[i]))
-    #         # e.g "c7495bd4c5102d7e40c231279eaf9877e825364847ddebc34911f5a0f0d79ea5"
-    #
-    #         # 4-byte output index (little endian).
-    #         self.prev_out_index.append(change_endianness(int2bytes(prev_out_index[i], 4)))  # e.g "00000000"
-    #
-    #     # ScriptSig
-    #
-    #     # The order in the tx is: scriptSig_len, scriptSig.
-    #     # Temporary filled with "0" "0" for standard script transactions (Signature)
-    #
-    #     for i in range(n_inputs):
-    #         if scriptSig is None:
-    #             self.scriptSig_len.append("0")  # Input script length (varint, between 1-9 bytes long)
-    #             self.scriptSig.append("0")
-    #
-    #         else:
-    #             self.scriptSig_len.append(int2bytes(len(scriptSig[i]) / 2, 1))
-    #             self.scriptSig.append(scriptSig[i])
-    #
-    #         # 4-byte sequence number (default:ffffffff).
-    #
-    #         self.nSequence.append("ffffffff")
-    #
-    #     #############
-    #     #  OUTPUTS  #
-    #     #############
-    #
-    #     # Number of outputs (varint, between 1-9 bytes long).
-    #     n_outputs = len(scriptPubKey)
-    #     self.outputs = encode_varint(n_outputs)  # e.g "01"
-    #
-    #     # 8-byte field (64 bit integer) representing the amount of Satoshis to be spent (little endian).
-    #     # 0.00349815 (UTXO value) - 0.00005000 (fee) =  0.00344815 BTC = 344815 (Satoshi) = ef4250 (Little endian)
-    #
-    #     for i in range(n_outputs):
-    #         self.value.append(change_endianness(int2bytes(value[i], 8)))  # e.g "ef42050000000000"
-    #
-    #         # Output script and its length (varint, between 1-9 bytes long)
-    #
-    #         self.scriptPubKey_len.append(encode_varint(len(scriptPubKey[i]) / 2))  # e.g "06"
-    #         self.scriptPubKey = scriptPubKey  # e.g "010301029488"
-    #
-    #     # 4-byte lock time field (default: 0)
-    #
-    #     self.nLockTime = "00000000"

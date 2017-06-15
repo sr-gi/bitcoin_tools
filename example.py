@@ -1,6 +1,6 @@
-from tx.tx import TX
-from wallet.keys import generate_keys, store_keys, load_keys
-from wallet.wallet import generate_wif, generate_btc_addr
+from bitcoin_tools.keys import generate_keys, store_keys
+from bitcoin_tools.wallet import generate_wif, generate_btc_addr
+from bitcoin_tools.transaction import TX
 
 #################################################
 # Key management and Bitcoin address generation #

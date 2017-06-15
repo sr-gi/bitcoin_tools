@@ -476,9 +476,9 @@ def is_signature(pk):
 
 def get_prev_ScriptPubKey(tx_id, index, network='test'):
     if network in ['main', 'mainnet']:
-        base_url = "http://btc.blockr.io/api/v1/tx/info/"
+        base_url = "https://api.blockcypher.com/v1/btc/main/txs/"
     elif network in ['test', 'testnet']:
-        base_url = "http://tbtc.blockr.io/api/v1/tx/info/"
+        base_url = "https://api.blockcypher.com/v1/btc/test3/txs/"
     else:
         raise Exception("Bad network.")
 
@@ -490,20 +490,20 @@ def get_prev_ScriptPubKey(tx_id, index, network='test'):
 
     data = loads(r.read())
 
-    script = data.get('data').get('vouts')[index].get('extras').get('script')
-    t = data.get('data').get('vouts')[index].get('extras').get('type')
+    script = data.get('outputs')[index].get('script')
+    t = data.get('outputs')[index].get('script_type')
 
     return script, parse_script_type(t)
 
 
 def parse_script_type(t):
-    if t == 'multisig':
-        r = "P2MS";
-    elif t == 'pubkey':
+    if t == 'pay-to-multi-pubkey-hash':
+        r = "P2MS"
+    elif t == 'pay-to-pubkey':
         r = "P2PK"
-    elif t == 'pubkeyhash':
+    elif t == 'pay-to-pubkey-hash':
         r = "P2PKH"
-    elif t == 'scripthash':
+    elif t == 'pay-to-script-hash':  # ToDo: Check!
         r = "P2PSH"
     else:
         r = "unknown"

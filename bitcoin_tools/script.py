@@ -1,8 +1,8 @@
+from bitcoin_tools.wallet import btc_addr_to_hash_160
+from bitcoin_tools.utils import check_public_key, check_signature, check_address
 from abc import ABCMeta, abstractmethod
-from wallet.wallet import btc_addr_to_hash_160
-from bitcoin.core.script import *
 from binascii import a2b_hex, b2a_hex
-from utils.utils import check_public_key, check_signature, check_address
+from bitcoin.core.script import *
 
 
 class Script:

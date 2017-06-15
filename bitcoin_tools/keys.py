@@ -1,9 +1,12 @@
+from bitcoin_tools.utils import change_endianness, int2bytes
 from binascii import b2a_hex, a2b_hex
-from os import mkdir, path
 from hashlib import sha256
+from os import mkdir, path
+from bitcoin.core.script import SIGHASH_ALL, SIGHASH_SINGLE, SIGHASH_NONE
 from ecdsa import SigningKey, VerifyingKey, SECP256k1
 from ecdsa.util import sigencode_der_canonize
-from utils.utils import change_endianness, int2bytes
+
+
 
 
 def generate_keys():
@@ -81,15 +84,15 @@ def serialize_sk(sk):
     return b2a_hex(sk.to_string())
 
 
-def ecdsa_tx_sign(unsigned_tx, sk, hashcode="SIGHASH_ALL"):
-    # ToDo: Add all hashcodes
-    if hashcode == "SIGHASH_ALL":
-        hc = change_endianness(int2bytes(1, 4))
-        hc_ret = change_endianness(int2bytes(1, 1))
+def ecdsa_tx_sign(unsigned_tx, sk, hashflag=SIGHASH_ALL):
+    if hashflag in [SIGHASH_ALL, SIGHASH_SINGLE, SIGHASH_NONE]:
+        hc = int2bytes(hashflag, 4)
+    else:
+        raise Exception("Wrong hash flag.")
 
-    h = sha256(unsigned_tx + a2b_hex(hc)).digest()
+    # ToDo: Deal with SIGHASH_ANYONECANPAY
+
+    h = sha256(a2b_hex(unsigned_tx + change_endianness(hc))).digest()
     s = sk.sign_deterministic(h, hashfunc=sha256, sigencode=sigencode_der_canonize)
 
-    return b2a_hex(s) + hc_ret
-
-
+    return b2a_hex(s) + hc[-2:]

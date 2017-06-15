@@ -1,10 +1,10 @@
+from bitcoin_tools.constants import PUBKEY_HASH, TESTNET_PUBKEY_HASH, WIF, TESTNET_WIF
 from binascii import a2b_hex, b2a_hex
 from hashlib import new, sha256
 from os import mkdir, path
 from keys import serialize_pk, serialize_sk
 from base58 import b58encode, b58decode
 from qrcode import make as qr_make
-from constants import PUBKEY_HASH, TESTNET_PUBKEY_HASH, WIF, TESTNET_WIF
 
 
 def hash_160(pk):
