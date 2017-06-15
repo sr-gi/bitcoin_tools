@@ -147,6 +147,7 @@ def txout_compress(n):
     :return: The compressed amount of Satoshis.
     :rtype: int
     """
+
     if n == 0:
         return 0
     e = 0
@@ -280,7 +281,16 @@ def b128_decode(data):
 
 
 def parse_b128(utxo, offset=0):
-    # ToDo: Add documentation
+    """ Parses a given serialized UTXO to extract a base-128 varint.
+
+    :param utxo: Serialized UTXO from which the varint will be parsed.
+    :type utxo: hex str
+    :param offset: Offset where the beginning of the varint if located in the UTXO.
+    :type offset: int
+    :return: The extracted varint, and the offset of the byte located right after it.
+    :rtype: hex str, int
+    """
+
     data = utxo[offset:offset+2]
     offset += 2
     more_bytes = int(data, 16) & 0x80  # MSB b128 Varints have set the bit 128 for every byte but the last one,
@@ -314,6 +324,11 @@ def decode_utxo(utxo):
     VARINT refers to the CVarint used along the Bitcoin Core client, that is base128 encoding. A CTxOut contains the
     compressed amount of Satoshis that the UTXO holds. That amount is encoded using the equivalent to txout_compress +
     b128_encode.
+
+    :param utxo: UTXO to be decoded (extracted from the chainstate)
+    :type utxo: hex str
+    :return; The decoded UTXO.
+    :rtype: dict
     """
 
     # Version is extracted from the first varint of the serialized utxo
@@ -399,10 +414,16 @@ def decode_utxo(utxo):
 
     return {'version': version, 'coinbase': coinbase, 'outs': outs, 'height': height}
 
-# ToDo: Add documentation to the rest of the utils lib
-
 
 def display_decoded_utxo(decoded_utxo):
+    """ Displays the information extracted from a decoded UTXO from the chainstate.
+
+    :param decoded_utxo: Decoded UTXO from the chainstate
+    :type decoded_utxo: dict
+    :return: None
+    :rtype: None
+    """
+
     print "version: " + str(decoded_utxo['version'])
     print "isCoinbase: " + str(decoded_utxo['coinbase'])
 
@@ -417,18 +438,15 @@ def display_decoded_utxo(decoded_utxo):
     print "Block height: " + str(decoded_utxo['height'])
 
 
-def check_signature(signature):
-    l = (len(signature[4:]) - 2) / 2
-
-    if signature[:2] != "30":
-        raise Exception("Wrong signature format.")
-    elif int(signature[2:4], 16) != l:
-        raise Exception("Wrong signature length " + str(l))
-    else:
-        return True
-
-
 def check_public_key(pk):
+    """ Checks if a given string is a public (or at least if it is formatted as if it is).
+
+    :param pk: ECDSA public key to be checked.
+    :type pk: hex str
+    :return: True if the key matches the format, raise exception otherwise.
+    :rtype: bool
+    """
+
     prefix = pk[0:2]
     l = len(pk)
 
@@ -443,6 +461,15 @@ def check_public_key(pk):
 
 
 def check_address(btc_addr, network='test'):
+    """ Checks if a given string is a Bitcoin address for a given network (or at least if it is formatted as if it is).
+
+    :param btc_addr: Bitcoin address to be checked.
+    :rtype: hex str
+    :param network: Network to be checked (either mainnet or testnet).
+    :type network: hex str
+    :return: True if the Bitcoin address matches the format, raise exception otherwise.
+    """
+
     if network in ['test', "testnet"] and btc_addr[0] not in ['m', 'n']:
         raise Exception("Wrong testnet address format.")
     elif network in ['main', 'mainnet'] and btc_addr[0] != '1':
@@ -453,28 +480,82 @@ def check_address(btc_addr, network='test'):
         return True
 
 
+def check_signature(signature):
+    """ Checks if a given string is a signature (or at least if it is formatted as if it is).
+
+    :param signature: Signature to be checked.
+    :type signature: hex str
+    :return: True if the signatures matches the format, raise exception otherwise.
+    :rtype: bool
+    """
+
+    l = (len(signature[4:]) - 2) / 2
+
+    if signature[:2] != "30":
+        raise Exception("Wrong signature format.")
+    elif int(signature[2:4], 16) != l:
+        raise Exception("Wrong signature length " + str(l))
+    else:
+        return True
+
+
 def is_public_key(pk):
+    """ Encapsulates check_public_key function as a True/False option.
+
+    :param pk: ECDSA public key to be checked.
+    :type pk: hex str
+    :return: True if pk is a public key, false otherwise.
+    """
+
     try:
         return check_public_key(pk)
     except:
         return False
 
 
-def is_btc_addr(pk):
+def is_btc_addr(btc_addr, network='test'):
+    """ Encapsulates check_address function as a True/False option.
+
+    :param btc_addr: Bitcoin address to be checked.
+    :type btc_addr: hex str
+    :param network: The network to be checked (either mainnet or testnet).
+    :type network: str
+    :return: True if btc_addr is a public key, false otherwise.
+    """
+
     try:
-        return check_address(pk)
+        return check_address(btc_addr, network)
     except:
         return False
 
 
-def is_signature(pk):
+def is_signature(signature):
+    """ Encapsulates check_signature function as a True/False option.
+
+    :param signature: Signature to be checked.
+    :type signature: hex str
+    :return: True if signature is a signature, false otherwise.
+    """
+
     try:
-        return check_signature(pk)
+        return check_signature(signature)
     except:
         return False
 
 
 def get_prev_ScriptPubKey(tx_id, index, network='test'):
+    """ Gets the ScriptPubKey of a given transaction id and its type, by querying blockcyer's API.
+
+    :param tx_id: Transaction identifier to be queried.
+    :type tx_id: hex str
+    :param index: Index of the output from the transaction.
+    :type index: int
+    :param network: Network in which the transaction can be found (either mainnet or testnet).
+    :type network: hex str
+    :return: The corresponding ScriptPubKey and its type.
+    :rtype hex str, str
+    """
+
     if network in ['main', 'mainnet']:
         base_url = "https://api.blockcypher.com/v1/btc/main/txs/"
     elif network in ['test', 'testnet']:
@@ -497,13 +578,21 @@ def get_prev_ScriptPubKey(tx_id, index, network='test'):
 
 
 def parse_script_type(t):
+    """ Parses a script type obtained from a query to blockcyper's API.
+
+    :param t: script type to be parsed.
+    :type t: str
+    :return: The parsed script type.
+    :rtype: str
+    """
+
     if t == 'pay-to-multi-pubkey-hash':
         r = "P2MS"
     elif t == 'pay-to-pubkey':
         r = "P2PK"
     elif t == 'pay-to-pubkey-hash':
         r = "P2PKH"
-    elif t == 'pay-to-script-hash':  # ToDo: Check!
+    elif t == 'pay-to-script-hash':
         r = "P2PSH"
     else:
         r = "unknown"

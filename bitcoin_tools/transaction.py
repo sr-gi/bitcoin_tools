@@ -89,10 +89,17 @@ class TX:
 
         return serialized_tx
 
-    # ToDo: Add documentation to the rest of the TX class
-
     @classmethod
     def build_from_hex(cls, hex_tx):
+        """ Builds a transaction object from the hexadecimal serialization format of a transaction that could be
+        obtained, for example, from a blockexplorer.
+
+        :param hex_tx: Hexadecimal serialized transaction.
+        :type hex_tx: hex str
+        :return: The transaction build using the provided hex serialized transaction.
+        :rtype: TX
+        """
+
         tx = cls()
         tx.hex = hex_tx
 
@@ -118,7 +125,7 @@ class TX:
 
         if tx.offset != len(tx.hex):
             raise Exception("There is some error in the serialized transaction passed as input. Transaction can't"
-                            "be build")
+                            "be built")
         else:
             tx.offset = 0
 
@@ -126,7 +133,39 @@ class TX:
 
     @classmethod
     def build_from_scripts(cls, prev_tx_id, prev_out_index, value, scriptSig, scriptPubKey, fees=None):
+        """ Builds a transaction from already built Input and Output scripts. This builder should be used when building
+        custom transaction (Non-standard).
+
+        :param prev_tx_id: Previous transaction id.
+        :type prev_tx_id: either str or list of str
+        :param prev_out_index: Previous output index. Together with prev_tx_id represent the UTXOs the current
+        transaction is aiming to redeem.
+        :type prev_out_index: either str or list of str
+        :param value: Value in Satoshis to be spent.
+        :type value: either int or list of int
+        :param scriptSig: Input script containing the restrictions that will lock the transaction.
+        :type scriptSig: either InputScript or list of InputScript
+        :param scriptPubKey: Output script containing the redeem fulfilment conditions.
+        :type scriptPubKey: either OutputScript or list of OutputScript
+        :param fees: Fees that will be applied to the transaction
+        :type fees: int
+        :return: The transaction build using the provided scripts.
+        :rtype: TX
+        """
+
         tx = cls()
+
+        # Normalize all parameters
+        if isinstance(prev_tx_id, str):
+            prev_tx_id = [prev_tx_id]
+        if isinstance(prev_out_index, int):
+            prev_out_index = [prev_out_index]
+        if isinstance(value, int):
+            value = [value]
+        if isinstance(scriptSig, InputScript):
+            scriptSig = [scriptSig]
+        if isinstance(scriptPubKey, OutputScript):
+            scriptSig = [scriptSig]
 
         if len(prev_tx_id) is not len(prev_out_index) or len(prev_tx_id) is not len(scriptSig):
             raise Exception("The number ofs UTXOs to spend must match with the number os ScriptSigs to set.")
@@ -172,9 +211,46 @@ class TX:
 
     @classmethod
     def build_from_io(cls, prev_tx_id, prev_out_index, value, outputs, fees=None, network='test'):
+        """ Builds a transaction from a collection of inputs and outputs, such as previous transactions references and
+        output references (either public keys, Bitcoin addresses, list of public keys (for multisig transactions), etc).
+        This builder leaves the transaction ready to sign, so its the one to be used in most cases
+        (Standard transactions).
+
+        outputs format:
+
+        P2PKH -> Bitcoin address, or list of Bitcoin addresses.
+        e.g: output = btc_addr or output = [btc_addr0, btc_addr1, ...]
+
+        P2PK -> Serialized Public key, or list of serialized pubic keys. (use keys.serialize_pk)
+        e.g: output = pk or output = [pk0, pk1, ...]
+
+        P2MS -> List of int (m) and public keys, or list of lists of int (m_i) and public keys. m represent the m-of-n
+        number of public keys needed to redeem the transaction.
+        e.g: output = [n, pk0, pk1, ...] or output = [[n_0, pk0_0, pk0_1, ...], [n_1, pk1_0, pk1_1, ...], ...]
+
+        P2SH -> ToDo.
+
+        :param prev_tx_id: Previous transaction id.
+        :type prev_tx_id: either str or list of str
+        :param prev_out_index: Previous output index. Together with prev_tx_id represent the UTXOs the current
+        transaction is aiming to redeem.
+        :type prev_out_index: either str or list of str
+        :param value: Value in Satoshis to be spent.
+        :type value: either int or list of int
+        :param outputs: Information to build the output of the transaction.
+        :type outputs: See above outputs format.
+        :param fees: Fees that will be applied to the transaction.
+        :type fees: int
+        :param network: Network into which the transaction will be published (either mainnet or testnet).
+        :type network: str
+        :return: Transaction build with the input and output provided data.
+        :rtype: TX
+        """
+
         ins = []
         outs = []
 
+        # Normalize all parameters
         if isinstance(prev_tx_id, str):
             prev_tx_id = [prev_tx_id]
         if isinstance(prev_out_index, int):
@@ -193,6 +269,7 @@ class TX:
             raise Exception("Each output must have set a Satoshi amount. Use 0 if no value is going to be transferred.")
 
         for o in outputs:
+            # Multisig outputs are passes ad an integer m representing the m-of-n transaction, amb m public keys.
             if isinstance(o, list) and o[0] in range(1, 15):
                 pks = [is_public_key(pk) for pk in o[1:]]
                 if all(pks):
@@ -201,7 +278,7 @@ class TX:
                     raise Exception("Bad output")
             elif is_public_key(o):
                 oscript = OutputScript.P2PK(o)
-            elif is_btc_addr(o):
+            elif is_btc_addr(o, network):
                 oscript = OutputScript.P2PKH(o)
             else:
                 # ToDo: Handle P2SH outputs as an additional elif
@@ -214,11 +291,32 @@ class TX:
             iscript = InputScript()
             ins.append(iscript)
 
+        # Once all inputs and outputs has been formatted a scripts, we could construct the transaction with the proper
+        # builder.
         tx = cls.build_from_scripts(prev_tx_id, prev_out_index, value, ins, outs)
 
         return tx
 
     def signature_form(self, index, hashflag=SIGHASH_ALL, network='test'):
+        """ Builds the signature format an unsigned transaction has to follow in order to be signed. Basically empties
+        every InputScript field but the one to be signed, identified by index, that will be filled with the OutputScript
+        from the UTXO that will be redeemed.
+
+        The format of the OutputScripts will depend on the hashflag:
+            - SIGHASH_ALL leaves OutputScript unchanged.
+            - SIGHASH_SINGLE should sign each input with the output of the same index (not implemented yet).
+            - SIGHASH_NONE empies all the outputs.
+            - SIGHASH_ANYONECANPAY not sure about what should do (obviously not implemented yet).
+
+        :param index: The index of the input to be signed.
+        :type index: int
+        :param hashflag: Hash type to be used, see above description for further information.
+        :type hashflag: int
+        :param network: Network into which the transaction will be published (either mainnet or testnet).
+        :type network: str
+        :return: Transaction properly formatted to be signed.
+        :rtype TX
+        """
 
         tx = deepcopy(self)
         for i in range(len(tx.scriptSig)):
@@ -239,7 +337,7 @@ class TX:
                 tx.scriptSig_len[i] = int2bytes(len(tx.scriptSig[i].content) / 2, 1)
 
         if hashflag is SIGHASH_SINGLE:
-            # ToDo: Deal with SIGHASH_SINGLE
+            # ToDo: Implement SIGHASH_SINGLE
             pass
         elif hashflag is SIGHASH_NONE:
             # Empty all the scriptPubKeys and set the length and the output counter to 0.
@@ -247,13 +345,30 @@ class TX:
             tx.scriptPubKey = OutputScript()
             tx.scriptPubKey_len = int2bytes(len(tx.scriptPubKey.content) / 2, 1)
         elif hashflag is SIGHASH_ANYONECANPAY:
-            # ToDo: Deal with SIGHASH_ANYONECANPAY
+            # ToDo: Implement SIGHASH_ANYONECANPAY
             pass
 
         return tx
 
-    def sign(self, sk, index, hashflag=SIGHASH_ALL):
-        if isinstance(sk, list) and isinstance(index, int):  # In case a list for multisig is received as only input.
+    def sign(self, sk, index, hashflag=SIGHASH_ALL, network='test'):
+        """ Signs a transaction using the provided private key(s), index(es) and hash type. If more than one key and index
+        is provides, key i will sign the ith input of the transaction.
+
+        :param sk: Private key(s) used to sign the ith transaction input (defined by index).
+        :type sk: SigningKey or list of SigningKey.
+        :param index:Index(es) to be signed by the provided key(s).
+        :type index: int or list of int
+        :param hashflag: Hash type to be used. It will define what signature format will the unsigned transaction have.
+        :type hashflag: int
+        :param network: Network from which the previos ScripPubKey will be queried (either main or test).
+        :type network: str
+        :return: Transaction signature.
+        :rtype: str
+        """
+
+        # Normalize all parameters
+        if isinstance(sk, list) and isinstance(index, int):
+            # In case a list for multisig is received as only input.
             sk = [sk]
         if isinstance(sk, SigningKey):
             sk = [sk]
@@ -261,7 +376,13 @@ class TX:
             index = [index]
 
         for i in range(len(sk)):
-            unsigned_tx = self.signature_form(index[i], hashflag)
+            # The unsigned transaction is formatted depending on the input that is going to be signed. For input i,
+            # the ScriptSig[i] will be set to the scriptPubKey of the UTXO that input i tries to redeem, while all
+            # the other inputs will be set blank.
+            unsigned_tx = self.signature_form(index[i], hashflag, network)
+
+            # Then, depending on the format how the private keys have been passed to the signing function, a different
+            # and the content of the ScripSig field, a different final scriptSig will be created.
             if isinstance(sk[i], list) and unsigned_tx.scriptSig[index[i]].type is "P2MS":
                 sigs = []
                 for k in sk[i]:
@@ -280,6 +401,7 @@ class TX:
                 # ToDo: Handle P2SH outputs as an additional elif
                 raise Exception("Can't sign input " + str(i) + " with the provided data.")
 
+            # Finally, temporal scripts are stored as final and the length of the script is computed
             self.scriptSig[i] = iscript
             self.scriptSig_len[i] = encode_varint(len(iscript.content) / 2)
 

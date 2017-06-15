@@ -73,7 +73,7 @@ def btc_addr_to_hash_160(btc_addr):
     return h160
 
 
-def pk_to_btc_addr(pk, v='main'):
+def pk_to_btc_addr(pk, v='test'):
     """ Calculates the Bitcoin address of a given elliptic curve public key.
 
     :param pk: elliptic curve public key.
@@ -88,9 +88,9 @@ def pk_to_btc_addr(pk, v='main'):
     """
 
     # Choose the proper version depending on the provided 'v'.
-    if v is 'main':
+    if v in ['mainnet', 'main']:
         v = PUBKEY_HASH
-    elif v is 'test':
+    elif v in ['testnet', 'test']:
         v = TESTNET_PUBKEY_HASH
     else:
         raise Exception("Invalid version, use either 'main' or 'test'.")
@@ -103,7 +103,7 @@ def pk_to_btc_addr(pk, v='main'):
     return btc_addr
 
 
-def generate_btc_addr(pk, v='main'):
+def generate_btc_addr(pk, v='test'):
     """ Calculates Bitcoin address associated to a given elliptic curve public key and a given network.
 
     :param pk: DER encoded public key
@@ -122,7 +122,7 @@ def generate_btc_addr(pk, v='main'):
     return btc_addr
 
 
-def sk_to_wif(sk, mode='image', v='main'):
+def sk_to_wif(sk, mode='image', v='test'):
     """ Generates a Wallet Import Format (WIF) representation of a provided elliptic curve private key.
 
     :param sk: elliptic curve private key.
@@ -142,9 +142,9 @@ def sk_to_wif(sk, mode='image', v='main'):
     """
 
     # Choose the proper version depending on the provided 'v'.
-    if v is 'main':
+    if v in ['mainnet', 'main']:
         v = WIF
-    elif v is 'test':
+    elif v in ['testnet', 'test']:
         v = TESTNET_WIF
     else:
         raise Exception("Invalid version, use either 'main' or 'test'.")
@@ -169,7 +169,7 @@ def sk_to_wif(sk, mode='image', v='main'):
     return response
 
 
-def generate_wif(btc_addr, sk, mode='image', v='main'):
+def generate_wif(btc_addr, sk, mode='image', v='test'):
     """ Generates a Wallet Import Format (WIF) file into disk. Uses an elliptic curve private key from disk as an input
     using the btc_addr associated to the public key of the same key pair as an identifier.
 

@@ -6,8 +6,7 @@ from bitcoin.core.script import *
 
 
 class Script:
-    """
-    Defines the class Script which includes two subclasses, InputScript and OutputScript. Every script type have two
+    """ Defines the class Script which includes two subclasses, InputScript and OutputScript. Every script type have two
     custom 'constructors' (from_hex and from_human), and four templates for the most common standard script types
     (P2PK, P2PKH, P2MS and P2PSH).
     """
@@ -20,8 +19,7 @@ class Script:
 
     @classmethod
     def from_hex(cls, hex_script):
-        """
-        Builds a script from a serialized one (it's hexadecimal representation). 
+        """ Builds a script from a serialized one (it's hexadecimal representation).
         
         :param hex_script: Serialized script.
         :type hex_script: hex str
@@ -35,8 +33,7 @@ class Script:
 
     @classmethod
     def from_human(cls, data):
-        """
-        Builds a script from a human way of writing them, using the Bitcoin Scripting language terminology.
+        """ Builds a script from a human way of writing them, using the Bitcoin Scripting language terminology.
         
         e.g: OP_DUP OP_HASH160 <hash_160> OP_EQUALVERIFY OP_CHECKSIG
         
@@ -55,8 +52,7 @@ class Script:
 
     @staticmethod
     def deserialize(script):
-        """
-        Deserializes a serialized script (goes from hex to human).
+        """ Deserializes a serialized script (goes from hex to human).
         
         e.g: deserialize('76a914b34bbaac4e9606c9a8a6a720acaf3018c9bc77c988ac') =   OP_DUP OP_HASH160 
             <b34bbaac4e9606c9a8a6a720acaf3018c9bc77c9> OP_EQUALVERIFY OP_CHECKSIG
@@ -82,8 +78,7 @@ class Script:
 
     @staticmethod
     def serialize(data):
-        """
-        Serializes a scrip from a deserialized one (human readable) (goes from human to hex)
+        """ Serializes a scrip from a deserialized one (human readable) (goes from human to hex)
         :param data: Human readable script.
         :type data: hex str
         :return: Serialized script.
@@ -119,14 +114,12 @@ class Script:
 
 
 class InputScript(Script):
-    """
-    Defines an InputScript (ScriptSig) class that inherits from script.
+    """ Defines an InputScript (ScriptSig) class that inherits from script.
     """
 
     @classmethod
     def P2PK(cls, signature):
-        """
-        Pay-to-PubKey template 'constructor'. Builds a P2PK InputScript from a given signature.
+        """ Pay-to-PubKey template 'constructor'. Builds a P2PK InputScript from a given signature.
         
         :param signature: Transaction signature.
         :type signature: hex str
@@ -143,8 +136,7 @@ class InputScript(Script):
 
     @classmethod
     def P2PKH(cls, signature, pk):
-        """
-        Pay-to-PubKeyHash template 'constructor'. Builds a P2PKH InputScript from a given signature and a
+        """ Pay-to-PubKeyHash template 'constructor'. Builds a P2PKH InputScript from a given signature and a
         public key.
 
         :param signature: Transaction signature.
@@ -164,8 +156,7 @@ class InputScript(Script):
 
     @classmethod
     def P2MS(cls, sigs):
-        """
-        Pay-to-Multisig template 'constructor'. Builds a P2MS InputScript from a given list of signatures.
+        """ Pay-to-Multisig template 'constructor'. Builds a P2MS InputScript from a given list of signatures.
 
         :param sigs: List of transaction signatures.
         :type sigs: list
@@ -186,8 +177,7 @@ class InputScript(Script):
 
     @classmethod
     def P2SH(cls, s):
-        """
-        Pay-to-ScriptHash template 'constructor'. Builds a P2SH InputScript from a given script.
+        """ Pay-to-ScriptHash template 'constructor'. Builds a P2SH InputScript from a given script.
 
         :param s: Human readable script that hashes to the UTXO script hash that the transaction tries to redeem.
         :type s: hex str
@@ -204,14 +194,12 @@ class InputScript(Script):
 
 
 class OutputScript(Script):
-    """
-    Defines an OutputScript (ScriptPubKey) class that inherits from script.
+    """ Defines an OutputScript (ScriptPubKey) class that inherits from script.
     """
 
     @classmethod
     def P2PK(cls, pk):
-        """
-        Pay-to-PubKey template 'constructor'. Builds a P2PK OutputScript from a given public key.
+        """ Pay-to-PubKey template 'constructor'. Builds a P2PK OutputScript from a given public key.
 
         :param pk: Public key to which the transaction output will be locked to.
         :type pk: hex str
@@ -228,8 +216,7 @@ class OutputScript(Script):
 
     @classmethod
     def P2PKH(cls, btc_addr, network='test'):
-        """
-        Pay-to-PubKeyHash template 'constructor'. Builds a P2PKH OutputScript from a given Bitcoin address and network.
+        """ Pay-to-PubKeyHash template 'constructor'. Builds a P2PKH OutputScript from a given Bitcoin address and network.
 
         :param btc_addr: Bitcoin address to which the transaction output will be locked to.
         :type btc_addr: hex str
@@ -252,8 +239,7 @@ class OutputScript(Script):
 
     @classmethod
     def P2MS(cls, m, n, pks):
-        """
-        Pay-to-Multisig template 'constructor'. Builds a P2MS OutputScript from a given list of public keys, the total
+        """ Pay-to-Multisig template 'constructor'. Builds a P2MS OutputScript from a given list of public keys, the total
         number of keys and a threshold.
 
         :param m: Threshold, minimum amount of signatures needed to redeem from the output.
@@ -285,8 +271,7 @@ class OutputScript(Script):
 
     @classmethod
     def P2SH(cls, script_hash):
-        """
-        Pay-to-ScriptHash template 'constructor'. Builds a P2SH OutputScript from a given script hash.
+        """ Pay-to-ScriptHash template 'constructor'. Builds a P2SH OutputScript from a given script hash.
 
         :param script_hash: Script hash to which the output will be locked to.
         :type script_hash: hex str
