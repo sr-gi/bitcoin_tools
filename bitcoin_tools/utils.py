@@ -31,6 +31,11 @@ def int2bytes(a, b):
     :rtype: hex str
     """
 
+    m = pow(2, 8*b) - 1
+    if a > m:
+        raise Exception(str(a) + " is too big to be represented with " + str(b) + " bytes. Maximum value is "
+                        + str(m) + ".")
+
     return ('%0' + str(2 * b) + 'x') % a
 
 

@@ -395,30 +395,34 @@ class TX:
             # Otherwise, all outputs will set to empty scripts but the ith one (identified by index),
             # since SIGHASH_SINGLE should only sign the ith input with the ith output.
             else:
-                for o in range(tx.outputs):
-                    if o != index:
-                        tx.scriptPubKey[o] = OutputScript()
-                        tx.scriptPubKey_len[o] = len(tx.scriptPubKey[o].content) / 2
-                        tx.value[o] = 2**64-1
+                # How to properly deal with SIGHASH_SINGLE signature format extracted from:
+                # https://github.com/bitcoin/bitcoin/blob/3192e5278a/test/functional/test_framework/script.py#L869
 
-                # Could be like this?
-                #https://github.com/bitcoin/bitcoin/blob/3192e5278abca7c1f3b4a2a7f77a0ce941c73985/test/functional/test_framework/script.py#L869
+                # First we backup the output that we will sign,
+                t_script = tx.scriptPubKey[index]
+                t_size = tx.scriptPubKey_len[index]
+                t_value = tx.value[index]
 
-                # t_script = tx.scriptPubKey[index]
-                # t_size = tx.scriptPubKey_len[index]
-                # t_value = tx.value[index]
-                #
-                # tx.scriptPubKey = []
-                # tx.scriptPubKey_len = []
-                # tx.value = []
-                # for o in range(index):
-                #     tx.scriptPubKey.append(OutputScript())
-                #     tx.scriptPubKey_len.append(int2bytes(len(tx.scriptPubKey[o].content) / 2, 1))
-                #     tx.value.append(change_endianness(int2bytes(2 ** 64 - 1, 8)))
-                #
-                # tx.scriptPubKey.append(t_script)
-                # tx.scriptPubKey_len.append(t_size)
-                # tx.value.append(t_value)
+                # Then, we delete every single output.
+                tx.scriptPubKey = []
+                tx.scriptPubKey_len = []
+                tx.value = []
+                for o in range(index):
+                    # Once the all outputs have been deleted, we create empty outputs for every single index before
+                    # the one that will be signed. Furthermore, the value of the output if set to maximum (2^64-1)
+                    tx.scriptPubKey.append(OutputScript())
+                    tx.scriptPubKey_len.append(len(tx.scriptPubKey[o].content) / 2)
+                    tx.value.append(pow(2, 64) - 1)
+
+                # Once we reach the index of the output that will be signed, we restore it with the one that we backed
+                # up before.
+                tx.scriptPubKey.append(t_script)
+                tx.scriptPubKey_len.append(t_size)
+                tx.value.append(t_value)
+
+                # Finally, we recalculate the number of outputs for the signature format.
+                # Notice that each signature format will have index number of outputs! Otherwise it will be invalid.
+                tx.outputs = len(tx.scriptPubKey)
 
         elif hashflag is SIGHASH_NONE:
             # Empty all the scriptPubKeys and set the length and the output counter to 0.
@@ -433,7 +437,7 @@ class TX:
         if hashflag in [SIGHASH_SINGLE, SIGHASH_NONE]:
             # ToDo: Report bug in Buterin's SIGHASH_NONE and SIGHASH_SINGLE, nSequence is not set to zero.
             # All the nSequence from inputs except for the current one (index) is set to 0.
-            # https://github.com/bitcoin/bitcoin/blob/3192e5278abca7c1f3b4a2a7f77a0ce941c73985/test/functional/test_framework/script.py#L880
+            # https://github.com/bitcoin/bitcoin/blob/3192e5278a/test/functional/test_framework/script.py#L880
             for i in range(tx.inputs):
                 if i is not index:
                     tx.nSequence[i] = 0
