@@ -1,8 +1,8 @@
 from bitcoin_tools.keys import serialize_pk, ecdsa_tx_sign
 from bitcoin_tools.script import InputScript, OutputScript, Script, SIGHASH_ALL, SIGHASH_SINGLE, SIGHASH_NONE, \
     SIGHASH_ANYONECANPAY
-from bitcoin_tools.utils import change_endianness, decode_varint, encode_varint, int2bytes, \
-    is_public_key, is_btc_addr, parse_element, parse_varint, get_prev_ScriptPubKey
+from bitcoin_tools.utils import change_endianness, encode_varint, int2bytes, is_public_key, is_btc_addr, \
+    parse_element, parse_varint, get_prev_ScriptPubKey
 from copy import deepcopy
 from ecdsa import SigningKey
 
@@ -13,10 +13,10 @@ class TX:
     """
 
     def __init__(self):
-        self.version = ""
-        self.inputs = ""
-        self.outputs = ""
-        self.nLockTime = ""
+        self.version = None
+        self.inputs = None
+        self.outputs = None
+        self.nLockTime = None
         self.prev_tx_id = []
         self.prev_out_index = []
         self.scriptSig = []
@@ -29,70 +29,10 @@ class TX:
         self.offset = 0
         self.hex = ""
 
-    def deserialize(self):
-        """ Displays all the information related to the transaction object, properly split and arranged.
-
-        :param self: self
-        :type self: TX
-        :return: None.
-        :rtype: None
-        """
-
-        print "version: " + self.version
-        print "number of inputs: " + self.inputs + " (" + str(decode_varint(self.inputs)) + ")"
-        for i in range(len(self.scriptSig)):
-            print "input " + str(i)
-            print "\t previous txid (little endian): " + self.prev_tx_id[i] + " (" + change_endianness(
-                self.prev_tx_id[i]) + ")"
-            print "\t previous tx output (little endian): " + self.prev_out_index[i] + " (" + str(
-                int(change_endianness(self.prev_out_index[i]), 16)) + ")"
-            print "\t input script (scriptSig) length: " + self.scriptSig_len[i] + " (" + str(
-                int(self.scriptSig_len[i], 16)) + ")"
-            print "\t input script (scriptSig): " + self.scriptSig[i].content
-            print "\t decoded scriptSig: " + Script.deserialize(self.scriptSig[i].content)
-            print "\t nSequence: " + self.nSequence[i]
-        print "number of outputs: " + self.outputs + " (" + str(decode_varint(self.outputs)) + ")"
-        for i in range(len(self.scriptPubKey)):
-            print "output " + str(i)
-            print "\t Satoshis to be spent (little endian): " + self.value[i] + " (" + str(
-                int(change_endianness(self.value[i]), 16)) + ")"
-            print "\t output script (scriptPubKey) length: " + self.scriptPubKey_len[i] + " (" + str(
-                int(change_endianness(self.scriptPubKey_len[i]), 16)) + ")"
-            print "\t output script (scriptPubKey): " + self.scriptPubKey[i].content
-            print "\t decoded scriptPubKey: " + Script.deserialize(self.scriptPubKey[i].content)
-
-        print "nLockTime: " + self.nLockTime
-
-    def serialize(self):
-        """ Serialize all the transaction fields arranged in the proper order, resulting in a hexadecimal string
-        ready to be broadcast to the network.
-
-        :param self: self
-        :type self: TX
-        :return: Serialized transaction representation (hexadecimal).
-        :rtype: hex str
-        """
-
-        serialized_tx = self.version + self.inputs
-
-        for i in range(decode_varint(self.inputs)):
-            serialized_tx += self.prev_tx_id[i] + self.prev_out_index[i] + self.scriptSig_len[i] \
-                             + self.scriptSig[i].content + self.nSequence[i]
-
-        serialized_tx += self.outputs
-
-        if decode_varint(self.outputs) != 0:
-            for i in range(len(self.scriptPubKey)):
-                serialized_tx += self.value[i] + self.scriptPubKey_len[i] + self.scriptPubKey[i].content
-
-        serialized_tx += self.nLockTime
-
-        return serialized_tx
-
     @classmethod
     def build_from_hex(cls, hex_tx):
-        """ Builds a transaction object from the hexadecimal serialization format of a transaction that could be
-        obtained, for example, from a blockexplorer.
+        """
+        Alias of deserialize class method.
 
         :param hex_tx: Hexadecimal serialized transaction.
         :type hex_tx: hex str
@@ -100,36 +40,7 @@ class TX:
         :rtype: TX
         """
 
-        tx = cls()
-        tx.hex = hex_tx
-
-        tx.version = parse_element(tx, 4)
-        tx.inputs = parse_varint(tx)
-
-        for i in range(decode_varint(tx.inputs)):
-            tx.prev_tx_id.append(parse_element(tx, 32))
-            tx.prev_out_index.append(parse_element(tx, 4))
-            tx.scriptSig_len.append(parse_varint(tx))
-            iscript = InputScript.from_hex(parse_element(tx, decode_varint(tx.scriptSig_len[i])))
-            tx.scriptSig.append(iscript)
-            tx.nSequence.append(parse_element(tx, 4))
-
-        tx.outputs = parse_varint(tx)
-
-        for i in range(decode_varint(tx.outputs)):
-            tx.value.append(parse_element(tx, 8))
-            tx.scriptPubKey_len.append(parse_varint(tx))
-            tx.scriptPubKey.append(OutputScript.from_hex(parse_element(tx, decode_varint(tx.scriptPubKey_len[i]))))
-
-        tx.nLockTime = parse_element(tx, 4)
-
-        if tx.offset != len(tx.hex):
-            raise Exception("There is some error in the serialized transaction passed as input. Transaction can't"
-                            "be built")
-        else:
-            tx.offset = 0
-
-        return tx
+        return cls.deserialize(hex_tx)
 
     @classmethod
     def build_from_scripts(cls, prev_tx_id, prev_out_index, value, scriptSig, scriptPubKey, fees=None):
@@ -173,35 +84,30 @@ class TX:
             raise Exception("Scripts can't be empty")
         # ToDo: add more strict checks
         else:
-            tx.version = "01000000"  # 4-byte version number
+            tx.version = 1
 
             # INPUTS
-            n_inputs = len(prev_tx_id)  # Number of inputs (varint).
-            tx.inputs = encode_varint(n_inputs)
-            for i in range(n_inputs):
-                tx.prev_tx_id.append(change_endianness(prev_tx_id[i]))  # 32-byte hash of the previous transaction.
-                tx.prev_out_index.append(change_endianness(int2bytes(prev_out_index[i], 4)))  # 4-byte output index
+            tx.inputs = len(prev_tx_id)
+            tx.prev_tx_id = prev_tx_id
+            tx.prev_out_index = prev_out_index
 
-            # ScriptSig
-            for i in range(n_inputs):
-                tx.scriptSig_len.append(int2bytes(len(scriptSig[i].content) / 2, 1))  # Input script length (varint).
-                tx.scriptSig.append(scriptSig[i])  # Input script.
+            for i in range(tx.inputs):
+                # ScriptSig
+                tx.scriptSig_len.append(len(scriptSig[i].content) / 2)
+                tx.scriptSig.append(scriptSig[i])
 
-                tx.nSequence.append("ffffffff")  # 4-byte sequence number
+                tx.nSequence.append(pow(2, 32) - 1)  # ffffffff
 
             # OUTPUTS
-            n_outputs = len(scriptPubKey)  # Number of outputs (varint).
-            tx.outputs = encode_varint(n_outputs)
+            tx.outputs = len(scriptPubKey)
 
-            # ScriptPubKey
-            for i in range(n_outputs):
-                tx.value.append(change_endianness(int2bytes(value[i], 8)))  # 8-byte field (64 bit int) Satoshi value
-
-                tx.scriptPubKey_len.append(encode_varint(
-                    len(scriptPubKey[i].content) / 2))  # Output script length (varint).
+            for i in range(tx.outputs):
+                tx.value.append(value[i])
+                # ScriptPubKey
+                tx.scriptPubKey_len.append(len(scriptPubKey[i].content) / 2)
                 tx.scriptPubKey.append(scriptPubKey[i])  # Output script.
 
-            tx.nLockTime = "00000000"  # 4-byte lock time field
+            tx.nLockTime = 0
 
             tx.hex = tx.serialize()
 
@@ -291,64 +197,94 @@ class TX:
             iscript = InputScript()
             ins.append(iscript)
 
-        # Once all inputs and outputs has been formatted a scripts, we could construct the transaction with the proper
+        # Once all inputs and outputs has been formatted as scripts, we could construct the transaction with the proper
         # builder.
         tx = cls.build_from_scripts(prev_tx_id, prev_out_index, value, ins, outs)
 
         return tx
 
-    def signature_form(self, index, hashflag=SIGHASH_ALL, network='test'):
-        """ Builds the signature format an unsigned transaction has to follow in order to be signed. Basically empties
-        every InputScript field but the one to be signed, identified by index, that will be filled with the OutputScript
-        from the UTXO that will be redeemed.
+    @classmethod
+    def deserialize(cls, hex_tx):
+        """ Builds a transaction object from the hexadecimal serialization format of a transaction that
+        could be obtained, for example, from a blockexplorer.
 
-        The format of the OutputScripts will depend on the hashflag:
-            - SIGHASH_ALL leaves OutputScript unchanged.
-            - SIGHASH_SINGLE should sign each input with the output of the same index (not implemented yet).
-            - SIGHASH_NONE empies all the outputs.
-            - SIGHASH_ANYONECANPAY not sure about what should do (obviously not implemented yet).
-
-        :param index: The index of the input to be signed.
-        :type index: int
-        :param hashflag: Hash type to be used, see above description for further information.
-        :type hashflag: int
-        :param network: Network into which the transaction will be published (either mainnet or testnet).
-        :type network: str
-        :return: Transaction properly formatted to be signed.
-        :rtype TX
+        :param hex_tx: Hexadecimal serialized transaction.
+        :type hex_tx: hex str
+        :return: The transaction build using the provided hex serialized transaction.
+        :rtype: TX
         """
 
-        tx = deepcopy(self)
-        for i in range(len(tx.scriptSig)):
-            if i is index:
-                # Since tx_id and out_index has been already encoded into the tx format, they should be parsed to
-                # perform the query to the server API.
-                tx_id = change_endianness(tx.prev_tx_id[i])
-                out_index = int(change_endianness(self.prev_out_index[i]), 16)
-                script, t = get_prev_ScriptPubKey(tx_id, out_index, network)
-                # Once we get the previous UTXO script, the inputScript is temporarily set to it in order to sign
-                # the transaction.
-                tx.scriptSig[i] = InputScript.from_hex(script)
-                tx.scriptSig[i].type = t
-                tx.scriptSig_len[i] = int2bytes(len(tx.scriptSig[i].content) / 2, 1)
-            elif tx.scriptSig[i].content != "":
-                # All other scriptSig field are emptied and their length is set to 0.
-                tx.scriptSig[i] = InputScript()
-                tx.scriptSig_len[i] = int2bytes(len(tx.scriptSig[i].content) / 2, 1)
+        tx = cls()
+        tx.hex = hex_tx
 
-        if hashflag is SIGHASH_SINGLE:
-            # ToDo: Implement SIGHASH_SINGLE
-            pass
-        elif hashflag is SIGHASH_NONE:
-            # Empty all the scriptPubKeys and set the length and the output counter to 0.
-            tx.outputs = encode_varint(0)
-            tx.scriptPubKey = OutputScript()
-            tx.scriptPubKey_len = int2bytes(len(tx.scriptPubKey.content) / 2, 1)
-        elif hashflag is SIGHASH_ANYONECANPAY:
-            # ToDo: Implement SIGHASH_ANYONECANPAY
-            pass
+        tx.version = int(change_endianness(parse_element(tx, 4)), 16)
+
+        # INPUTS
+        tx.inputs = int(parse_varint(tx), 16)
+
+        for i in range(tx.inputs):
+            tx.prev_tx_id.append(change_endianness(parse_element(tx, 32)))
+            tx.prev_out_index.append(int(change_endianness(parse_element(tx, 4)), 16))
+            # ScriptSig
+            tx.scriptSig_len.append(int(parse_varint(tx), 16))
+            tx.scriptSig.append(InputScript.from_hex(parse_element(tx, tx.scriptSig_len[i])))
+            tx.nSequence.append(int(parse_element(tx, 4), 16))
+
+        # OUTPUTS
+        tx.outputs = int(parse_varint(tx), 16)
+
+        for i in range(tx.outputs):
+            tx.value.append(int(change_endianness(parse_element(tx, 8)), 16))
+            # ScriptPubKey
+            tx.scriptPubKey_len.append(int(parse_varint(tx), 16))
+            tx.scriptPubKey.append(OutputScript.from_hex(parse_element(tx, tx.scriptPubKey_len[i])))
+
+        tx.nLockTime = int(parse_element(tx, 4), 16)
+
+        if tx.offset != len(tx.hex):
+            raise Exception("There is some error in the serialized transaction passed as input. Transaction can't"
+                            "be built")
+        else:
+            tx.offset = 0
 
         return tx
+
+    def serialize(self):
+        """ Serialize all the transaction fields arranged in the proper order, resulting in a hexadecimal string
+        ready to be broadcast to the network.
+
+        :param self: self
+        :type self: TX
+        :return: Serialized transaction representation (hexadecimal).
+        :rtype: hex str
+        """
+
+        serialized_tx = change_endianness(int2bytes(self.version, 4))  # 4-byte version number (LE).
+
+        # INPUTS
+        serialized_tx += encode_varint(self.inputs)  # Varint number of inputs.
+
+        for i in range(self.inputs):
+            serialized_tx += change_endianness(self.prev_tx_id[i])  # 32-byte hash of the previous transaction (LE).
+            serialized_tx += change_endianness(int2bytes(self.prev_out_index[i], 4))  # 4-byte output index (LE)
+            serialized_tx += encode_varint(len(self.scriptSig[i].content) / 2)   # Varint input script length.
+            # ScriptSig
+            serialized_tx += self.scriptSig[i].content  # Input script.
+            serialized_tx += int2bytes(self.nSequence[i], 4)  # 4-byte sequence number.
+
+        # OUTPUTS
+        serialized_tx += encode_varint(self.outputs)  # Varint number of outputs.
+
+        if self.outputs != 0:
+            for i in range(self.outputs):
+                serialized_tx += change_endianness(int2bytes(self.value[i], 8))  # 8-byte field Satoshi value (LE)
+                # ScriptPubKey
+                serialized_tx += encode_varint(len(self.scriptPubKey[i].content) / 2)   # Varint Output script length.
+                serialized_tx += self.scriptPubKey[i].content  # Output script.
+
+        serialized_tx += int2bytes(self.nLockTime, 4)  # 4-byte lock time field
+
+        return serialized_tx
 
     def sign(self, sk, index, hashflag=SIGHASH_ALL, network='test'):
         """ Signs a transaction using the provided private key(s), index(es) and hash type. If more than one key and index
@@ -379,7 +315,7 @@ class TX:
             # The unsigned transaction is formatted depending on the input that is going to be signed. For input i,
             # the ScriptSig[i] will be set to the scriptPubKey of the UTXO that input i tries to redeem, while all
             # the other inputs will be set blank.
-            unsigned_tx = self.signature_form(index[i], hashflag, network)
+            unsigned_tx = self.signature_format(index[i], hashflag, network)
 
             # Then, depending on the format how the private keys have been passed to the signing function, a different
             # and the content of the ScripSig field, a different final scriptSig will be created.
@@ -403,6 +339,92 @@ class TX:
 
             # Finally, temporal scripts are stored as final and the length of the script is computed
             self.scriptSig[i] = iscript
-            self.scriptSig_len[i] = encode_varint(len(iscript.content) / 2)
+            self.scriptSig_len[i] = len(iscript.content) / 2
 
         self.hex = self.serialize()
+
+    def signature_format(self, index, hashflag=SIGHASH_ALL, network='test'):
+        """ Builds the signature format an unsigned transaction has to follow in order to be signed. Basically empties
+        every InputScript field but the one to be signed, identified by index, that will be filled with the OutputScript
+        from the UTXO that will be redeemed.
+
+        The format of the OutputScripts will depend on the hashflag:
+            - SIGHASH_ALL leaves OutputScript unchanged.
+            - SIGHASH_SINGLE should sign each input with the output of the same index (not implemented yet).
+            - SIGHASH_NONE empies all the outputs.
+            - SIGHASH_ANYONECANPAY not sure about what should do (obviously not implemented yet).
+
+        :param index: The index of the input to be signed.
+        :type index: int
+        :param hashflag: Hash type to be used, see above description for further information.
+        :type hashflag: int
+        :param network: Network into which the transaction will be published (either mainnet or testnet).
+        :type network: str
+        :return: Transaction properly formatted to be signed.
+        :rtype TX
+        """
+
+        tx = deepcopy(self)
+        for i in range(tx.inputs):
+            if i is index:
+                script, t = get_prev_ScriptPubKey(tx.prev_tx_id[i], tx.prev_out_index[i], network)
+                # Once we get the previous UTXO script, the inputScript is temporarily set to it in order to sign
+                # the transaction.
+                tx.scriptSig[i] = InputScript.from_hex(script)
+                tx.scriptSig[i].type = t
+                tx.scriptSig_len[i] = len(tx.scriptSig[i].content) / 2
+            elif tx.scriptSig[i].content != "":
+                # All other scriptSig fields are emptied and their length is set to 0.
+                tx.scriptSig[i] = InputScript()
+                tx.scriptSig_len[i] = len(tx.scriptSig[i].content) / 2
+
+        if hashflag is SIGHASH_SINGLE:
+            # ToDo: Implement SIGHASH_SINGLE
+            pass
+        elif hashflag is SIGHASH_NONE:
+            # Empty all the scriptPubKeys and set the length and the output counter to 0.
+            tx.outputs = encode_varint(0)
+            tx.scriptPubKey = OutputScript()
+            tx.scriptPubKey_len = len(tx.scriptPubKey.content) / 2
+        elif hashflag is SIGHASH_ANYONECANPAY:
+            # ToDo: Implement SIGHASH_ANYONECANPAY
+            pass
+
+        return tx
+
+    def display(self):
+        """ Displays all the information related to the transaction object, properly split and arranged.
+
+        Data between parenthesis corresponds to the data encoded following the serialized transaction format.
+        (replicates the same encoding being done in serialize method)
+
+        :param self: self
+        :type self: TX
+        :return: None.
+        :rtype: None
+        """
+
+        print "version: " + str(self.version) + " (" + change_endianness(int2bytes(self.version, 4)) + ")"
+        print "number of inputs: " + str(self.inputs) + " (" + encode_varint(self.inputs) + ")"
+        for i in range(self.inputs):
+            print "input " + str(i)
+            print "\t previous txid (little endian): " + self.prev_tx_id[i] + \
+                  " (" + change_endianness(self.prev_tx_id[i]) + ")"
+            print "\t previous tx output (little endian): " + str(self.prev_out_index[i]) + \
+                  " (" + change_endianness(int2bytes(self.prev_out_index[i], 4)) + ")"
+            print "\t input script (scriptSig) length: " + str(self.scriptSig_len[i]) \
+                  + " (" + encode_varint((self.scriptSig_len[i])) + ")"
+            print "\t input script (scriptSig): " + self.scriptSig[i].content
+            print "\t decoded scriptSig: " + Script.deserialize(self.scriptSig[i].content)
+            print "\t nSequence: " + str(self.nSequence[i]) + " (" + int2bytes(self.nSequence[i], 4) + ")"
+        print "number of outputs: " + str(self.outputs) + " (" + encode_varint(self.outputs) + ")"
+        for i in range(self.outputs):
+            print "output " + str(i)
+            print "\t Satoshis to be spent (little endian): " + str(self.value[i]) + \
+                  " (" + change_endianness(int2bytes(self.value[i], 8)) + ")"
+            print "\t output script (scriptPubKey) length: " + str(self.scriptPubKey_len[i]) \
+                  + " (" + encode_varint(self.scriptPubKey_len[i]) + ")"
+            print "\t output script (scriptPubKey): " + self.scriptPubKey[i].content
+            print "\t decoded scriptPubKey: " + Script.deserialize(self.scriptPubKey[i].content)
+
+        print "nLockTime: " + str(self.nLockTime) + " (" + int2bytes(self.nLockTime, 4) + ")"
