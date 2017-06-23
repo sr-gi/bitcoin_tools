@@ -379,16 +379,64 @@ class TX:
                 tx.scriptSig_len[i] = len(tx.scriptSig[i].content) / 2
 
         if hashflag is SIGHASH_SINGLE:
-            # ToDo: Implement SIGHASH_SINGLE
-            pass
+            # ToDo: Test if this implementation of SIGHASH_SINGLE works, since it differs from the Buterin's one, which
+            # ToDo: I personally think is incorrect, but I received no answer from the issue.
+            # ToDo: https://github.com/vbuterin/pybitcointools/issues/149
+
+            # First we checks if the input that we are trying to sign has a corresponding output, if so, the execution
+            # can continue. Otherwise, we abort the signature process since it could lead to a irreversible lose of
+            # funds due to a bug in SIGHASH_SINGLE.
+            # https://bitcointalk.org/index.php?topic=260595
+
+            if index >= tx.outputs:
+                raise Exception("You are trying to use SIGHASH_SINGLE to sign an input that does not have a "
+                                "corresponding output (" + str(index) + "). This could lead to a irreversible lose "
+                                "of funds. Signature process aborted.")
+            # Otherwise, all outputs will set to empty scripts but the ith one (identified by index),
+            # since SIGHASH_SINGLE should only sign the ith input with the ith output.
+            else:
+                for o in range(tx.outputs):
+                    if o != index:
+                        tx.scriptPubKey[o] = OutputScript()
+                        tx.scriptPubKey_len[o] = len(tx.scriptPubKey[o].content) / 2
+                        tx.value[o] = 2**64-1
+
+                # Could be like this?
+                #https://github.com/bitcoin/bitcoin/blob/3192e5278abca7c1f3b4a2a7f77a0ce941c73985/test/functional/test_framework/script.py#L869
+
+                # t_script = tx.scriptPubKey[index]
+                # t_size = tx.scriptPubKey_len[index]
+                # t_value = tx.value[index]
+                #
+                # tx.scriptPubKey = []
+                # tx.scriptPubKey_len = []
+                # tx.value = []
+                # for o in range(index):
+                #     tx.scriptPubKey.append(OutputScript())
+                #     tx.scriptPubKey_len.append(int2bytes(len(tx.scriptPubKey[o].content) / 2, 1))
+                #     tx.value.append(change_endianness(int2bytes(2 ** 64 - 1, 8)))
+                #
+                # tx.scriptPubKey.append(t_script)
+                # tx.scriptPubKey_len.append(t_size)
+                # tx.value.append(t_value)
+
         elif hashflag is SIGHASH_NONE:
             # Empty all the scriptPubKeys and set the length and the output counter to 0.
-            tx.outputs = encode_varint(0)
+            tx.outputs = 0
             tx.scriptPubKey = OutputScript()
             tx.scriptPubKey_len = len(tx.scriptPubKey.content) / 2
+
         elif hashflag is SIGHASH_ANYONECANPAY:
             # ToDo: Implement SIGHASH_ANYONECANPAY
             pass
+
+        if hashflag in [SIGHASH_SINGLE, SIGHASH_NONE]:
+            # ToDo: Report bug in Buterin's SIGHASH_NONE and SIGHASH_SINGLE, nSequence is not set to zero.
+            # All the nSequence from inputs except for the current one (index) is set to 0.
+            # https://github.com/bitcoin/bitcoin/blob/3192e5278abca7c1f3b4a2a7f77a0ce941c73985/test/functional/test_framework/script.py#L880
+            for i in range(tx.inputs):
+                if i is not index:
+                    tx.nSequence[i] = 0
 
         return tx
 
