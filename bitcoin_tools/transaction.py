@@ -76,7 +76,7 @@ class TX:
         if isinstance(scriptSig, InputScript):
             scriptSig = [scriptSig]
         if isinstance(scriptPubKey, OutputScript):
-            scriptSig = [scriptSig]
+            scriptPubKey = [scriptPubKey]
 
         if len(prev_tx_id) is not len(prev_out_index) or len(prev_tx_id) is not len(scriptSig):
             raise Exception("The number ofs UTXOs to spend must match with the number os ScriptSigs to set.")
