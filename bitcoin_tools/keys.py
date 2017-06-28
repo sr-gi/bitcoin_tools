@@ -4,7 +4,7 @@ from hashlib import sha256
 from os import mkdir, path
 from bitcoin.core.script import SIGHASH_ALL, SIGHASH_SINGLE, SIGHASH_NONE
 from ecdsa import SigningKey, VerifyingKey, SECP256k1
-from ecdsa.util import sigencode_der_canonize
+from ecdsa.util import sigencode_der_canonize, number_to_string
 
 
 def generate_keys():
@@ -59,16 +59,33 @@ def load_keys(btc_addr):
     return SigningKey.from_pem(sk_pem), VerifyingKey.from_pem(pk_pem)
 
 
-def serialize_pk(pk):
+def serialize_pk(pk, compressed=True):
     """ Serializes a ecdsa.VerifyingKey (public key).
 
+    :param compressed: Indicates if the serialized public key will be either compressed or uncompressed.
+    :type compressed: bool
     :param pk: ECDSA VerifyingKey object (public key to be serialized).
     :type pk: ecdsa.VerifyingKey
     :return: serialized public key.
     :rtype: hex str
     """
 
-    return '04' + b2a_hex(pk.to_string())
+    # Updated with code based on from PR #54 from python-ecdsa until the PR gets merged:
+    # https://github.com/warner/python-ecdsa/pull/54
+
+    x_str = number_to_string(pk.pubkey.point.x(), pk.pubkey.order)
+
+    if compressed:
+        if pk.pubkey.point.y() & 1:
+            prefix = '03'
+        else:
+            prefix = '02'
+
+        s_key = prefix + b2a_hex(x_str)
+    else:
+        s_key = '04' + b2a_hex(pk.to_string())
+
+    return s_key
 
 
 def serialize_sk(sk):

@@ -31,6 +31,11 @@ def int2bytes(a, b):
     :rtype: hex str
     """
 
+    m = pow(2, 8*b) - 1
+    if a > m:
+        raise Exception(str(a) + " is too big to be represented with " + str(b) + " bytes. Maximum value is "
+                        + str(m) + ".")
+
     return ('%0' + str(2 * b) + 'x') % a
 
 
@@ -454,7 +459,7 @@ def check_public_key(pk):
         raise Exception("Wrong public key format.")
     if prefix == "04" and l != 130:
         raise Exception("Wrong length for an uncompressed public key: " + str(l))
-    elif prefix in ["02", "03"] and l != 64:
+    elif prefix in ["02", "03"] and l != 66:
         raise Exception("Wrong length for a compressed public key: " + str(l))
     else:
         return True
@@ -476,6 +481,8 @@ def check_address(btc_addr, network='test'):
         raise Exception("Wrong mainnet address format.")
     elif network not in ['test', 'testnet', 'main', 'mainnet']:
         raise Exception("Network must be test/testnet or main/mainnet")
+    elif len(btc_addr) not in range(26, 35+1):
+        raise Exception("Wrong address format, Bitcoin addresses should be 27-35 hex char long.")
     else:
         return True
 
