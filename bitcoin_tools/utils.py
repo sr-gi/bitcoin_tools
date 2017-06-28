@@ -459,7 +459,7 @@ def check_public_key(pk):
         raise Exception("Wrong public key format.")
     if prefix == "04" and l != 130:
         raise Exception("Wrong length for an uncompressed public key: " + str(l))
-    elif prefix in ["02", "03"] and l != 64:
+    elif prefix in ["02", "03"] and l != 66:
         raise Exception("Wrong length for a compressed public key: " + str(l))
     else:
         return True

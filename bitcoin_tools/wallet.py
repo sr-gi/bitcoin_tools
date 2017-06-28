@@ -103,19 +103,21 @@ def pk_to_btc_addr(pk, v='test'):
     return btc_addr
 
 
-def generate_btc_addr(pk, v='test'):
+def generate_btc_addr(pk, v='test',  compressed=True):
     """ Calculates Bitcoin address associated to a given elliptic curve public key and a given network.
 
     :param pk: DER encoded public key
     :type pk: bytes
     :param v: version (prefix) used to calculate the WIF, it depends on the type of network.
     :type v: str
+    :param compressed: Indicates if Bitcoin address will be generated with the compressed or uncompressed key.
+    :type compressed: bool
     :return: The Bitcoin address associated to the given public key and network.
     :rtype: str
     """
 
     # Get the hex representation of the provided DER encoded public key.
-    public_key_hex = serialize_pk(pk)
+    public_key_hex = serialize_pk(pk, compressed)
     # Generate the Bitcoin address of de desired network.
     btc_addr = pk_to_btc_addr(public_key_hex, v)
 

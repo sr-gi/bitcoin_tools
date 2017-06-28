@@ -286,7 +286,7 @@ class TX:
 
         return serialized_tx
 
-    def sign(self, sk, index, hashflag=SIGHASH_ALL, network='test'):
+    def sign(self, sk, index, hashflag=SIGHASH_ALL, compressed=True, network='test',):
         """ Signs a transaction using the provided private key(s), index(es) and hash type. If more than one key and index
         is provides, key i will sign the ith input of the transaction.
 
@@ -296,7 +296,9 @@ class TX:
         :type index: int or list of int
         :param hashflag: Hash type to be used. It will define what signature format will the unsigned transaction have.
         :type hashflag: int
-        :param network: Network from which the previos ScripPubKey will be queried (either main or test).
+        :param compressed: Indicates if the public key that goes along with the signature will be compressed or not.
+        :type compressed: bool
+        :param network: Network from which the previous ScripPubKey will be queried (either main or test).
         :type network: str
         :return: Transaction signature.
         :rtype: str
@@ -317,7 +319,7 @@ class TX:
             # the other inputs will be set blank.
             unsigned_tx = self.signature_format(index[i], hashflag, network)
 
-            # Then, depending on the format how the private keys have been passed to the signing function, a different
+            # Then, depending on the format how the private keys have been passed to the signing function
             # and the content of the ScripSig field, a different final scriptSig will be created.
             if isinstance(sk[i], list) and unsigned_tx.scriptSig[index[i]].type is "P2MS":
                 sigs = []
@@ -329,7 +331,7 @@ class TX:
                 iscript = InputScript.P2PK(s)
             elif isinstance(sk[i], SigningKey) and unsigned_tx.scriptSig[index[i]].type is "P2PKH":
                 s = ecdsa_tx_sign(unsigned_tx.serialize(), sk[i], hashflag)
-                pk = serialize_pk(sk[i].get_verifying_key())
+                pk = serialize_pk(sk[i].get_verifying_key(), compressed)
                 iscript = InputScript.P2PKH(s, pk)
             elif unsigned_tx.scriptSig[index[i]].type is "unknown":
                 raise Exception("Unknown previous transaction output script type. Can't sign the transaction.")
