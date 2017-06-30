@@ -52,6 +52,7 @@ print "hex: " + tx.serialize()
 
 # Finally, we can analyze each field of the transaction.
 tx.display()
+```
 
 ### Disclaimer
 
