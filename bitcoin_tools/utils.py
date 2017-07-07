@@ -395,7 +395,7 @@ def decode_utxo(utxo):
         # Depending on the type, the length of the following data will differ.  Types 0 and 1 refers to P2PKH and P2SH
         # encoded outputs. They are always followed 20 bytes of data, corresponding to the hash160 of the address (in
         # P2PKH outputs) or to the scriptHash (in P2PKH). Notice that the leading and tailing opcodes are not included.
-        # If 2-5 is found, the following bytes encode a public key. The first by in this cases should be also included,
+        # If 2-5 is found, the following bytes encode a public key. The first byte in this case should be also included,
         # since it determines the format of the key.
         if out_type in [0, 1]:
             data_size = 40  # 20 bytes

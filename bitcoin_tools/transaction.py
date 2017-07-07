@@ -381,10 +381,6 @@ class TX:
                 tx.scriptSig_len[i] = len(tx.scriptSig[i].content) / 2
 
         if hashflag is SIGHASH_SINGLE:
-            # ToDo: Test if this implementation of SIGHASH_SINGLE works, since it differs from the Buterin's one, which
-            # ToDo: I personally think is incorrect, but I received no answer from the issue.
-            # ToDo: https://github.com/vbuterin/pybitcointools/issues/149
-
             # First we checks if the input that we are trying to sign has a corresponding output, if so, the execution
             # can continue. Otherwise, we abort the signature process since it could lead to a irreversible lose of
             # funds due to a bug in SIGHASH_SINGLE.
@@ -437,7 +433,6 @@ class TX:
             pass
 
         if hashflag in [SIGHASH_SINGLE, SIGHASH_NONE]:
-            # ToDo: Report bug in Buterin's SIGHASH_NONE and SIGHASH_SINGLE, nSequence is not set to zero.
             # All the nSequence from inputs except for the current one (index) is set to 0.
             # https://github.com/bitcoin/bitcoin/blob/3192e5278a/test/functional/test_framework/script.py#L880
             for i in range(tx.inputs):
@@ -470,6 +465,8 @@ class TX:
                   + " (" + encode_varint((self.scriptSig_len[i])) + ")"
             print "\t input script (scriptSig): " + self.scriptSig[i].content
             print "\t decoded scriptSig: " + Script.deserialize(self.scriptSig[i].content)
+            if self.scriptSig[i].type is "P2SH":
+                print "\t \t decoded redeemScript: " + InputScript.deserialize(self.scriptSig[i].get_element(-1)[1:-1])
             print "\t nSequence: " + str(self.nSequence[i]) + " (" + int2bytes(self.nSequence[i], 4) + ")"
         print "number of outputs: " + str(self.outputs) + " (" + encode_varint(self.outputs) + ")"
         for i in range(self.outputs):
