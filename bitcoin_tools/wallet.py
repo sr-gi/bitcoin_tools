@@ -5,6 +5,7 @@ from os import mkdir, path
 from keys import serialize_pk, serialize_sk
 from base58 import b58encode, b58decode
 from qrcode import make as qr_make
+from re import match
 
 
 def hash_160(pk):
@@ -40,6 +41,10 @@ def hash_160_to_btc_address(h160, v):
     :return: The corresponding Bitcoin address.
     :rtype: hex str
     """
+
+    # If h160 is passed as hex str, the value is converted into bytes.
+    if match('^[0-9a-fA-F]*$', h160):
+        h160 = a2b_hex(h160)
 
     # Add the network version leading the previously calculated RIPEMD-160 hash.
     vh160 = chr(v) + h160
@@ -106,8 +111,8 @@ def pk_to_btc_addr(pk, v='test'):
 def generate_btc_addr(pk, v='test',  compressed=True):
     """ Calculates Bitcoin address associated to a given elliptic curve public key and a given network.
 
-    :param pk: DER encoded public key
-    :type pk: bytes
+    :param pk: ECDSA VerifyingKey object (public key to be converted into Bitcoin address).
+    :type pk: VerifyingKey
     :param v: version (prefix) used to calculate the WIF, it depends on the type of network.
     :type v: str
     :param compressed: Indicates if Bitcoin address will be generated with the compressed or uncompressed key.
@@ -177,6 +182,8 @@ def generate_wif(btc_addr, sk, mode='image', v='test'):
 
     :param btc_addr: Bitcoin address associated to the public key of the same key pair as the private key.
     :type btc_addr: hex str
+    :param sk: Private key to be converted into Wallet Import Format (WIF).
+    :type sk: ECDSA SigningKey object.
     :param mode: defines the type of return.
     :type mode: str
     :param v: version (prefix) used to calculate the WIF, it depends on the type of network.
