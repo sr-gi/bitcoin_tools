@@ -1,9 +1,9 @@
-data
 bitcoin_addresses
 .idea
 *.pyc
 ToDo
-test/*
+test/test.py
+data/*
 conf.py
 
 

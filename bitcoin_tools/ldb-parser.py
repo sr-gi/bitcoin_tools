@@ -6,12 +6,13 @@ try:
 except ImportError:
     raise Exception("You don't have a configuration file. Make a copy of sample_conf.py")
 
+if cfg.btc_core_path is None or cfg.data_path is None:
+    raise Exception("Your configuration file is not properly configured.")
+
 # Output file
-fout = open("./utxos.txt", 'w')
+fout = open(cfg.data_path + "/utxos.txt", 'w')
 
 # Open the LevelDB
-if cfg.btc_core_path is None:
-    raise Exception("Your configuration file is not properly configured.")
 db = plyvel.DB(cfg.btc_core_path + "/chainstate", compression=None)  # Change with path to chainstate
 
 # Load obfuscation key (if it exists)
