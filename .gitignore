@@ -4,5 +4,6 @@ bitcoin_addresses
 *.pyc
 ToDo
 test/*
+conf.py
 
 

@@ -1,12 +1,18 @@
 import plyvel
 from binascii import b2a_hex, a2b_hex
 from json import dumps
+try:
+    import bitcoin_tools.conf as cfg
+except ImportError:
+    raise Exception("You don't have a configuration file. Make a copy of sample_conf.py")
 
 # Output file
 fout = open("./utxos.txt", 'w')
 
 # Open the LevelDB
-db = plyvel.DB("../chainstate")  # Change with path to chainstate
+if cfg.btc_core_path is None:
+    raise Exception("Your configuration file is not properly configured.")
+db = plyvel.DB(cfg.btc_core_path + "/chainstate", compression=None)  # Change with path to chainstate
 
 # Load obfuscation key (if it exists)
 o_key = db.get((a2b_hex("0e00") + "obfuscate_key"))
