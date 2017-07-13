@@ -3,6 +3,7 @@ from binascii import b2a_hex, a2b_hex
 from hashlib import sha256
 from os import mkdir, path
 from bitcoin.core.script import SIGHASH_ALL, SIGHASH_SINGLE, SIGHASH_NONE
+from bitcoin_tools.utils import load_conf_file
 from ecdsa import SigningKey, VerifyingKey, SECP256k1
 from ecdsa.util import sigencode_der_canonize, number_to_string
 
@@ -21,7 +22,7 @@ def generate_keys():
     return sk, pk
 
 
-def store_keys(sk, pk, btc_addr):
+def store_keys(sk, pk, btc_addr, vault_path=None):
     """ Stores an elliptic curve key pair in PEM format into disk. Both keys are stored in a folder named after the
     Bitcoin address derived from the public key.
 
@@ -31,30 +32,42 @@ def store_keys(sk, pk, btc_addr):
     :type pk: str
     :param btc_addr: Bitcoin address associated to the public key of the key pair.
     :type btc_addr: str
+    :param vault_path: Path where keys will be stored. Defined in the config file by default.
+    :type vault_path: str
     :return: None.
     :rtype: None
     """
 
-    if not path.exists(btc_addr):
-        mkdir(btc_addr)
+    if vault_path is None:
+        cfg = load_conf_file()
+        vault_path = cfg.address_vault
+
+    if not path.exists(vault_path + btc_addr):
+        mkdir(vault_path + btc_addr)
 
     # Save both keys into disk using the Bitcoin address as an identifier.
-    open(btc_addr + '/sk.pem', "w").write(sk)
-    open(btc_addr + '/pk.pem', "w").write(pk)
+    open(vault_path + btc_addr + '/sk.pem', "w").write(sk)
+    open(vault_path + btc_addr + '/pk.pem', "w").write(pk)
 
 
-def load_keys(btc_addr):
+def load_keys(btc_addr, vault_path=None):
     """ Loads an elliptic curve key pair in PEM format from disk. Keys are stored in their proper objects from the ecdsa
     python library (SigningKey and VerifyingKey respectively)
 
     :param btc_addr: Bitcoin address associated to the public key of the key pair.
     :type btc_addr: str
+    :param vault_path: Path where keys are be stored. Defined in the config file by default.
+    :type vault_path: str
     :return: ecdsa key pair as a tuple.
     :rtype: SigningKey, VerifyingKey
     """
 
-    sk_pem = open(btc_addr + '/sk.pem', "r").read()
-    pk_pem = open(btc_addr + '/pk.pem', "r").read()
+    if vault_path is None:
+        cfg = load_conf_file()
+        vault_path = cfg.address_vault
+
+    sk_pem = open(vault_path + btc_addr + '/sk.pem', "r").read()
+    pk_pem = open(vault_path + btc_addr + '/pk.pem', "r").read()
 
     return SigningKey.from_pem(sk_pem), VerifyingKey.from_pem(pk_pem)
 

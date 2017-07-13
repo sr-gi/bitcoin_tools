@@ -3,6 +3,27 @@ from urllib2 import urlopen, Request
 from json import loads
 
 
+def load_conf_file(file_path=None):
+    """ Loads the configuration file while checking that the necessary entries have been defined (not left as None).
+
+    :param file_path: Path to the configuration file to be loaded (./ by default).
+    :type file_path: str
+    :return: Bitcoin tools conf module if correctly loaded. Exception otherwise.
+    :rtype: module
+    """
+    try:
+        import bitcoin_tools.conf as cfg
+    except ImportError:
+        raise Exception("You don't have a configuration file. Make a copy of sample_conf.py")
+
+    entries = [cfg.btc_core_path, cfg.data_path, cfg.address_vault]
+
+    if None in entries:
+        raise Exception("Your configuration file is not properly configured.")
+
+    return cfg
+
+
 def change_endianness(x):
     """ Changes the endianness (from BE to LE and vice versa) of a given value.
 

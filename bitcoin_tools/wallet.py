@@ -2,6 +2,8 @@ from bitcoin_tools.constants import PUBKEY_HASH, TESTNET_PUBKEY_HASH, WIF, TESTN
 from binascii import a2b_hex, b2a_hex
 from hashlib import new, sha256
 from os import mkdir, path
+
+from bitcoin_tools.utils import load_conf_file
 from keys import serialize_pk, serialize_sk
 from base58 import b58encode, b58decode
 from qrcode import make as qr_make
@@ -176,7 +178,7 @@ def sk_to_wif(sk, mode='image', v='test'):
     return response
 
 
-def generate_wif(btc_addr, sk, mode='image', v='test'):
+def generate_wif(btc_addr, sk, mode='image', v='test', vault_path=None):
     """ Generates a Wallet Import Format (WIF) file into disk. Uses an elliptic curve private key from disk as an input
     using the btc_addr associated to the public key of the same key pair as an identifier.
 
@@ -188,6 +190,8 @@ def generate_wif(btc_addr, sk, mode='image', v='test'):
     :type mode: str
     :param v: version (prefix) used to calculate the WIF, it depends on the type of network.
     :type v: str
+    :param vault_path: Path where WIF file will be stored be stored. Defined in the config file by default.
+    :type vault_path: str
     :return: None.
     :rtype: None
     """
@@ -195,14 +199,18 @@ def generate_wif(btc_addr, sk, mode='image', v='test'):
     # Get a private key in hex format and create the WIF representation.
     wif = sk_to_wif(serialize_sk(sk), mode, v)
 
+    if vault_path is None:
+        cfg = load_conf_file()
+        vault_path = cfg.address_vault
+
     # Store the result depending on the selected mode.
-    if not path.exists(btc_addr):
-        mkdir(btc_addr)
+    if not path.exists(vault_path + btc_addr):
+        mkdir(vault_path + btc_addr)
 
     if mode is 'image':
-        wif.save(btc_addr + "/WIF.png")
+        wif.save(vault_path + btc_addr + "/WIF.png")
     elif mode is 'text':
-        f = file(btc_addr + "/WIF.txt", 'w')
+        f = file(vault_path + btc_addr + "/WIF.txt", 'w')
         f.write(wif)
     else:
         raise Exception("Invalid mode, used either 'image' or 'text'.")

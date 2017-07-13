@@ -19,6 +19,8 @@ store_keys(sk.to_pem(), pk.to_pem(), btc_addr)
 # Finally, the private key is encoded as WIF and also stored in disk, ready to be imported in a wallet.
 generate_wif(btc_addr, sk, mode='image', v='test')
 
+print "Keys for address " + btc_addr + " properly generated and stored."
+
 #################################################
 #               Key loading                     #
 #################################################
