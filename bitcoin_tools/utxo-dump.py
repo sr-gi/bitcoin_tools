@@ -19,12 +19,14 @@ def get_min_input_size(type):
     elif type is 1:
         #P2SH
         scriptSig = -fixed_size  # How can we define the min size? (temporarily set total size to 0)
+        scriptSig_len = 0
     elif type in [2, 3, 4, 5]:
         # P2PK
         scriptSig = 73
     else:
         # All other types (including P2MS, OP_Return and non-standard outs)
         scriptSig = -fixed_size  # idem
+        scriptSig_len = 0
 
     var_size = scriptSig_len + scriptSig
 
@@ -36,31 +38,32 @@ cfg = load_conf_file()
 # Input file
 fin = open(cfg.data_path + 'utxos.txt', 'r')
 
-# Transaction dump
-fout_tx = open(cfg.data_path + 'parsed_txs.txt', 'w')
-for line in fin:
-    data = loads(line[:-1])
-    utxo = decode_utxo(data["value"])
-
-    imprt = sum([out["amount"] for out in utxo.get("outs")])
-
-    result = {"tx_id": change_endianness(data["key"][2:]),
-              "num_utxos": len(utxo.get("outs")),
-              "total_value": imprt,
-              "total_len": (len(data["key"]) + len(data["value"]))/2,
-              "height": utxo["height"],
-              "coinbase": utxo["coinbase"],
-              "version": utxo["version"]}
-
-    fout_tx.write(dumps(result) + '\n')
-
-fout_tx.close()
+# # Transaction dump
+# fout_tx = open(cfg.data_path + 'parsed_txs.txt', 'w')
+# for line in fin:
+#     data = loads(line[:-1])
+#     utxo = decode_utxo(data["value"])
+#
+#     imprt = sum([out["amount"] for out in utxo.get("outs")])
+#
+#     result = {"tx_id": change_endianness(data["key"][2:]),
+#               "num_utxos": len(utxo.get("outs")),
+#               "total_value": imprt,
+#               "total_len": (len(data["key"]) + len(data["value"]))/2,
+#               "height": utxo["height"],
+#               "coinbase": utxo["coinbase"],
+#               "version": utxo["version"]}
+#
+#     fout_tx.write(dumps(result) + '\n')
+#
+# fout_tx.close()
 
 # UTXO dump
 fout_utxo = open(cfg.data_path + 'parsed_utxo.txt', 'w')
 for line in fin:
     data = loads(line[:-1])
     utxo = decode_utxo(data["value"])
+    fee_per_byte = 200
 
     for out in utxo.get("outs"):
 
@@ -68,7 +71,7 @@ for line in fin:
 
         if min_size is 0:
             dust = "?"
-        elif out["amount"] < min_size:
+        elif out["amount"] < min_size * fee_per_byte:
             dust = 1
         else:
             dust = 0
