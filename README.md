@@ -6,7 +6,18 @@ users to understand how Bitcoin transactions can be created from scratch, allowi
 Moreover, bitcoin_tools allows users to set both scriptSig and scriptPubKey fields to whatever
 script they want to generate, letting the creation and testing of new scripts far beyond the 
 standard ones. (The creation of script from scratch is still not part of the code, but hexadecimal scripts created 
-with other tools can be easily inserted into transactions).
+with other tools can be easily inserted into transactions).`
+
+### Dependencies
+
+The library has the following dependencies (which can be satisfied by using pip install -r requirements.txt):
+
+ecdsa
+python-bitcoinlib
+qrcode
+Pillow
+
+Last two are only required for creating qr-codes for private key WIF format. They could be avoided if such functionality is not required.
 
 
 ### Examples
@@ -52,6 +63,7 @@ print "hex: " + tx.serialize()
 
 # Finally, we can analyze each field of the transaction.
 tx.display()
+``
 
 ### Disclaimer
 
