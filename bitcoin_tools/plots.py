@@ -13,9 +13,9 @@ mpl.rcParams['legend.numpoints'] = 1
 cfg = load_conf_file()
 
 
-def get_counts(samples, normalize = False):
+def get_counts(samples, normalize=False):
     """
-    Counts the number of occurences of each value in samples.
+    Counts the number of occurrences of each value in samples.
 
     :param samples: list with the samples
     :param normalize: boolean, indicates if counts have to be normalized
@@ -72,10 +72,10 @@ def plot_distribution(xs, ys, title, xlabel, ylabel, log_axis=False, save_fig=Fa
 
     # Plot data
     if not isinstance(xs[0], list):
-        plt.plot(xs, ys) # marker='o'
+        plt.plot(xs, ys)  # marker='o'
     else:
         for i in range(len(xs)):
-            plt.plot(xs[i], ys[i], ' ', linestyle='solid') # marker='o'
+            plt.plot(xs[i], ys[i], ' ', linestyle='solid')  # marker='o'
 
     # Plot title and xy labels
     plt.title(title, {'color': 'k', 'fontsize': font_size})
@@ -159,3 +159,26 @@ def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, save_fig=F
 #plot_from_file("out_type", y="utxo", log_axis="x", save_fig="utxo_out_type_logx")
 #plot_from_file("utxo_data_len", y="utxo", save_fig="utxo_utxo_data_len")
 #plot_from_file("utxo_data_len", y="utxo", log_axis="x", save_fig="utxo_utxo_data_len_logx")
+
+
+def plot_accumulate(data, xlabel=False, ylabel=False, log_axis=False, save_fig=False, legend=None, legend_loc=1, font_size=20):
+
+    title = ""
+
+    xs = data.keys()
+    ys = data.values()
+
+    for i in range(len(xs)):
+        xs[i] = int(xs[i])
+        ys[i] = int(ys[i])
+
+    plot_distribution(sorted(xs), sorted(ys), title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
+
+
+fin = open(cfg.data_path + 'dust.txt', 'r')
+data = loads(fin.read())
+
+plot_accumulate(data["dust"], xlabel="fee_per_byte", ylabel="#dust_utxos", save_fig="utxo_dust")
+plot_accumulate(data["value"], xlabel="fee_per_byte", ylabel="#dust_satoshis", save_fig="value_dust")
+
+
