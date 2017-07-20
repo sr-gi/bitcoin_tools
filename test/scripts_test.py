@@ -1,5 +1,5 @@
-from script.script import OutputScript, InputScript, Script
-from wallet.wallet import hash_160
+from bitcoin_tools.script import OutputScript, InputScript, Script
+from bitcoin_tools.wallet import hash_160
 from binascii import b2a_hex
 
 pk = "04a01f076082a713a82b47ace012934052bcf3359c964f1963d00def84a34e7b0345efeefe037f4b0a4e160cc40a7fac052523da88398630c07ef3c54b47aa6046"

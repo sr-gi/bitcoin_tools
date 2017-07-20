@@ -5,3 +5,4 @@ qrcode
 Pillow
 plyvel
 matplotlib
+numpy

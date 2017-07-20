@@ -243,7 +243,7 @@ class TX:
 
         if tx.offset != len(tx.hex):
             raise Exception("There is some error in the serialized transaction passed as input. Transaction can't"
-                            "be built")
+                            " be built")
         else:
             tx.offset = 0
 

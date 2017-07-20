@@ -161,7 +161,7 @@ def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, save_fig=F
 #plot_from_file("utxo_data_len", y="utxo", log_axis="x", save_fig="utxo_utxo_data_len_logx")
 
 
-def plot_accumulate(data, xlabel=False, ylabel=False, log_axis=False, save_fig=False, legend=None, legend_loc=1, font_size=20):
+def plot_accumulate(data, total=False, xlabel=False, ylabel=False, log_axis=False, save_fig=False, legend=None, legend_loc=1, font_size=20):
 
     title = ""
 
@@ -170,7 +170,10 @@ def plot_accumulate(data, xlabel=False, ylabel=False, log_axis=False, save_fig=F
 
     for i in range(len(xs)):
         xs[i] = int(xs[i])
-        ys[i] = int(ys[i])
+        if not total:
+            ys[i] = int(ys[i])
+        else:
+            ys[i] = int(ys[i]) / float(total) * 100
 
     plot_distribution(sorted(xs), sorted(ys), title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
 
@@ -180,5 +183,7 @@ data = loads(fin.read())
 
 plot_accumulate(data["dust"], xlabel="fee_per_byte", ylabel="#dust_utxos", save_fig="utxo_dust")
 plot_accumulate(data["value"], xlabel="fee_per_byte", ylabel="#dust_satoshis", save_fig="value_dust")
+plot_accumulate(data["dust"], data["total_utxos"], xlabel="fee_per_byte", ylabel="perc dust_utxos", save_fig="perc_utxo")
+plot_accumulate(data["value"], data["total_value"], xlabel="fee_per_byte", ylabel="perc dust_satoshis", save_fig="perc_value")
 
 
