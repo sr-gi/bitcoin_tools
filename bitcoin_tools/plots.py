@@ -148,11 +148,11 @@ def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, save_fig=F
 #plot_from_file("total_len", xlabel="Total length (bytes)", save_fig="tx_total_len")
 #plot_from_file("total_len", xlabel="Total length (bytes)",  log_axis="x", save_fig="tx_total_len_logx")
 #plot_from_file("version", save_fig="tx_version")
-#plot_from_file("total_value", save_fig="tx_total_value")
+#plot_from_file("total_value", log_axis="x", save_fig="tx_total_value_logx")
 
 # Generate plots from utxo data (from parsed_utxo.txt)
 #plot_from_file("tx_height", y="utxo", save_fig="utxo_tx_height")
-#plot_from_file("amount", y="utxo", save_fig="utxo_amount")
+#plot_from_file("amount", y="utxo", log_axis="x", save_fig="utxo_amount_logx")
 #plot_from_file("index", y="utxo", save_fig="utxo_index")
 #plot_from_file("index", y="utxo", log_axis="x", save_fig="utxo_index_logx")
 #plot_from_file("out_type", y="utxo", save_fig="utxo_out_type")
