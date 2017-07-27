@@ -1,8 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from json import loads, dumps
 from bitcoin_tools.utils import load_conf_file
-from json import loads
+from bitcoin_tools.utxo_dump import accumulate_dust
+
 
 label_size = 12
 mpl.rcParams['xtick.labelsize'] = label_size
@@ -109,7 +111,8 @@ def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, save_fig=F
     :param x_attribute: string, attribute to plot (must be a key in the dictionary of the dumped data).
     :param y: string, either "tx" or "utxo"
     :param xlabel: String, label on the x axis
-    :param log_axis: String (accepted values are False, "x", "y" or "xy"), determines which axis are plotted using logarithmic scale
+    :param log_axis: String (accepted values are False, "x", "y" or "xy"), determines which axis are plotted using
+    logarithmic scale
     :param save_fig: String, figure's filename or False (to show the interactive plot)
     :param legend: list of strings with legend entries or None (if no legend is needed)
     :param legend_loc: integer, indicates the location of the legend (if present)
@@ -141,6 +144,81 @@ def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, save_fig=F
     plot_distribution(xs, ys, title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
 
 
+def plot_accumulate(data, total=False, xlabel=False, ylabel=False, log_axis=False, save_fig=False, legend=None,
+                    legend_loc=1, font_size=20):
+
+    xs = sorted(data.keys(), key=int)
+    ys = sorted(data.values(), key=int)
+
+    if total:
+        ys = sorted({y / float(total) for y in ys})
+
+    title = ""
+
+    plot_distribution(xs, ys, title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
+
+
+def plot_from_file_dict(x_attribute, y="dust", fin="parsed_utxos.txt", data=None, percentage=None, xlabel=False,
+                        log_axis=False, save_fig=False, legend=None, legend_loc=1, font_size=20):
+
+    # Decides the type of chart to be plot.
+    if y == "dust":
+        if percentage and data:
+            fout = "perc_dust_utxos.txt"
+            ylabel = "Percentage of dust UTXOs"
+        else:
+            data_type = "dust_utxos"
+            fout = data_type + ".txt"
+            ylabel = "Number of dust UTXOs"
+
+    elif y == "value":
+        if percentage and data:
+            fout = "perc_dust_value.txt"
+            ylabel = "Percentage of dust value"
+        else:
+            data_type = "dust_value"
+            fout = data_type + ".txt"
+            ylabel = "Total dust (Satoshis)"
+    else:
+        raise ValueError('Unrecognized y value')
+
+    # If a file containing raw data is passed, it accumulates and sorts the dust.
+    if fin and data_type:
+        data = accumulate_dust(fin)
+
+        xs = sorted(data[data_type].keys(), key=int)
+        ys = sorted(data[data_type].values(), key=int)
+    # Otherwise, data is already accumulated and just need to be plotted
+    elif data:
+        xs = data["xs"]
+        ys = data["ys"]
+
+    # Back ups the accumulated data to avoid recalculating it again if another plot is required.
+    out = open(cfg.data_path + fout, 'w')
+    out.write(dumps({"xs": xs, "ys": ys}))
+    out.close()
+
+    title = ""
+    if not xlabel:
+        xlabel = x_attribute
+
+    # And finally plots the chart.
+    plot_distribution(xs, ys, title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
+
+    # If percentage is set, an additional chart with y axis as a percentage (dividing every single y value by the
+    # corresponding total value) is created by recursively calling the function using already accumulated dust data.
+    if percentage and fin:
+        if y == "dust":
+            total = data["total_utxos"]
+        elif y == "value":
+            total = data["total_value"]
+
+        ys = [i / float(total) * 100 for i in ys]
+
+        plot_from_file_dict(x_attribute, y, fin=None, percentage=True, data={"xs": xs, "ys": ys},
+                            save_fig='perc_'+save_fig)
+
+
 # Generate plots from tx data (from parsed_txs.txt)
 #plot_from_file("height", save_fig="tx_height")
 #plot_from_file("num_utxos", xlabel="Number of utxos per tx", save_fig="tx_num_utxos")
@@ -160,30 +238,6 @@ def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, save_fig=F
 #plot_from_file("utxo_data_len", y="utxo", save_fig="utxo_utxo_data_len")
 #plot_from_file("utxo_data_len", y="utxo", log_axis="x", save_fig="utxo_utxo_data_len_logx")
 
-
-def plot_accumulate(data, total=False, xlabel=False, ylabel=False, log_axis=False, save_fig=False, legend=None, legend_loc=1, font_size=20):
-
-    title = ""
-
-    xs = data.keys()
-    ys = data.values()
-
-    for i in range(len(xs)):
-        xs[i] = int(xs[i])
-        if not total:
-            ys[i] = int(ys[i])
-        else:
-            ys[i] = int(ys[i]) / float(total) * 100
-
-    plot_distribution(sorted(xs), sorted(ys), title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
-
-
-fin = open(cfg.data_path + 'dust.txt', 'r')
-data = loads(fin.read())
-
-plot_accumulate(data["dust"], xlabel="fee_per_byte", ylabel="#dust_utxos", save_fig="utxo_dust")
-plot_accumulate(data["value"], xlabel="fee_per_byte", ylabel="#dust_satoshis", save_fig="value_dust")
-plot_accumulate(data["dust"], data["total_utxos"], xlabel="fee_per_byte", ylabel="perc dust_utxos", save_fig="perc_utxo")
-plot_accumulate(data["value"], data["total_value"], xlabel="fee_per_byte", ylabel="perc dust_satoshis", save_fig="perc_value")
-
-
+# Generate plots for dust analysis (including percentage scale).
+# plot_from_file_dict("fee_per_byte", "dust", percentage=True, save_fig="dust_utxos")
+# plot_from_file_dict("fee_per_byte", "value", percentage=True, save_fig="value_utxos")
