@@ -165,8 +165,11 @@ def accumulate_dust(fin_name):
 
     dust = {str(fee_per_byte): 0 for fee_per_byte in range(MIN_FEE_PER_BYTE, MAX_FEE_PER_BYTE, FEE_STEP)}
     value = deepcopy(dust)
+    data_len = deepcopy(dust)
+
     total_utxo = 0
     total_value = 0
+    total_data_len = 0
 
     for line in fin:
         data = loads(line[:-1])
@@ -175,10 +178,13 @@ def accumulate_dust(fin_name):
             if data["dust"][str(fee_per_byte)]:
                 dust[str(fee_per_byte)] += 1
                 value[str(fee_per_byte)] += data["amount"]
+                data_len[str(fee_per_byte)] += data["utxo_data_len"]
 
         total_utxo = total_utxo + 1
         total_value += data["amount"]
+        total_data_len += data["utxo_data_len"]
 
     fin.close()
 
-    return {"dust_utxos": dust, "dust_value": value, "total_utxos": total_utxo, "total_value": total_value}
+    return {"dust_utxos": dust, "dust_value": value, "dust_data_len": data_len, "total_utxos": total_utxo,
+            "total_value": total_value, "total_data_len": total_data_len}

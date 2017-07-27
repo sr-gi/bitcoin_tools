@@ -158,66 +158,62 @@ def plot_accumulate(data, total=False, xlabel=False, ylabel=False, log_axis=Fals
     plot_distribution(xs, ys, title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
 
 
-def plot_from_file_dict(x_attribute, y="dust", fin="parsed_utxos.txt", data=None, percentage=None, xlabel=False,
+def plot_from_file_dict(x_attribute, y="dust", fin=None, data=None, percentage=None, xlabel=False,
                         log_axis=False, save_fig=False, legend=None, legend_loc=1, font_size=20):
 
-    # Decides the type of chart to be plot.
-    if y == "dust":
-        if percentage and data:
-            fout = "perc_dust_utxos.txt"
-            ylabel = "Percentage of dust UTXOs"
-        else:
-            data_type = "dust_utxos"
-            fout = data_type + ".txt"
-            ylabel = "Number of dust UTXOs"
-
-    elif y == "value":
-        if percentage and data:
-            fout = "perc_dust_value.txt"
-            ylabel = "Percentage of dust value"
-        else:
-            data_type = "dust_value"
-            fout = data_type + ".txt"
-            ylabel = "Total dust (Satoshis)"
-    else:
-        raise ValueError('Unrecognized y value')
-
-    # If a file containing raw data is passed, it accumulates and sorts the dust.
-    if fin and data_type:
+    if fin and not data:
+        # Accumulate the dust data from the provided file
         data = accumulate_dust(fin)
 
+        # Backup the accumulated data to avoid recalculating it again if another plot is required.
+        out = open(cfg.data_path + "dust.txt", 'w')
+        out.write(dumps(data))
+        out.close()
+
+        # Recursively call the function with the accumulated data
+        plot_from_file_dict(x_attribute, y, None, data, percentage, xlabel, log_axis, save_fig, legend, legend_loc,
+                            font_size)
+    else:
+        # Decides the type of chart to be plot.
+        if y == "dust":
+            data_type = "dust_utxos"
+            if not percentage:
+                ylabel = "Number of dust UTXOs"
+            else:
+                ylabel = "Percentage of dust UTXOs"
+                total = "total_utxos"
+        elif y == "value":
+            data_type = "dust_value"
+            if not percentage:
+                ylabel = "Total dust (Satoshis)"
+            else:
+                ylabel = "Percentage of dust value"
+                total = "total_value"
+        elif y == "data_len":
+            data_type = "dust_data_len"
+            if not percentage:
+                ylabel = "Total size of dust UTXOs (bytes)"
+            else:
+                ylabel = "Percentage of dust size"
+                total = "total_data_len"
+        else:
+            raise ValueError('Unrecognized y value')
+
+        # Sort the data
         xs = sorted(data[data_type].keys(), key=int)
         ys = sorted(data[data_type].values(), key=int)
-    # Otherwise, data is already accumulated and just need to be plotted
-    elif data:
-        xs = data["xs"]
-        ys = data["ys"]
 
-    # Back ups the accumulated data to avoid recalculating it again if another plot is required.
-    out = open(cfg.data_path + fout, 'w')
-    out.write(dumps({"xs": xs, "ys": ys}))
-    out.close()
+        title = ""
+        if not xlabel:
+            xlabel = x_attribute
 
-    title = ""
-    if not xlabel:
-        xlabel = x_attribute
+        # If percentage is set, a chart with y axis as a percentage (dividing every single y value by the
+        # corresponding total value) is created.
+        if percentage:
+            ys = [i / float(data[total]) * 100 for i in ys]
 
-    # And finally plots the chart.
-    plot_distribution(xs, ys, title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
-
-    # If percentage is set, an additional chart with y axis as a percentage (dividing every single y value by the
-    # corresponding total value) is created by recursively calling the function using already accumulated dust data.
-    if percentage and fin:
-        if y == "dust":
-            total = data["total_utxos"]
-        elif y == "value":
-            total = data["total_value"]
-
-        ys = [i / float(total) * 100 for i in ys]
-
-        plot_from_file_dict(x_attribute, y, fin=None, percentage=True, data={"xs": xs, "ys": ys},
-                            save_fig='perc_'+save_fig)
-
+        # And finally plots the chart.
+        plot_distribution(xs, ys, title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
 
 # Generate plots from tx data (from parsed_txs.txt)
 #plot_from_file("height", save_fig="tx_height")
@@ -239,5 +235,15 @@ def plot_from_file_dict(x_attribute, y="dust", fin="parsed_utxos.txt", data=None
 #plot_from_file("utxo_data_len", y="utxo", log_axis="x", save_fig="utxo_utxo_data_len_logx")
 
 # Generate plots for dust analysis (including percentage scale).
-# plot_from_file_dict("fee_per_byte", "dust", percentage=True, save_fig="dust_utxos")
-# plot_from_file_dict("fee_per_byte", "value", percentage=True, save_fig="value_utxos")
+plot_from_file_dict("fee_per_byte", "dust", fin="parsed_utxos.txt", save_fig="dust_utxos")
+
+fin = open(cfg.data_path + 'dust.txt', 'r')
+data = loads(fin.read())
+
+plot_from_file_dict("fee_per_byte", "dust", data=data, percentage=True, save_fig="perc_dust_utxos")
+
+plot_from_file_dict("fee_per_byte", "value", data=data, percentage=True, save_fig="dust_value")
+plot_from_file_dict("fee_per_byte", "value", data=data, save_fig="perc_dust_value")
+
+plot_from_file_dict("fee_per_byte", "data_len", data=data, percentage=True, save_fig="dust_data_len")
+plot_from_file_dict("fee_per_byte", "data_len", data=data, save_fig="perc_dust_data_len")
