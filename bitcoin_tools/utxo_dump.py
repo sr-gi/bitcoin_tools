@@ -188,3 +188,8 @@ def accumulate_dust(fin_name):
 
     return {"dust_utxos": dust, "dust_value": value, "dust_data_len": data_len, "total_utxos": total_utxo,
             "total_value": total_value, "total_data_len": total_data_len}
+
+
+transaction_dump("utxos.txt", "parsed_txs.txt")
+utxo_dump("utxos.txt", "parsed_utxos.txt")
+# utxo_dump("utxos.txt", "parsed_non_std_utxos.txt", non_std_only=True)

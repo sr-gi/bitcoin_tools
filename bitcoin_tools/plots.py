@@ -162,7 +162,7 @@ def plot_from_file_dict(x_attribute, y="dust", fin=None, data=None, percentage=N
                         log_axis=False, save_fig=False, legend=None, legend_loc=1, font_size=20):
 
     if fin and not data:
-        # Accumulate the dust data from the provided file
+        # Accumulates the dust data from the provided raw data file.
         data = accumulate_dust(fin)
 
         # Backup the accumulated data to avoid recalculating it again if another plot is required.
@@ -170,7 +170,7 @@ def plot_from_file_dict(x_attribute, y="dust", fin=None, data=None, percentage=N
         out.write(dumps(data))
         out.close()
 
-        # Recursively call the function with the accumulated data
+        # Recursively call the function with the accumulated data.
         plot_from_file_dict(x_attribute, y, None, data, percentage, xlabel, log_axis, save_fig, legend, legend_loc,
                             font_size)
     else:
@@ -242,8 +242,8 @@ data = loads(fin.read())
 
 plot_from_file_dict("fee_per_byte", "dust", data=data, percentage=True, save_fig="perc_dust_utxos")
 
-plot_from_file_dict("fee_per_byte", "value", data=data, percentage=True, save_fig="dust_value")
-plot_from_file_dict("fee_per_byte", "value", data=data, save_fig="perc_dust_value")
+plot_from_file_dict("fee_per_byte", "value", data=data, save_fig="dust_value")
+plot_from_file_dict("fee_per_byte", "value", data=data, percentage=True, save_fig="perc_dust_value")
 
-plot_from_file_dict("fee_per_byte", "data_len", data=data, percentage=True, save_fig="dust_data_len")
-plot_from_file_dict("fee_per_byte", "data_len", data=data, save_fig="perc_dust_data_len")
+plot_from_file_dict("fee_per_byte", "data_len", data=data, save_fig="dust_data_len")
+plot_from_file_dict("fee_per_byte", "data_len", data=data, percentage=True, save_fig="perc_dust_data_len")
