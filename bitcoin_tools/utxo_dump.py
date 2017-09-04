@@ -77,7 +77,7 @@ def get_min_input_size(out, height, count_p2sh=False):
             scriptSig = 1 + (req_sigs * 72)  # OP_0 (1 byte) + 72 bytes per sig (PUSH sig (1 byte) + sig (71 bytes))
             scriptSig_len = int(ceil(scriptSig / float(256)))
         else:
-            # All other types (including non standard P2MS, OP_Return and non-standard outs)
+            # All other types (non-standard outs)
             scriptSig = -fixed_size - 1  # Those scripts are marked with length -1 and skipped in dust calculation.
             scriptSig_len = 0
 
