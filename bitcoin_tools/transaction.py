@@ -1,3 +1,5 @@
+from binascii import a2b_hex
+
 from bitcoin_tools.keys import serialize_pk, ecdsa_tx_sign
 from bitcoin_tools.script import InputScript, OutputScript, Script, SIGHASH_ALL, SIGHASH_SINGLE, SIGHASH_NONE, \
     SIGHASH_ANYONECANPAY
@@ -249,16 +251,20 @@ class TX:
 
         return tx
 
-    def serialize(self):
+    def serialize(self, rtype=hex):
         """ Serialize all the transaction fields arranged in the proper order, resulting in a hexadecimal string
         ready to be broadcast to the network.
 
         :param self: self
         :type self: TX
-        :return: Serialized transaction representation (hexadecimal).
-        :rtype: hex str
+        :param rtype: Whether the serialized transaction is returned as a hex str or a byte array.
+        :type rtype: hex or bool
+        :return: Serialized transaction representation (hexadecimal or bin depending on rtype parameter).
+        :rtype: hex str / bin
         """
 
+        if rtype not in [hex, bin]:
+            raise Exception("Value type should be either hex or bin.")
         serialized_tx = change_endianness(int2bytes(self.version, 4))  # 4-byte version number (LE).
 
         # INPUTS
@@ -283,6 +289,10 @@ class TX:
                 serialized_tx += self.scriptPubKey[i].content  # Output script.
 
         serialized_tx += int2bytes(self.nLockTime, 4)  # 4-byte lock time field
+
+        # If return type has been set to binary, the serialized transaction is converted.
+        if rtype is bin:
+            serialized_tx = a2b_hex(serialized_tx)
 
         return serialized_tx
 
