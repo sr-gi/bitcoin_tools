@@ -1,4 +1,4 @@
-from binascii import a2b_hex
+from binascii import a2b_hex, b2a_hex
 
 from bitcoin_tools.keys import serialize_pk, ecdsa_tx_sign
 from bitcoin_tools.script import InputScript, OutputScript, Script, SIGHASH_ALL, SIGHASH_SINGLE, SIGHASH_NONE, \
@@ -7,6 +7,7 @@ from bitcoin_tools.utils import change_endianness, encode_varint, int2bytes, is_
     parse_element, parse_varint, get_prev_ScriptPubKey
 from copy import deepcopy
 from ecdsa import SigningKey
+from hashlib import sha256
 
 
 class TX:
@@ -264,7 +265,7 @@ class TX:
         """
 
         if rtype not in [hex, bin]:
-            raise Exception("Value type should be either hex or bin.")
+            raise Exception("Invalid return type (rtype). It should be either hex or bin.")
         serialized_tx = change_endianness(int2bytes(self.version, 4))  # 4-byte version number (LE).
 
         # INPUTS
@@ -295,6 +296,30 @@ class TX:
             serialized_tx = a2b_hex(serialized_tx)
 
         return serialized_tx
+
+    def get_txid(self, rtype=hex, endianness="BE"):
+        """ Computes the transaction id (i.e: transaction hash for non-segwit txs).
+        :param rtype: Defines the type of return, either hex str or bytes.
+        :type rtype: str or bin
+        :param endianness: Whether the id is returned in BE (Big endian) or LE (Little Endian)
+        :type endianness: str
+        :return: The hash of the transaction (i.e: transaction id)
+        :rtype: hex str or bin, depending on rtype parameter.
+        """
+
+        if rtype not in [hex, bin]:
+            raise Exception("Invalid return type (rtype). It should be either hex or bin.")
+
+        if rtype is hex:
+            tx_id = b2a_hex(sha256(sha256(self.serialize(rtype=bin)).digest()).digest())
+            if endianness == "BE":
+                tx_id = change_endianness(tx_id)
+        else:
+            tx_id = sha256(sha256(self.serialize(rtype=bin)).digest()).digest()
+            if endianness == "BE":
+                tx_id = a2b_hex(change_endianness(b2a_hex(tx_id)))
+
+        return tx_id
 
     def sign(self, sk, index, hashflag=SIGHASH_ALL, compressed=True, network='test',):
         """ Signs a transaction using the provided private key(s), index(es) and hash type. If more than one key and index
