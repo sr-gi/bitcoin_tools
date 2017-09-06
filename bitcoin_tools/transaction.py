@@ -297,11 +297,11 @@ class TX:
 
         return serialized_tx
 
-    def get_txid(self, rtype=hex, endianness="BE"):
+    def get_txid(self, rtype=hex, endianness="LE"):
         """ Computes the transaction id (i.e: transaction hash for non-segwit txs).
         :param rtype: Defines the type of return, either hex str or bytes.
         :type rtype: str or bin
-        :param endianness: Whether the id is returned in BE (Big endian) or LE (Little Endian)
+        :param endianness: Whether the id is returned in BE (Big endian) or LE (Little Endian) (default one)
         :type endianness: str
         :return: The hash of the transaction (i.e: transaction id)
         :rtype: hex str or bin, depending on rtype parameter.
@@ -309,6 +309,8 @@ class TX:
 
         if rtype not in [hex, bin]:
             raise Exception("Invalid return type (rtype). It should be either hex or bin.")
+        if endianness not in ["BE", "LE"]:
+            raise Exception("Invalid endianness type. It should be either BE or LE.")
 
         if rtype is hex:
             tx_id = b2a_hex(sha256(sha256(self.serialize(rtype=bin)).digest()).digest())
