@@ -1,6 +1,7 @@
-from bitcoin_tools.script import OutputScript, InputScript, Script
-from bitcoin_tools.wallet import hash_160
 from binascii import b2a_hex
+
+from bitcoin_tools.core.script import OutputScript, InputScript, Script
+from bitcoin_tools.wallet import hash_160
 
 pk = "04a01f076082a713a82b47ace012934052bcf3359c964f1963d00def84a34e7b0345efeefe037f4b0a4e160cc40a7fac052523da88398630c07ef3c54b47aa6046"
 signature = "3045022100df7b7e5cda14ddf91290e02ea10786e03eb11ee36ec02dd862fe9a326bbcb7fd02203f5b4496b667e6e281cc654a2da9e4f08660c620a1051337fa8965f727eb191901"

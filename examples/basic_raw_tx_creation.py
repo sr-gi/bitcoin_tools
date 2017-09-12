@@ -1,5 +1,6 @@
 from bitcoin_tools.keys import load_keys
-from bitcoin_tools.transaction import TX
+
+from bitcoin_tools.core.transaction import TX
 
 #################################################
 #               Key loading                     #

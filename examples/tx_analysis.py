@@ -1,4 +1,4 @@
-from bitcoin_tools.transaction import TX
+from bitcoin_tools.core.transaction import TX
 
 #################################################
 #           Hex transaction analysis            #

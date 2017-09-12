@@ -1,5 +1,5 @@
-from bitcoin_tools.keys import serialize_pk, load_keys
-from bitcoin_tools.transaction import TX
+from bitcoin_tools.core.keys import serialize_pk, load_keys
+from bitcoin_tools.core.transaction import TX
 
 # BUILD TRANSACTIONS
 

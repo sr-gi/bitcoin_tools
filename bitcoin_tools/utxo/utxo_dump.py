@@ -20,7 +20,6 @@ def check_multisig(script):
 
 
 def get_min_input_size(out, height, count_p2sh=False):
-
     out_type = out["out_type"]
     script = out["data"]
 
@@ -103,7 +102,7 @@ def transaction_dump(fin_name, fout_name):
         result = {"tx_id": change_endianness(data["key"][2:]),
                   "num_utxos": len(utxo.get("outs")),
                   "total_value": imprt,
-                  "total_len": (len(data["key"]) + len(data["value"]))/2,
+                  "total_len": (len(data["key"]) + len(data["value"])) / 2,
                   "height": utxo["height"],
                   "coinbase": utxo["coinbase"],
                   "version": utxo["version"]}
@@ -124,9 +123,6 @@ def utxo_dump(fin_name, fout_name, count_p2sh=False, non_std_only=False):
     # Standard UTXO types
     std_types = [0, 1, 2, 3, 4, 5]
 
-    # Dust dictionary initialisation. It contains one entry for each fee-per-byte step in range min, max.
-    dust = {str(fee_per_byte): 0 for fee_per_byte in range(MIN_FEE_PER_BYTE, MAX_FEE_PER_BYTE, FEE_STEP)}
-
     for line in fin:
         data = loads(line[:-1])
         utxo = decode_utxo(data["value"])
@@ -134,22 +130,29 @@ def utxo_dump(fin_name, fout_name, count_p2sh=False, non_std_only=False):
         for out in utxo.get("outs"):
             # Checks whether we are looking for every type of UTXO or just for non-standard ones.
             if not non_std_only or (non_std_only and out["out_type"] not in std_types):
-
                 # Calculates the dust threshold for every UTXO value and every fee per byte ratio between min and max.
                 min_size = get_min_input_size(out, utxo["height"], count_p2sh)
-                for fee_per_byte in range(MIN_FEE_PER_BYTE, MAX_FEE_PER_BYTE, FEE_STEP):
-                    # Dust dictionary is updated with whether the UTXO is dust for that current ratio (fee_per_byte)
-                    # or not (i.e: 1 or 0).
-                    if out["amount"] < min_size * fee_per_byte:
-                        dust[str(fee_per_byte)] = 1
-                    else:
-                        dust[str(fee_per_byte)] = 0
+                # Initialize dust, lm and the fee_per_byte ratio.
+                dust = 0
+                lm = 0
+                fee_per_byte = MIN_FEE_PER_BYTE
+                # Check whether the utxo is dust/lm for the fee_per_byte range.
+                while MAX_FEE_PER_BYTE > fee_per_byte and lm == 0:
+                    # Set the dust and loss_making thresholds.
+                    if dust is 0 and min_size * fee_per_byte > out["amount"] / 3:
+                        dust = fee_per_byte
+                    if lm is 0 and out["amount"] < min_size * fee_per_byte:
+                        lm = fee_per_byte
+
+                    # Increase the ratio
+                    fee_per_byte += FEE_STEP
 
                 # Builds the output dictionary
                 result = {"tx_id": change_endianness(data["key"][2:]),
                           "tx_height": utxo["height"],
-                          "utxo_data_len": len(out["data"])/2,
-                          "dust": dust}
+                          "utxo_data_len": len(out["data"]) / 2,
+                          "dust": dust,
+                          "loss_making": lm}
 
                 # Updates the dictionary with the remaining data from out, and stores it in disk.
                 result.update(out)
@@ -164,8 +167,12 @@ def accumulate_dust(fin_name):
     fin = open(cfg.data_path + fin_name, 'r')
 
     dust = {str(fee_per_byte): 0 for fee_per_byte in range(MIN_FEE_PER_BYTE, MAX_FEE_PER_BYTE, FEE_STEP)}
-    value = deepcopy(dust)
-    data_len = deepcopy(dust)
+    value_dust = deepcopy(dust)
+    data_len_dust = deepcopy(dust)
+
+    lm = deepcopy(dust)
+    value_lm = deepcopy(dust)
+    data_len_lm = deepcopy(dust)
 
     total_utxo = 0
     total_value = 0
@@ -175,10 +182,14 @@ def accumulate_dust(fin_name):
         data = loads(line[:-1])
 
         for fee_per_byte in range(MIN_FEE_PER_BYTE, MAX_FEE_PER_BYTE, FEE_STEP):
-            if data["dust"][str(fee_per_byte)]:
+            if fee_per_byte >= data["dust"] != 0:
                 dust[str(fee_per_byte)] += 1
-                value[str(fee_per_byte)] += data["amount"]
-                data_len[str(fee_per_byte)] += data["utxo_data_len"]
+                value_dust[str(fee_per_byte)] += data["amount"]
+                data_len_dust[str(fee_per_byte)] += data["utxo_data_len"]
+            if fee_per_byte >= data["loss_making"] != 0:
+                lm[str(fee_per_byte)] += 1
+                value_lm[str(fee_per_byte)] += data["amount"]
+                data_len_lm[str(fee_per_byte)] += data["utxo_data_len"]
 
         total_utxo = total_utxo + 1
         total_value += data["amount"]
@@ -186,10 +197,6 @@ def accumulate_dust(fin_name):
 
     fin.close()
 
-    return {"dust_utxos": dust, "dust_value": value, "dust_data_len": data_len, "total_utxos": total_utxo,
-            "total_value": total_value, "total_data_len": total_data_len}
-
-
-transaction_dump("utxos.txt", "parsed_txs.txt")
-utxo_dump("utxos.txt", "parsed_utxos.txt")
-# utxo_dump("utxos.txt", "parsed_non_std_utxos.txt", non_std_only=True)
+    return {"dust_utxos": dust, "dust_value": value_dust, "dust_data_len": data_len_dust,
+            "lm_utxos": lm, "lm_value": value_lm, "lm_data_len": data_len_lm,
+            "total_utxos": total_utxo, "total_value": total_value, "total_data_len": total_data_len}

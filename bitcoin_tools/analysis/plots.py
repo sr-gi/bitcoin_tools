@@ -1,10 +1,11 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib as mpl
 from json import loads, dumps
-from bitcoin_tools.utils import load_conf_file
-from bitcoin_tools.utxo_dump import accumulate_dust
 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+
+from bitcoin_tools.utils import load_conf_file
+from bitcoin_tools.utxo.utxo_dump import accumulate_dust
 
 label_size = 12
 mpl.rcParams['xtick.labelsize'] = label_size
@@ -98,7 +99,7 @@ def plot_distribution(xs, ys, title, xlabel, ylabel, log_axis=False, save_fig=Fa
 
     # Output result
     if save_fig:
-        plt.savefig(cfg.figs_path + '/' + save_fig + '.pdf', format='pdf', dpi=600)
+        plt.savefig(cfg.figs_path + save_fig + '.pdf', format='pdf', dpi=600)
     else:
         plt.show()
 
@@ -176,32 +177,35 @@ def plot_from_file_dict(x_attribute, y="dust", fin=None, data=None, percentage=N
     else:
         # Decides the type of chart to be plot.
         if y == "dust":
-            data_type = "dust_utxos"
+            data_type = ["dust_utxos", "lm_utxos"]
             if not percentage:
-                ylabel = "Number of dust UTXOs"
+                ylabel = "Number of utxos"
             else:
-                ylabel = "Percentage of dust UTXOs"
+                ylabel = "Percentage of utxos"
                 total = "total_utxos"
         elif y == "value":
-            data_type = "dust_value"
+            data_type = ["dust_value", "lm_value"]
             if not percentage:
-                ylabel = "Total dust (Satoshis)"
+                ylabel = "Value (Satoshi)"
             else:
-                ylabel = "Percentage of dust value"
+                ylabel = "Percentage of total value"
                 total = "total_value"
         elif y == "data_len":
-            data_type = "dust_data_len"
+            data_type = ["dust_data_len", "lm_data_len"]
             if not percentage:
-                ylabel = "Total size of dust UTXOs (bytes)"
+                ylabel = "Utxos' size (bytes)"
             else:
-                ylabel = "Percentage of dust size"
+                ylabel = "Percentage of total utxos' size"
                 total = "total_data_len"
         else:
             raise ValueError('Unrecognized y value')
 
+        xs = []
+        ys = []
         # Sort the data
-        xs = sorted(data[data_type].keys(), key=int)
-        ys = sorted(data[data_type].values(), key=int)
+        for i in data_type:
+            xs.append(sorted(data[i].keys(), key=int))
+            ys.append(sorted(data[i].values(), key=int))
 
         title = ""
         if not xlabel:
@@ -210,40 +214,11 @@ def plot_from_file_dict(x_attribute, y="dust", fin=None, data=None, percentage=N
         # If percentage is set, a chart with y axis as a percentage (dividing every single y value by the
         # corresponding total value) is created.
         if percentage:
-            ys = [i / float(data[total]) * 100 for i in ys]
+            for i in range(len(ys)):
+                if isinstance(ys[i], list):
+                    ys[i] = [j / float(data[total]) * 100 for j in ys[i]]
+                elif isinstance(ys[i], int):
+                    ys[i] = ys[i] / float(data[total]) * 100
 
         # And finally plots the chart.
         plot_distribution(xs, ys, title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
-
-# Generate plots from tx data (from parsed_txs.txt)
-#plot_from_file("height", save_fig="tx_height")
-#plot_from_file("num_utxos", xlabel="Number of utxos per tx", save_fig="tx_num_utxos")
-#plot_from_file("num_utxos", xlabel="Number of utxos per tx", log_axis="x", save_fig="tx_num_utxos_logx")
-#plot_from_file("total_len", xlabel="Total length (bytes)", save_fig="tx_total_len")
-#plot_from_file("total_len", xlabel="Total length (bytes)",  log_axis="x", save_fig="tx_total_len_logx")
-#plot_from_file("version", save_fig="tx_version")
-#plot_from_file("total_value", log_axis="x", save_fig="tx_total_value_logx")
-
-# Generate plots from utxo data (from parsed_utxo.txt)
-#plot_from_file("tx_height", y="utxo", save_fig="utxo_tx_height")
-#plot_from_file("amount", y="utxo", log_axis="x", save_fig="utxo_amount_logx")
-#plot_from_file("index", y="utxo", save_fig="utxo_index")
-#plot_from_file("index", y="utxo", log_axis="x", save_fig="utxo_index_logx")
-#plot_from_file("out_type", y="utxo", save_fig="utxo_out_type")
-#plot_from_file("out_type", y="utxo", log_axis="x", save_fig="utxo_out_type_logx")
-#plot_from_file("utxo_data_len", y="utxo", save_fig="utxo_utxo_data_len")
-#plot_from_file("utxo_data_len", y="utxo", log_axis="x", save_fig="utxo_utxo_data_len_logx")
-
-# Generate plots for dust analysis (including percentage scale).
-plot_from_file_dict("fee_per_byte", "dust", fin="parsed_utxos.txt", save_fig="dust_utxos")
-
-fin = open(cfg.data_path + 'dust.txt', 'r')
-data = loads(fin.read())
-
-plot_from_file_dict("fee_per_byte", "dust", data=data, percentage=True, save_fig="perc_dust_utxos")
-
-plot_from_file_dict("fee_per_byte", "value", data=data, save_fig="dust_value")
-plot_from_file_dict("fee_per_byte", "value", data=data, percentage=True, save_fig="perc_dust_value")
-
-plot_from_file_dict("fee_per_byte", "data_len", data=data, save_fig="dust_data_len")
-plot_from_file_dict("fee_per_byte", "data_len", data=data, percentage=True, save_fig="perc_dust_data_len")

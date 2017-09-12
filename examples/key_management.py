@@ -1,4 +1,4 @@
-from bitcoin_tools.keys import generate_keys, store_keys
+from bitcoin_tools.core.keys import generate_keys, store_keys
 from bitcoin_tools.wallet import generate_wif, generate_btc_addr
 
 #################################################
