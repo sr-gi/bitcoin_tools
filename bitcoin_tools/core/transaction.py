@@ -324,18 +324,25 @@ class TX:
 
         return tx_id
 
-    def sign(self, sk, index, hashflag=SIGHASH_ALL, compressed=True, network='test',):
+    def sign(self, sk, index, hashflag=SIGHASH_ALL, compressed=True, orphan=False, network='test'):
         """ Signs a transaction using the provided private key(s), index(es) and hash type. If more than one key and index
         is provides, key i will sign the ith input of the transaction.
 
         :param sk: Private key(s) used to sign the ith transaction input (defined by index).
         :type sk: SigningKey or list of SigningKey.
-        :param index:Index(es) to be signed by the provided key(s).
+        :param index: Index(es) to be signed by the provided key(s).
         :type index: int or list of int
         :param hashflag: Hash type to be used. It will define what signature format will the unsigned transaction have.
         :type hashflag: int
         :param compressed: Indicates if the public key that goes along with the signature will be compressed or not.
         :type compressed: bool
+        :param orphan: Whether the inputs to be signed are orphan or not. Orphan inputs are those who are trying to
+        redeem from a utxo that has not been included in the blockchain or has not been seen by other nodes.
+        Orphan inputs must provide a dict with the index of the input and an OutputScript that matches the utxo to be
+        redeemed.
+            e.g:
+              orphan_input = dict({0: OutputScript.P2PKH(btc_addr))
+        :type orphan:  dict(index, InputScript)
         :param network: Network from which the previous ScripPubKey will be queried (either main or test).
         :type network: str
         :return: Transaction signature.
@@ -352,10 +359,14 @@ class TX:
             index = [index]
 
         for i in range(len(sk)):
+
+            # If the input to be signed is orphan, the OutputScript og the UTXO to be redeemed will be passed to
+            # the signature_format function, otherwise False is passed and the UTXO will be requested afterwards.
+            o = orphan if not orphan else orphan.get(i)
             # The unsigned transaction is formatted depending on the input that is going to be signed. For input i,
             # the ScriptSig[i] will be set to the scriptPubKey of the UTXO that input i tries to redeem, while all
             # the other inputs will be set blank.
-            unsigned_tx = self.signature_format(index[i], hashflag, network)
+            unsigned_tx = self.signature_format(index[i], hashflag, o, network)
 
             # Then, depending on the format how the private keys have been passed to the signing function
             # and the content of the ScripSig field, a different final scriptSig will be created.
@@ -383,7 +394,7 @@ class TX:
 
         self.hex = self.serialize()
 
-    def signature_format(self, index, hashflag=SIGHASH_ALL, network='test'):
+    def signature_format(self, index, hashflag=SIGHASH_ALL, orphan=False, network='test'):
         """ Builds the signature format an unsigned transaction has to follow in order to be signed. Basically empties
         every InputScript field but the one to be signed, identified by index, that will be filled with the OutputScript
         from the UTXO that will be redeemed.
@@ -398,6 +409,9 @@ class TX:
         :type index: int
         :param hashflag: Hash type to be used, see above description for further information.
         :type hashflag: int
+        :param orphan: Whether the input is orphan or not. Orphan inputs must provide an OutputScript that matches the
+        utxo to be redeemed.
+        :type orphan: OutputScript
         :param network: Network into which the transaction will be published (either mainnet or testnet).
         :type network: str
         :return: Transaction properly formatted to be signed.
@@ -407,11 +421,15 @@ class TX:
         tx = deepcopy(self)
         for i in range(tx.inputs):
             if i is index:
-                script, t = get_prev_ScriptPubKey(tx.prev_tx_id[i], tx.prev_out_index[i], network)
-                # Once we get the previous UTXO script, the inputScript is temporarily set to it in order to sign
-                # the transaction.
-                tx.scriptSig[i] = InputScript.from_hex(script)
-                tx.scriptSig[i].type = t
+                if not orphan:
+                    script, t = get_prev_ScriptPubKey(tx.prev_tx_id[i], tx.prev_out_index[i], network)
+                    # Once we get the previous UTXO script, the inputScript is temporarily set to it in order to sign
+                    # the transaction.
+                    tx.scriptSig[i] = InputScript.from_hex(script)
+                    tx.scriptSig[i].type = t
+                else:
+                    # If input to be signed is orphan, the orphan InputScript is used when signing the transaction.
+                    tx.scriptSig[i] = orphan
                 tx.scriptSig_len[i] = len(tx.scriptSig[i].content) / 2
             elif tx.scriptSig[i].content != "":
                 # All other scriptSig fields are emptied and their length is set to 0.
