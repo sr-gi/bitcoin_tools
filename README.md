@@ -1,35 +1,45 @@
 # Bitcoin tools
 
-bitcoin_tools is a Python library created for teaching and researching purposes. Its main objective is helping 
-users to understand how Bitcoin transactions can be created from scratch, allowing them to identify the fields constituting a transaction, how those fields can be modified, and where they are located in the hexadecimal representation of the transaction (the serialized transaction).
+bitcoin_tools is a Python library created for teaching and researching purposes. It main objective is twofold. First it 
+aims to ease the understating of Bitcoin transaction creation, by using well-documented and easy to understand
+python code. Moreover, it aims to provide a powerful tool that allow their users to create custom `transaction` / `scripts`,
+while giving the required tools to access interesting data such as the `utxo set`.
 
-Moreover, bitcoin_tools allows users to set both scriptSig and scriptPubKey fields to whatever
-script they want to generate, letting the creation and testing of new scripts far beyond the 
-standard ones.`
+
+bitcoin_tools allows you to:
+
+* Bitcoin keys creation and management.
+* Creation of Bitcoin transactions from scratch.
+* Customize any field of your transaction.
+* Transaction serialization / deserialization.
+* Creation of standard and custom scripts (`scriptSig` and `scriptPubKey`).
+* Transaction analysis from hex encoded transactions.
+* Chainstate (`utxo set`) analysis
+
+
+
 
 ### Dependencies
 
 The library has the following dependencies (which can be satisfied by using pip install -r requirements.txt):
 
-ecdsa
-python-bitcoinlib
-base58
-plyvel
-matplotlib
-numpy
-qrcode
-Pillow
+* ecdsa
+* base58
+* python-bitcoinlib
+* plyvel
+* matplotlib
+* numpy
+* qrcode
+* Pillow
 
-Last two are only required for creating qr-codes for private key WIF format. They could be avoided if such functionality is not required.
-
+Last two (key management) are only required for creating qr-codes for private key WIF format. They could be avoided if such functionality is not required.
 
 ### Examples
 
-Down below you can find some examples of how to use some of the library functions. More examples can be found in examples.py
+Down below you can find some examples of how to use some of the library functions. More examples can be found in `examples/`
 
 #### Key management and Bitcoin address generation
 ```python
-
 from bitcoin_tools.core.keys import generate_keys, store_keys
 from bitcoin_tools.wallet import generate_wif, generate_btc_addr
 
@@ -47,6 +57,13 @@ generate_wif(btc_addr, sk)
 
 #### Raw transaction building  
 ```python
+from bitcoin_tools.core.keys import load_keys
+from bitcoin_tools.core.transaction import TX
+
+# Key loading
+btc_addr = "miWdbNn9zDLnKpcNuCLdfRiJx59c93bT8t"
+sk, pk = load_keys(btc_addr)
+
 # Reference to the previous transaction output that will be used to redeem and spend the funds, consisting on an id and
 # an output index.
 prev_tx_id = "7767a9eb2c8adda3ffce86c06689007a903b6f7e78dbc049ef0dbaf9eeebe075"
@@ -83,6 +100,23 @@ tx = TX.deserialize(hex_tx)
 # Then, the transaction can be displayed using the display method to analyze how it's been constructed.
 tx.display()
 ``` 
+
+### LevelDB UTXO dump
+```python
+from bitcoin_tools.analysis.leveldb.data_dump import utxo_dump
+from bitcoin_tools.analysis.leveldb.utils import parse_ldb
+
+f_utxos = "utxos.txt"
+f_parsed_utxos = "parsed_utxos.txt"
+
+# Parse all the data in the chainstate.
+parse_ldb(f_utxos)
+# Parses transactions and utxos from the dumped data.
+utxo_dump(f_utxos, f_parsed_utxos)
+
+# Data is stored in f_utxos and f_parsed_utxos files respectivaly
+```
+
 
 ### Disclaimer
 
