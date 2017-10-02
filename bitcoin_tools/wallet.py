@@ -1,10 +1,20 @@
-from bitcoin_tools.constants import PUBKEY_HASH, TESTNET_PUBKEY_HASH, WIF, TESTNET_WIF
-from binascii import a2b_hex, b2a_hex
+from binascii import unhexlify, hexlify
 from hashlib import new, sha256
 from os import mkdir, path
-from keys import serialize_pk, serialize_sk
+from re import match
+
 from base58 import b58encode, b58decode
 from qrcode import make as qr_make
+
+from bitcoin_tools import CFG
+from bitcoin_tools.core.keys import serialize_pk, serialize_sk
+
+# Network codes
+PUBKEY_HASH = 0
+TESTNET_PUBKEY_HASH = 111
+
+WIF = 128
+TESTNET_WIF = 239
 
 
 def hash_160(pk):
@@ -18,7 +28,7 @@ def hash_160(pk):
 
     # Calculate the RIPEMD-160 hash of the given public key.
     md = new('ripemd160')
-    h = sha256(a2b_hex(pk)).digest()
+    h = sha256(unhexlify(pk)).digest()
     md.update(h)
     h160 = md.digest()
 
@@ -40,6 +50,10 @@ def hash_160_to_btc_address(h160, v):
     :return: The corresponding Bitcoin address.
     :rtype: hex str
     """
+
+    # If h160 is passed as hex str, the value is converted into bytes.
+    if match('^[0-9a-fA-F]*$', h160):
+        h160 = unhexlify(h160)
 
     # Add the network version leading the previously calculated RIPEMD-160 hash.
     vh160 = chr(v) + h160
@@ -65,7 +79,7 @@ def btc_addr_to_hash_160(btc_addr):
     # Base 58 decode the Bitcoin address.
     decoded_addr = b58decode(btc_addr)
     # Covert the address from bytes to hex.
-    decoded_addr_hex = b2a_hex(decoded_addr)
+    decoded_addr_hex = hexlify(decoded_addr)
     # Obtain the RIPEMD-160 hash by removing the first and four last bytes of the decoded address, corresponding to
     # the network version and the checksum of the address.
     h160 = decoded_addr_hex[2:-8]
@@ -106,8 +120,8 @@ def pk_to_btc_addr(pk, v='test'):
 def generate_btc_addr(pk, v='test',  compressed=True):
     """ Calculates Bitcoin address associated to a given elliptic curve public key and a given network.
 
-    :param pk: DER encoded public key
-    :type pk: bytes
+    :param pk: ECDSA VerifyingKey object (public key to be converted into Bitcoin address).
+    :type pk: VerifyingKey
     :param v: version (prefix) used to calculate the WIF, it depends on the type of network.
     :type v: str
     :param compressed: Indicates if Bitcoin address will be generated with the compressed or uncompressed key.
@@ -152,7 +166,7 @@ def sk_to_wif(sk, mode='image', v='test'):
         raise Exception("Invalid version, use either 'main' or 'test'.")
 
     # Add the network version leading the private key (in hex).
-    e_pkey = chr(v) + a2b_hex(sk)
+    e_pkey = chr(v) + unhexlify(sk)
     # Double sha256.
     h = sha256(sha256(e_pkey).digest()).digest()
     # Add the two first bytes of the result as a checksum tailing the encoded key.
@@ -171,16 +185,20 @@ def sk_to_wif(sk, mode='image', v='test'):
     return response
 
 
-def generate_wif(btc_addr, sk, mode='image', v='test'):
+def generate_wif(btc_addr, sk, mode='image', v='test', vault_path=None):
     """ Generates a Wallet Import Format (WIF) file into disk. Uses an elliptic curve private key from disk as an input
     using the btc_addr associated to the public key of the same key pair as an identifier.
 
     :param btc_addr: Bitcoin address associated to the public key of the same key pair as the private key.
     :type btc_addr: hex str
+    :param sk: Private key to be converted into Wallet Import Format (WIF).
+    :type sk: ECDSA SigningKey object.
     :param mode: defines the type of return.
     :type mode: str
     :param v: version (prefix) used to calculate the WIF, it depends on the type of network.
     :type v: str
+    :param vault_path: Path where WIF file will be stored be stored. Defined in the config file by default.
+    :type vault_path: str
     :return: None.
     :rtype: None
     """
@@ -188,14 +206,17 @@ def generate_wif(btc_addr, sk, mode='image', v='test'):
     # Get a private key in hex format and create the WIF representation.
     wif = sk_to_wif(serialize_sk(sk), mode, v)
 
+    if vault_path is None:
+        vault_path = CFG.address_vault
+
     # Store the result depending on the selected mode.
-    if not path.exists(btc_addr):
-        mkdir(btc_addr)
+    if not path.exists(vault_path + btc_addr):
+        mkdir(vault_path + btc_addr)
 
     if mode is 'image':
-        wif.save(btc_addr + "/WIF.png")
+        wif.save(vault_path + btc_addr + "/WIF.png")
     elif mode is 'text':
-        f = file(btc_addr + "/WIF.txt", 'w')
+        f = file(vault_path + btc_addr + "/WIF.txt", 'w')
         f.write(wif)
     else:
         raise Exception("Invalid mode, used either 'image' or 'text'.")

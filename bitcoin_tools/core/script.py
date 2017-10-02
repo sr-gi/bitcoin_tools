@@ -1,7 +1,7 @@
 from bitcoin_tools.wallet import btc_addr_to_hash_160
 from bitcoin_tools.utils import check_public_key, check_signature, check_address
 from abc import ABCMeta, abstractmethod
-from binascii import a2b_hex, b2a_hex
+from binascii import unhexlify, hexlify
 from bitcoin.core.script import *
 
 
@@ -66,7 +66,7 @@ class Script:
         start = "CScript(["
         end = "])"
 
-        ps = CScript(a2b_hex(script)).__repr__()
+        ps = CScript(unhexlify(script)).__repr__()
         ps = ps[ps.index(start) + len(start): ps.index(end)].split(", ")
 
         for i in range(len(ps)):
@@ -88,13 +88,25 @@ class Script:
         hex_string = ""
         for e in data.split(" "):
             if e[0] == "<" and e[-1] == ">":
-                hex_string += b2a_hex(CScriptOp.encode_op_pushdata(a2b_hex(e[1:-1])))
+                hex_string += hexlify(CScriptOp.encode_op_pushdata(unhexlify(e[1:-1])))
             elif eval(e) in OPCODE_NAMES:
                 hex_string += format(eval(e), '02x')
             else:
                 raise Exception
 
         return hex_string
+
+    def get_element(self, i):
+        """
+        Returns the ith element from the script. If -1 is passed as index, the last element is returned.
+        :param i: The index of the selected element.
+        :type i: int
+        :return: The ith elements of the script.
+        :rtype: str
+        """
+
+        return Script.deserialize(self.content).split()[i]
+
 
     @abstractmethod
     def P2PK(self):
@@ -176,9 +188,12 @@ class InputScript(Script):
         return script
 
     @classmethod
-    def P2SH(cls, s):
+    def P2SH(cls, data, s):
         """ Pay-to-ScriptHash template 'constructor'. Builds a P2SH InputScript from a given script.
 
+        :param data: Input data that will be evaluated with the script content once its hash had been checked against
+        the hash provided by the OutputScript.
+        :type data: list
         :param s: Human readable script that hashes to the UTXO script hash that the transaction tries to redeem.
         :type s: hex str
         :return: A P2SH ScriptSig (RedeemScript) built using the given script.
@@ -186,9 +201,16 @@ class InputScript(Script):
         """
 
         script = cls()
+        for d in data:
+            if isinstance(d, str) and d.startswith("OP"):
+                # If an OP_CODE is passed as data (such as OP_0 in multisig transactions), the element is encoded as is.
+                script.content += d + " "
+            else:
+                # Otherwise, the element is encoded as data.
+                script.content += "<" + str(d) + "> "
         # ToDo: Should we run any validation?
         script.type = "P2SH"
-        script.content = script.serialize("<" + script.serialize(s) + ">")
+        script.content = script.serialize(script.content + "<" + s + ">")
 
         return script
 

@@ -1,10 +1,14 @@
-from bitcoin_tools.keys import serialize_pk, ecdsa_tx_sign
-from bitcoin_tools.script import InputScript, OutputScript, Script, SIGHASH_ALL, SIGHASH_SINGLE, SIGHASH_NONE, \
+from binascii import unhexlify, hexlify
+from copy import deepcopy
+from hashlib import sha256
+
+from ecdsa import SigningKey
+
+from bitcoin_tools.core.keys import serialize_pk, ecdsa_tx_sign
+from bitcoin_tools.core.script import InputScript, OutputScript, Script, SIGHASH_ALL, SIGHASH_SINGLE, SIGHASH_NONE, \
     SIGHASH_ANYONECANPAY
 from bitcoin_tools.utils import change_endianness, encode_varint, int2bytes, is_public_key, is_btc_addr, \
     parse_element, parse_varint, get_prev_ScriptPubKey
-from copy import deepcopy
-from ecdsa import SigningKey
 
 
 class TX:
@@ -243,22 +247,26 @@ class TX:
 
         if tx.offset != len(tx.hex):
             raise Exception("There is some error in the serialized transaction passed as input. Transaction can't"
-                            "be built")
+                            " be built")
         else:
             tx.offset = 0
 
         return tx
 
-    def serialize(self):
+    def serialize(self, rtype=hex):
         """ Serialize all the transaction fields arranged in the proper order, resulting in a hexadecimal string
         ready to be broadcast to the network.
 
         :param self: self
         :type self: TX
-        :return: Serialized transaction representation (hexadecimal).
-        :rtype: hex str
+        :param rtype: Whether the serialized transaction is returned as a hex str or a byte array.
+        :type rtype: hex or bool
+        :return: Serialized transaction representation (hexadecimal or bin depending on rtype parameter).
+        :rtype: hex str / bin
         """
 
+        if rtype not in [hex, bin]:
+            raise Exception("Invalid return type (rtype). It should be either hex or bin.")
         serialized_tx = change_endianness(int2bytes(self.version, 4))  # 4-byte version number (LE).
 
         # INPUTS
@@ -284,20 +292,59 @@ class TX:
 
         serialized_tx += int2bytes(self.nLockTime, 4)  # 4-byte lock time field
 
+        # If return type has been set to binary, the serialized transaction is converted.
+        if rtype is bin:
+            serialized_tx = unhexlify(serialized_tx)
+
         return serialized_tx
 
-    def sign(self, sk, index, hashflag=SIGHASH_ALL, compressed=True, network='test',):
+    def get_txid(self, rtype=hex, endianness="LE"):
+        """ Computes the transaction id (i.e: transaction hash for non-segwit txs).
+        :param rtype: Defines the type of return, either hex str or bytes.
+        :type rtype: str or bin
+        :param endianness: Whether the id is returned in BE (Big endian) or LE (Little Endian) (default one)
+        :type endianness: str
+        :return: The hash of the transaction (i.e: transaction id)
+        :rtype: hex str or bin, depending on rtype parameter.
+        """
+
+        if rtype not in [hex, bin]:
+            raise Exception("Invalid return type (rtype). It should be either hex or bin.")
+        if endianness not in ["BE", "LE"]:
+            raise Exception("Invalid endianness type. It should be either BE or LE.")
+
+        if rtype is hex:
+            tx_id = hexlify(sha256(sha256(self.serialize(rtype=bin)).digest()).digest())
+            if endianness == "BE":
+                tx_id = change_endianness(tx_id)
+        else:
+            tx_id = sha256(sha256(self.serialize(rtype=bin)).digest()).digest()
+            if endianness == "BE":
+                tx_id = unhexlify(change_endianness(hexlify(tx_id)))
+
+        return tx_id
+
+    def sign(self, sk, index, hashflag=SIGHASH_ALL, compressed=True, orphan=False, deterministic=True, network='test'):
         """ Signs a transaction using the provided private key(s), index(es) and hash type. If more than one key and index
         is provides, key i will sign the ith input of the transaction.
 
         :param sk: Private key(s) used to sign the ith transaction input (defined by index).
         :type sk: SigningKey or list of SigningKey.
-        :param index:Index(es) to be signed by the provided key(s).
+        :param index: Index(es) to be signed by the provided key(s).
         :type index: int or list of int
         :param hashflag: Hash type to be used. It will define what signature format will the unsigned transaction have.
         :type hashflag: int
         :param compressed: Indicates if the public key that goes along with the signature will be compressed or not.
         :type compressed: bool
+        :param orphan: Whether the inputs to be signed are orphan or not. Orphan inputs are those who are trying to
+        redeem from a utxo that has not been included in the blockchain or has not been seen by other nodes.
+        Orphan inputs must provide a dict with the index of the input and an OutputScript that matches the utxo to be
+        redeemed.
+            e.g:
+              orphan_input = dict({0: OutputScript.P2PKH(btc_addr))
+        :type orphan:  dict(index, InputScript)
+        :param deterministic: Whether the signature is performed using a deterministic k or not. Set by default.
+        :type deterministic: bool
         :param network: Network from which the previous ScripPubKey will be queried (either main or test).
         :type network: str
         :return: Transaction signature.
@@ -314,23 +361,27 @@ class TX:
             index = [index]
 
         for i in range(len(sk)):
+
+            # If the input to be signed is orphan, the OutputScript of the UTXO to be redeemed will be passed to
+            # the signature_format function, otherwise False is passed and the UTXO will be requested afterwards.
+            o = orphan if not orphan else orphan.get(i)
             # The unsigned transaction is formatted depending on the input that is going to be signed. For input i,
             # the ScriptSig[i] will be set to the scriptPubKey of the UTXO that input i tries to redeem, while all
             # the other inputs will be set blank.
-            unsigned_tx = self.signature_format(index[i], hashflag, network)
+            unsigned_tx = self.signature_format(index[i], hashflag, o, network)
 
             # Then, depending on the format how the private keys have been passed to the signing function
             # and the content of the ScripSig field, a different final scriptSig will be created.
             if isinstance(sk[i], list) and unsigned_tx.scriptSig[index[i]].type is "P2MS":
                 sigs = []
                 for k in sk[i]:
-                    sigs.append(ecdsa_tx_sign(unsigned_tx.serialize(), k, hashflag))
+                    sigs.append(ecdsa_tx_sign(unsigned_tx.serialize(), k, hashflag, deterministic))
                 iscript = InputScript.P2MS(sigs)
             elif isinstance(sk[i], SigningKey) and unsigned_tx.scriptSig[index[i]].type is "P2PK":
-                s = ecdsa_tx_sign(unsigned_tx.serialize(), sk[i], hashflag)
+                s = ecdsa_tx_sign(unsigned_tx.serialize(), sk[i], hashflag, deterministic)
                 iscript = InputScript.P2PK(s)
             elif isinstance(sk[i], SigningKey) and unsigned_tx.scriptSig[index[i]].type is "P2PKH":
-                s = ecdsa_tx_sign(unsigned_tx.serialize(), sk[i], hashflag)
+                s = ecdsa_tx_sign(unsigned_tx.serialize(), sk[i], hashflag, deterministic)
                 pk = serialize_pk(sk[i].get_verifying_key(), compressed)
                 iscript = InputScript.P2PKH(s, pk)
             elif unsigned_tx.scriptSig[index[i]].type is "unknown":
@@ -345,7 +396,7 @@ class TX:
 
         self.hex = self.serialize()
 
-    def signature_format(self, index, hashflag=SIGHASH_ALL, network='test'):
+    def signature_format(self, index, hashflag=SIGHASH_ALL, orphan=False, network='test'):
         """ Builds the signature format an unsigned transaction has to follow in order to be signed. Basically empties
         every InputScript field but the one to be signed, identified by index, that will be filled with the OutputScript
         from the UTXO that will be redeemed.
@@ -360,6 +411,9 @@ class TX:
         :type index: int
         :param hashflag: Hash type to be used, see above description for further information.
         :type hashflag: int
+        :param orphan: Whether the input is orphan or not. Orphan inputs must provide an OutputScript that matches the
+        utxo to be redeemed.
+        :type orphan: OutputScript
         :param network: Network into which the transaction will be published (either mainnet or testnet).
         :type network: str
         :return: Transaction properly formatted to be signed.
@@ -369,11 +423,15 @@ class TX:
         tx = deepcopy(self)
         for i in range(tx.inputs):
             if i is index:
-                script, t = get_prev_ScriptPubKey(tx.prev_tx_id[i], tx.prev_out_index[i], network)
-                # Once we get the previous UTXO script, the inputScript is temporarily set to it in order to sign
-                # the transaction.
-                tx.scriptSig[i] = InputScript.from_hex(script)
-                tx.scriptSig[i].type = t
+                if not orphan:
+                    script, t = get_prev_ScriptPubKey(tx.prev_tx_id[i], tx.prev_out_index[i], network)
+                    # Once we get the previous UTXO script, the inputScript is temporarily set to it in order to sign
+                    # the transaction.
+                    tx.scriptSig[i] = InputScript.from_hex(script)
+                    tx.scriptSig[i].type = t
+                else:
+                    # If input to be signed is orphan, the orphan InputScript is used when signing the transaction.
+                    tx.scriptSig[i] = orphan
                 tx.scriptSig_len[i] = len(tx.scriptSig[i].content) / 2
             elif tx.scriptSig[i].content != "":
                 # All other scriptSig fields are emptied and their length is set to 0.
@@ -381,10 +439,6 @@ class TX:
                 tx.scriptSig_len[i] = len(tx.scriptSig[i].content) / 2
 
         if hashflag is SIGHASH_SINGLE:
-            # ToDo: Test if this implementation of SIGHASH_SINGLE works, since it differs from the Buterin's one, which
-            # ToDo: I personally think is incorrect, but I received no answer from the issue.
-            # ToDo: https://github.com/vbuterin/pybitcointools/issues/149
-
             # First we checks if the input that we are trying to sign has a corresponding output, if so, the execution
             # can continue. Otherwise, we abort the signature process since it could lead to a irreversible lose of
             # funds due to a bug in SIGHASH_SINGLE.
@@ -437,7 +491,6 @@ class TX:
             pass
 
         if hashflag in [SIGHASH_SINGLE, SIGHASH_NONE]:
-            # ToDo: Report bug in Buterin's SIGHASH_NONE and SIGHASH_SINGLE, nSequence is not set to zero.
             # All the nSequence from inputs except for the current one (index) is set to 0.
             # https://github.com/bitcoin/bitcoin/blob/3192e5278a/test/functional/test_framework/script.py#L880
             for i in range(tx.inputs):
@@ -470,6 +523,8 @@ class TX:
                   + " (" + encode_varint((self.scriptSig_len[i])) + ")"
             print "\t input script (scriptSig): " + self.scriptSig[i].content
             print "\t decoded scriptSig: " + Script.deserialize(self.scriptSig[i].content)
+            if self.scriptSig[i].type is "P2SH":
+                print "\t \t decoded redeemScript: " + InputScript.deserialize(self.scriptSig[i].get_element(-1)[1:-1])
             print "\t nSequence: " + str(self.nSequence[i]) + " (" + int2bytes(self.nSequence[i], 4) + ")"
         print "number of outputs: " + str(self.outputs) + " (" + encode_varint(self.outputs) + ")"
         for i in range(self.outputs):

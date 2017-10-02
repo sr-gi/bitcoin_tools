@@ -1,8 +1,7 @@
-data
-bitcoin_addresses
 .idea
 *.pyc
+conf.py
 ToDo
-test/*
+test/test.py
 
 

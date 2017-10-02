@@ -1,8 +1,10 @@
+from bitcoin_tools import CFG
 from bitcoin_tools.utils import change_endianness, int2bytes
-from binascii import b2a_hex, a2b_hex
+from bitcoin.core.script import SIGHASH_ALL, SIGHASH_SINGLE, SIGHASH_NONE
+
+from binascii import hexlify, unhexlify
 from hashlib import sha256
 from os import mkdir, path
-from bitcoin.core.script import SIGHASH_ALL, SIGHASH_SINGLE, SIGHASH_NONE
 from ecdsa import SigningKey, VerifyingKey, SECP256k1
 from ecdsa.util import sigencode_der_canonize, number_to_string
 
@@ -21,7 +23,7 @@ def generate_keys():
     return sk, pk
 
 
-def store_keys(sk, pk, btc_addr):
+def store_keys(sk, pk, btc_addr, vault_path=None):
     """ Stores an elliptic curve key pair in PEM format into disk. Both keys are stored in a folder named after the
     Bitcoin address derived from the public key.
 
@@ -31,30 +33,40 @@ def store_keys(sk, pk, btc_addr):
     :type pk: str
     :param btc_addr: Bitcoin address associated to the public key of the key pair.
     :type btc_addr: str
+    :param vault_path: Path where keys will be stored. Defined in the config file by default.
+    :type vault_path: str
     :return: None.
     :rtype: None
     """
 
-    if not path.exists(btc_addr):
-        mkdir(btc_addr)
+    if vault_path is None:
+        vault_path = CFG.address_vault
+
+    if not path.exists(vault_path + btc_addr):
+        mkdir(vault_path + btc_addr)
 
     # Save both keys into disk using the Bitcoin address as an identifier.
-    open(btc_addr + '/sk.pem', "w").write(sk)
-    open(btc_addr + '/pk.pem', "w").write(pk)
+    open(vault_path + btc_addr + '/sk.pem', "w").write(sk)
+    open(vault_path + btc_addr + '/pk.pem', "w").write(pk)
 
 
-def load_keys(btc_addr):
+def load_keys(btc_addr, vault_path=None):
     """ Loads an elliptic curve key pair in PEM format from disk. Keys are stored in their proper objects from the ecdsa
     python library (SigningKey and VerifyingKey respectively)
 
     :param btc_addr: Bitcoin address associated to the public key of the key pair.
     :type btc_addr: str
+    :param vault_path: Path where keys are be stored. Defined in the config file by default.
+    :type vault_path: str
     :return: ecdsa key pair as a tuple.
     :rtype: SigningKey, VerifyingKey
     """
 
-    sk_pem = open(btc_addr + '/sk.pem', "r").read()
-    pk_pem = open(btc_addr + '/pk.pem', "r").read()
+    if vault_path is None:
+        vault_path = CFG.address_vault
+
+    sk_pem = open(vault_path + btc_addr + '/sk.pem', "r").read()
+    pk_pem = open(vault_path + btc_addr + '/pk.pem', "r").read()
 
     return SigningKey.from_pem(sk_pem), VerifyingKey.from_pem(pk_pem)
 
@@ -70,7 +82,7 @@ def serialize_pk(pk, compressed=True):
     :rtype: hex str
     """
 
-    # Updated with code based on from PR #54 from python-ecdsa until the PR gets merged:
+    # Updated with code based on PR #54 from python-ecdsa until the PR gets merged:
     # https://github.com/warner/python-ecdsa/pull/54
 
     x_str = number_to_string(pk.pubkey.point.x(), pk.pubkey.order)
@@ -81,9 +93,9 @@ def serialize_pk(pk, compressed=True):
         else:
             prefix = '02'
 
-        s_key = prefix + b2a_hex(x_str)
+        s_key = prefix + hexlify(x_str)
     else:
-        s_key = '04' + b2a_hex(pk.to_string())
+        s_key = '04' + hexlify(pk.to_string())
 
     return s_key
 
@@ -96,10 +108,10 @@ def serialize_sk(sk):
     :return: serialized private key.
     :rtype: hex str
     """
-    return b2a_hex(sk.to_string())
+    return hexlify(sk.to_string())
 
 
-def ecdsa_tx_sign(unsigned_tx, sk, hashflag=SIGHASH_ALL):
+def ecdsa_tx_sign(unsigned_tx, sk, hashflag=SIGHASH_ALL, deterministic=True):
     """ Performs and ECDSA sign over a given transaction using a given secret key.
     :param unsigned_tx: unsigned transaction that will be double-sha256 and signed.
     :type unsigned_tx: hex str
@@ -107,6 +119,8 @@ def ecdsa_tx_sign(unsigned_tx, sk, hashflag=SIGHASH_ALL):
     :type sk: SigningKey
     :param hashflag: hash type that will be used during the signature process and will identify the signature format.
     :type hashflag: int
+    :param deterministic: Whether the signature is performed using a deterministic k or not. Set by default.
+    :type deterministic: bool
     :return:
     """
 
@@ -119,9 +133,15 @@ def ecdsa_tx_sign(unsigned_tx, sk, hashflag=SIGHASH_ALL):
     # ToDo: Deal with SIGHASH_ANYONECANPAY
 
     # sha-256 the unsigned transaction together with the hash type (little endian).
-    h = sha256(a2b_hex(unsigned_tx + change_endianness(hc))).digest()
-    # sign the transaction (using a sha256 digest, that will conclude with the double-sha256)
-    s = sk.sign_deterministic(h, hashfunc=sha256, sigencode=sigencode_der_canonize)
+    h = sha256(unhexlify(unsigned_tx + change_endianness(hc))).digest()
+    # Sign the transaction (using a sha256 digest, that will conclude with the double-sha256)
+    # If deterministic is set, the signature will be performed deterministically choosing a k from the given transaction
+    if deterministic:
+        s = sk.sign_deterministic(h, hashfunc=sha256, sigencode=sigencode_der_canonize)
+    # Otherwise, k will be chosen at random. Notice that this can lead to a private key disclosure if two different
+    # messages are signed using the same k.
+    else:
+        s = sk.sign(h, hashfunc=sha256, sigencode=sigencode_der_canonize)
 
     # Finally, add the hashtype to the end of the signature as a 2-byte big endian hex value.
-    return b2a_hex(s) + hc[-2:]
+    return hexlify(s) + hc[-2:]

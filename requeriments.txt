@@ -1,0 +1,8 @@
+ecdsa
+python-bitcoinlib
+base58
+qrcode
+Pillow
+plyvel
+matplotlib
+numpy
