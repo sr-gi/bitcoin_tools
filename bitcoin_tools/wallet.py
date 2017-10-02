@@ -1,4 +1,4 @@
-from binascii import a2b_hex, b2a_hex
+from binascii import unhexlify, hexlify
 from hashlib import new, sha256
 from os import mkdir, path
 from re import match
@@ -6,9 +6,15 @@ from re import match
 from base58 import b58encode, b58decode
 from qrcode import make as qr_make
 
-from bitcoin_tools.constants import PUBKEY_HASH, TESTNET_PUBKEY_HASH, WIF, TESTNET_WIF
+from bitcoin_tools import CFG
 from bitcoin_tools.core.keys import serialize_pk, serialize_sk
-from bitcoin_tools.utils import load_conf_file
+
+# Network codes
+PUBKEY_HASH = 0
+TESTNET_PUBKEY_HASH = 111
+
+WIF = 128
+TESTNET_WIF = 239
 
 
 def hash_160(pk):
@@ -22,7 +28,7 @@ def hash_160(pk):
 
     # Calculate the RIPEMD-160 hash of the given public key.
     md = new('ripemd160')
-    h = sha256(a2b_hex(pk)).digest()
+    h = sha256(unhexlify(pk)).digest()
     md.update(h)
     h160 = md.digest()
 
@@ -47,7 +53,7 @@ def hash_160_to_btc_address(h160, v):
 
     # If h160 is passed as hex str, the value is converted into bytes.
     if match('^[0-9a-fA-F]*$', h160):
-        h160 = a2b_hex(h160)
+        h160 = unhexlify(h160)
 
     # Add the network version leading the previously calculated RIPEMD-160 hash.
     vh160 = chr(v) + h160
@@ -73,7 +79,7 @@ def btc_addr_to_hash_160(btc_addr):
     # Base 58 decode the Bitcoin address.
     decoded_addr = b58decode(btc_addr)
     # Covert the address from bytes to hex.
-    decoded_addr_hex = b2a_hex(decoded_addr)
+    decoded_addr_hex = hexlify(decoded_addr)
     # Obtain the RIPEMD-160 hash by removing the first and four last bytes of the decoded address, corresponding to
     # the network version and the checksum of the address.
     h160 = decoded_addr_hex[2:-8]
@@ -160,7 +166,7 @@ def sk_to_wif(sk, mode='image', v='test'):
         raise Exception("Invalid version, use either 'main' or 'test'.")
 
     # Add the network version leading the private key (in hex).
-    e_pkey = chr(v) + a2b_hex(sk)
+    e_pkey = chr(v) + unhexlify(sk)
     # Double sha256.
     h = sha256(sha256(e_pkey).digest()).digest()
     # Add the two first bytes of the result as a checksum tailing the encoded key.
@@ -201,8 +207,7 @@ def generate_wif(btc_addr, sk, mode='image', v='test', vault_path=None):
     wif = sk_to_wif(serialize_sk(sk), mode, v)
 
     if vault_path is None:
-        cfg = load_conf_file()
-        vault_path = cfg.address_vault
+        vault_path = CFG.address_vault
 
     # Store the result depending on the selected mode.
     if not path.exists(vault_path + btc_addr):

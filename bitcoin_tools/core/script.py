@@ -1,7 +1,7 @@
 from bitcoin_tools.wallet import btc_addr_to_hash_160
 from bitcoin_tools.utils import check_public_key, check_signature, check_address
 from abc import ABCMeta, abstractmethod
-from binascii import a2b_hex, b2a_hex
+from binascii import unhexlify, hexlify
 from bitcoin.core.script import *
 
 
@@ -66,7 +66,7 @@ class Script:
         start = "CScript(["
         end = "])"
 
-        ps = CScript(a2b_hex(script)).__repr__()
+        ps = CScript(unhexlify(script)).__repr__()
         ps = ps[ps.index(start) + len(start): ps.index(end)].split(", ")
 
         for i in range(len(ps)):
@@ -88,7 +88,7 @@ class Script:
         hex_string = ""
         for e in data.split(" "):
             if e[0] == "<" and e[-1] == ">":
-                hex_string += b2a_hex(CScriptOp.encode_op_pushdata(a2b_hex(e[1:-1])))
+                hex_string += hexlify(CScriptOp.encode_op_pushdata(unhexlify(e[1:-1])))
             elif eval(e) in OPCODE_NAMES:
                 hex_string += format(eval(e), '02x')
             else:

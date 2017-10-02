@@ -1,4 +1,4 @@
-from binascii import a2b_hex, b2a_hex
+from binascii import unhexlify, hexlify
 from copy import deepcopy
 from hashlib import sha256
 
@@ -294,7 +294,7 @@ class TX:
 
         # If return type has been set to binary, the serialized transaction is converted.
         if rtype is bin:
-            serialized_tx = a2b_hex(serialized_tx)
+            serialized_tx = unhexlify(serialized_tx)
 
         return serialized_tx
 
@@ -314,17 +314,17 @@ class TX:
             raise Exception("Invalid endianness type. It should be either BE or LE.")
 
         if rtype is hex:
-            tx_id = b2a_hex(sha256(sha256(self.serialize(rtype=bin)).digest()).digest())
+            tx_id = hexlify(sha256(sha256(self.serialize(rtype=bin)).digest()).digest())
             if endianness == "BE":
                 tx_id = change_endianness(tx_id)
         else:
             tx_id = sha256(sha256(self.serialize(rtype=bin)).digest()).digest()
             if endianness == "BE":
-                tx_id = a2b_hex(change_endianness(b2a_hex(tx_id)))
+                tx_id = unhexlify(change_endianness(hexlify(tx_id)))
 
         return tx_id
 
-    def sign(self, sk, index, hashflag=SIGHASH_ALL, compressed=True, orphan=False, network='test'):
+    def sign(self, sk, index, hashflag=SIGHASH_ALL, compressed=True, orphan=False, deterministic=True, network='test'):
         """ Signs a transaction using the provided private key(s), index(es) and hash type. If more than one key and index
         is provides, key i will sign the ith input of the transaction.
 
@@ -343,6 +343,8 @@ class TX:
             e.g:
               orphan_input = dict({0: OutputScript.P2PKH(btc_addr))
         :type orphan:  dict(index, InputScript)
+        :param deterministic: Whether the signature is performed using a deterministic k or not. Set by default.
+        :type deterministic: bool
         :param network: Network from which the previous ScripPubKey will be queried (either main or test).
         :type network: str
         :return: Transaction signature.
@@ -360,7 +362,7 @@ class TX:
 
         for i in range(len(sk)):
 
-            # If the input to be signed is orphan, the OutputScript og the UTXO to be redeemed will be passed to
+            # If the input to be signed is orphan, the OutputScript of the UTXO to be redeemed will be passed to
             # the signature_format function, otherwise False is passed and the UTXO will be requested afterwards.
             o = orphan if not orphan else orphan.get(i)
             # The unsigned transaction is formatted depending on the input that is going to be signed. For input i,
@@ -373,13 +375,13 @@ class TX:
             if isinstance(sk[i], list) and unsigned_tx.scriptSig[index[i]].type is "P2MS":
                 sigs = []
                 for k in sk[i]:
-                    sigs.append(ecdsa_tx_sign(unsigned_tx.serialize(), k, hashflag))
+                    sigs.append(ecdsa_tx_sign(unsigned_tx.serialize(), k, hashflag, deterministic))
                 iscript = InputScript.P2MS(sigs)
             elif isinstance(sk[i], SigningKey) and unsigned_tx.scriptSig[index[i]].type is "P2PK":
-                s = ecdsa_tx_sign(unsigned_tx.serialize(), sk[i], hashflag)
+                s = ecdsa_tx_sign(unsigned_tx.serialize(), sk[i], hashflag, deterministic)
                 iscript = InputScript.P2PK(s)
             elif isinstance(sk[i], SigningKey) and unsigned_tx.scriptSig[index[i]].type is "P2PKH":
-                s = ecdsa_tx_sign(unsigned_tx.serialize(), sk[i], hashflag)
+                s = ecdsa_tx_sign(unsigned_tx.serialize(), sk[i], hashflag, deterministic)
                 pk = serialize_pk(sk[i].get_verifying_key(), compressed)
                 iscript = InputScript.P2PKH(s, pk)
             elif unsigned_tx.scriptSig[index[i]].type is "unknown":
