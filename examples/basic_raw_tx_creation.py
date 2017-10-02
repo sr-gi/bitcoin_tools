@@ -1,5 +1,4 @@
-from bitcoin_tools.keys import load_keys
-
+from bitcoin_tools.core.keys import load_keys
 from bitcoin_tools.core.transaction import TX
 
 #################################################
@@ -11,7 +10,7 @@ from bitcoin_tools.core.transaction import TX
 # - You should replace the Bitcoin address for the one that matches yours.
 # ---------------------------------------------------------------------------------------------------------------------
 
-btc_addr = "mwryy9YdVezq2Wo1DukA5ADhrNemqCKTmy"
+btc_addr = "miWdbNn9zDLnKpcNuCLdfRiJx59c93bT8t"
 sk, pk = load_keys(btc_addr)
 
 #################################################
@@ -41,7 +40,7 @@ value = 6163910
 fee = 230 * 240
 
 # Destination Bitcoin address where the value in bitcoins will be sent and locked until the owner redeems it.
-destination_btc_addr = "mwryy9YdVezq2Wo1DukA5ADhrNemqCKTmy"
+destination_btc_addr = "miWdbNn9zDLnKpcNuCLdfRiJx59c93bT8t"
 
 # First, we  build our transaction from io (input/output) using the previous transaction references, the value, and the
 # destination.
