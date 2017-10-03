@@ -1,10 +1,8 @@
 # Bitcoin tools
 
-bitcoin_tools is a Python library created for teaching and researching purposes. It main objective is twofold. First it 
-aims to ease the understating of Bitcoin transaction creation, by using well-documented and easy to understand
-python code. Moreover, it aims to provide a powerful tool that allow their users to create custom `transaction` /
- `scripts`, while giving the required tools to access interesting data such as the `utxo set`.
-
+bitcoin_tools is a Python library created for teaching and researching purposes. It's main objective is twofold. First it 
+aims to ease the understanding of Bitcoin transaction creation, by using well-documented and easy to understand
+python code. Second, it aims to provide a tool able to create custom `transactions` / `scripts`. Either `scriptSig` and `scriptPubKey` can be built from human redable strings created using `Script` sintax. Finally, tools for accessing and analysing interesting data such as the `utxo set` are also provided, along with several examples.
 
 bitcoin_tools allows you to:
 
@@ -108,7 +106,7 @@ tx = TX.deserialize(hex_tx)
 tx.display()
 ``` 
 
-### LevelDB UTXO dump
+#### LevelDB UTXO dump
 ```python
 from bitcoin_tools.analysis.leveldb.data_dump import utxo_dump
 from bitcoin_tools.analysis.leveldb.utils import parse_ldb
