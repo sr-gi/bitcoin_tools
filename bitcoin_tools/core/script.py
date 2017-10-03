@@ -210,7 +210,7 @@ class InputScript(Script):
                 script.content += "<" + str(d) + "> "
         # ToDo: Should we run any validation?
         script.type = "P2SH"
-        script.content = script.serialize(script.content + "<" + s + ">")
+        script.content = script.serialize(script.content + "<" + script.serialize(s) + ">")
 
         return script
 

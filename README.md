@@ -2,8 +2,8 @@
 
 bitcoin_tools is a Python library created for teaching and researching purposes. It main objective is twofold. First it 
 aims to ease the understating of Bitcoin transaction creation, by using well-documented and easy to understand
-python code. Moreover, it aims to provide a powerful tool that allow their users to create custom `transaction` / `scripts`,
-while giving the required tools to access interesting data such as the `utxo set`.
+python code. Moreover, it aims to provide a powerful tool that allow their users to create custom `transaction` /
+ `scripts`, while giving the required tools to access interesting data such as the `utxo set`.
 
 
 bitcoin_tools allows you to:
@@ -17,26 +17,32 @@ bitcoin_tools allows you to:
 * Chainstate (`utxo set`) analysis
 
 
-
-
 ### Dependencies
 
 The library has the following dependencies (which can be satisfied by using pip install -r requirements.txt):
 
-* ecdsa
-* base58
-* python-bitcoinlib
-* plyvel
-* matplotlib
-* numpy
-* qrcode
-* Pillow
+##### Key management and address creation
 
-Last two (key management) are only required for creating qr-codes for private key WIF format. They could be avoided if such functionality is not required.
+`ecdsa 
+base58 `
+
+##### Keys export (WIF)
+`qrcode
+Pillow`
+
+##### Script creation
+`python-bitcoinlib`
+
+##### Data analysis
+`plyvel
+matplotlib
+numpy`
+
 
 ### Examples
 
-Down below you can find some examples of how to use some of the library functions. More examples can be found in `examples/`
+Down below you can find some examples of how to use some of the library functions. More examples can be found in 
+`examples/`
 
 #### Key management and Bitcoin address generation
 ```python
@@ -52,7 +58,6 @@ btc_addr = generate_btc_addr(pk)
 store_keys(sk.to_pem(), pk.to_pem(), btc_addr)
 # Finally, the private key is encoded as WIF and also stored in disk, ready to be imported in a wallet.
 generate_wif(btc_addr, sk)
-
 ```
 
 #### Raw transaction building  
@@ -92,6 +97,8 @@ tx.display()
 #### Raw tx analysis
 
 ```python
+from bitcoin_tools.core.transaction import TX
+
 # First a transaction object is created (through the deserialize constructor) by deserializing the hex transaction we
 # have selected.
 hex_tx = "01000000013ca58d2f6fac36602d831ee0cf2bc80031c7472e80a322b57f614c5ce9142b71000000006b483045022100f0331d85cb7f7ec1bedc41f50c695d654489458e88aec0076fbad5d8aeda1673022009e8ca2dda1d6a16bfd7133b0008720145dacccb35c0d5c9fc567e52f26ca5f7012103a164209a7c23227fcd6a71c51efc5b6eb25407f4faf06890f57908425255e42bffffffff0241a20000000000001976a914e44839239ab36f5bc67b2079de00ecf587233ebe88ac74630000000000001976a914dc7016484646168d99e49f907c86c271299441c088ac00000000"
@@ -120,10 +127,10 @@ utxo_dump(f_utxos, f_parsed_utxos)
 
 ### Disclaimer
 
-This library has been created with research purposes, hence, it allow you to modify any transaction field as you pleased.
-However, some modifications can make your transactions non-standard, or even non-spendable. We totally discourage the 
-use of the library outside the testnet if you are not sure about what you are doing, specially when dealing with 
-non-standard scripts. A bad use of the library can lead you to lose some of your bitcoins.
+This library allow you to modify any transaction field as you pleased. However, some modifications can make your 
+transactions non-standard, or even non-spendable. We totally discourage the  use of the library outside the testnet if 
+you are not sure about what you are doing, specially when dealing with non-standard scripts. A bad use of the library 
+can lead you to lose some of your bitcoins.
 
 
 

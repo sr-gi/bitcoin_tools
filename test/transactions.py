@@ -48,6 +48,6 @@ for i in range(3):
         tx = TX.build_from_io(prev_tx_ids[i], prev_out_index[i], value, dest)
         tx.sign(sk, 0)
         print tx.serialize()
-        tx.deserialize()
+        tx.display()
 
     print "\n---------------------------------------------------------------------------------------------\n"

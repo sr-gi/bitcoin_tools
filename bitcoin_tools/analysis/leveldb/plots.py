@@ -33,7 +33,7 @@ def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, save_fig=F
         fin = open(CFG.data_path + 'parsed_txs.txt', 'r')
         ylabel = "Number of tx."
     elif y == "utxo":
-        fin = open(CFG.data_path + 'parsed_utxo.txt', 'r')
+        fin = open(CFG.data_path + 'parsed_utxos.txt', 'r')
         ylabel = "Number of UTXOs"
     else:
         raise ValueError('Unrecognized y value')
