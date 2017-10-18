@@ -1,7 +1,8 @@
 from bitcoin_tools import CFG
-from bitcoin_tools.analysis.plots import plot_distribution, get_cdf
+from bitcoin_tools.analysis.plots import plot_distribution, get_cdf, plot_pie
 from json import loads
 
+from collections import Counter
 
 def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, save_fig=False, legend=None,
                    legend_loc=1, font_size=20):
@@ -134,3 +135,64 @@ def plot_from_file_dict(x_attribute, y="dust", fin_name=None, percentage=False, 
 
     # And finally plots the chart.
     plot_distribution(xs, ys, title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
+
+
+def plot_pie_chart_from_file(x_attribute, y="tx", title="", labels=[], groups=[], colors=[], save_fig=False, font_size=20):
+    """
+    Generates pie charts from UTXO/tx data extracted from utxo_dump.
+
+    :param x_attribute: Attribute to plot (must be a key in the dictionary of the dumped data).
+    :type x_attribute: str
+    :param y: Either "tx" or "utxo"
+    :type y: str
+    :param labels: List of labels (one label for each piece of the pie)
+    :type labels: str list
+    :param groups: List of group keys (one list for each piece of the pie).
+    :type groups: list of lists
+    :param colors: List of colors (one color for each piece of the pie)
+    :type colors: str lit
+    :param save_fig: Figure's filename or False (to show the interactive plot)
+    :type save_fig: str
+    :param font_size: Title, xlabel and ylabel font size
+    :type font_size: int
+    :return: None
+    :rtype: None
+    """
+
+    if y == "tx":
+        fin = open(CFG.data_path + 'parsed_txs.txt', 'r')
+        ylabel = "Number of tx."
+    elif y == "utxo":
+        fin = open(CFG.data_path + 'parsed_utxos.txt', 'r')
+        ylabel = "Number of UTXOs"
+    else:
+        raise ValueError('Unrecognized y value')
+
+    samples = []
+    for line in fin:
+        data = loads(line[:-1])
+        samples.append(data[x_attribute])
+
+    fin.close()
+
+    # Count occurences
+    ctr = Counter(samples)
+
+    # Sum occurences that belong to the same pie group
+    values = []
+    for group in groups:
+        group_value = 0
+        for v in group:
+            if v in ctr.keys():
+                group_value += ctr[v]
+        values.append(group_value)
+
+    # Should we have an "others" section?
+    if len(labels) == len(groups) + 1:
+        # We assume the last group is "others"
+        current_sum = sum(values)
+        values.append(len(samples)-current_sum)
+
+    plot_pie(values, labels, title, colors, save_fig=save_fig, font_size=font_size)
+
+

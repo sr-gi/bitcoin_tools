@@ -96,3 +96,36 @@ def plot_distribution(xs, ys, title, xlabel, ylabel, log_axis=False, save_fig=Fa
     else:
         plt.show()
 
+
+def plot_pie(values, labels, title, colors, save_fig=False, font_size=20):
+    """
+    Plots a set of values in a pie chart with matplotlib.
+
+    :param values: list of values to plot.
+    :param values: list of numbers
+    :param labels: List of labels (one label for each piece of the pie)
+    :type labels: str list
+    :param title: String, plot title
+    :type title: String
+    :param colors: List of colors (one color for each piece of the pie)
+    :type colors: str lit
+    :param save_fig: String, figure's filename or False (to show the interactive plot)
+    :param font_size: integer, title, xlabel and ylabel font size
+    """
+
+    plt.figure()
+    ax = plt.subplot(111)
+
+    ax.pie(values, labels=labels, colors=colors,
+           autopct='%1.1f%%', startangle=90, labeldistance=1.1, wedgeprops = {'linewidth': 0})
+
+    # Equal aspect ratio ensures that pie is drawn as a circle
+    ax.axis('equal')
+
+    plt.title(title, {'color': 'k', 'fontsize': font_size})
+
+    # Output result
+    if save_fig:
+        plt.savefig(CFG.figs_path + save_fig + '.pdf', format='pdf', dpi=600)
+    else:
+        plt.show()
