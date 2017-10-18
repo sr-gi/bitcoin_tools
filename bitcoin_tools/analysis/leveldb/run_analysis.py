@@ -1,6 +1,6 @@
 from data_dump import transaction_dump, utxo_dump
 from bitcoin_tools.analysis.leveldb.utils import parse_ldb, accumulate_dust_lm
-from bitcoin_tools.analysis.leveldb.plots import plot_from_file, plot_from_file_dict
+from bitcoin_tools.analysis.leveldb.plots import plot_from_file, plot_from_file_dict, plot_pie_chart_from_file
 
 # The following analysis reads/writes from/to large data files. Some of the steps can be ignored if those files have
 # already been created (if more updated data is not requited). Otherwise lot of time will be put in re-parsing large
@@ -39,6 +39,16 @@ plot_from_file("out_type", y="utxo", save_fig="utxo_out_type")
 plot_from_file("out_type", y="utxo", log_axis="x", save_fig="utxo_out_type_logx")
 plot_from_file("utxo_data_len", y="utxo", save_fig="utxo_utxo_data_len")
 plot_from_file("utxo_data_len", y="utxo", log_axis="x", save_fig="utxo_utxo_data_len_logx")
+
+plot_pie_chart_from_file("out_type", y="utxo", title="",
+                         labels=['C-even', 'C-odd', 'U-even', 'U-odd'], groups=[[2], [3], [4], [5]],
+                         colors=["#165873", "#428C5C", "#4EA64B", "#ADD96C"],
+                         save_fig="utxo_pk_types", font_size=20)
+
+plot_pie_chart_from_file("out_type", y="utxo", title="",
+                         labels=['P2PKH', 'P2PK', 'P2SH', 'Other'], groups=[[0], [2, 3, 4, 5], [1]],
+                         colors=["#165873", "#428C5C", "#4EA64B", "#ADD96C"],
+                         save_fig="utxo_types", font_size=20)
 
 # Generate plots for dust analysis (including percentage scale).
 # First, the dust accumulation file is generated (if requited).
