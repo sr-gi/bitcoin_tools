@@ -5,7 +5,62 @@ from math import ceil
 from copy import deepcopy
 from json import loads
 from bitcoin_tools.analysis.leveldb import *
-from bitcoin_tools.utils import change_endianness, txout_decompress
+from bitcoin_tools.utils import change_endianness
+
+
+def txout_compress(n):
+    """ Compresses the Satoshi amount of a UTXO to be stored in the LevelDB. Code is a port from the Bitcoin Core C++
+    source:
+        https://github.com/bitcoin/bitcoin/blob/v0.13.2/src/compressor.cpp#L133#L160
+
+    :param n: Satoshi amount to be compressed.
+    :type n: int
+    :return: The compressed amount of Satoshis.
+    :rtype: int
+    """
+
+    if n == 0:
+        return 0
+    e = 0
+    while ((n % 10) == 0) and e < 9:
+        n /= 10
+        e += 1
+
+    if e < 9:
+        d = (n % 10)
+        assert (1 <= d <= 9)
+        n /= 10
+        return 1 + (n * 9 + d - 1) * 10 + e
+    else:
+        return 1 + (n - 1) * 10 + 9
+
+
+def txout_decompress(x):
+    """ Decompresses the Satoshi amount of a UTXO stored in the LevelDB. Code is a port from the Bitcoin Core C++
+    source:
+        https://github.com/bitcoin/bitcoin/blob/v0.13.2/src/compressor.cpp#L161#L185
+
+    :param x: Compressed amount to be decompressed.
+    :type x: int
+    :return: The decompressed amount of Satoshis.
+    :rtype: int
+    """
+
+    if x == 0:
+        return 0
+    x -= 1
+    e = x % 10
+    x /= 10
+    if e < 9:
+        d = (x % 9) + 1
+        x /= 9
+        n = x * 10 + d
+    else:
+        n = x + 1
+    while e > 0:
+        n *= 10
+        e -= 1
+    return n
 
 
 def b128_encode(n):
@@ -254,11 +309,13 @@ def display_decoded_utxo(decoded_utxo):
     print "Block height: " + str(decoded_utxo['height'])
 
 
-def parse_ldb(fout_name):
+def parse_ldb(fout_name, fin_name='chainstate'):
     """
     Parsed data from the chainstate LevelDB and stores it in a output file.
     :param fout_name: Name of the file to output the data.
     :type fout_name: str
+    :param fin_name: Name of the LevelDB folder (chainstate by default)
+    :type fin_name: str
     :return: None
     :rtype: None
     """
@@ -266,7 +323,7 @@ def parse_ldb(fout_name):
     # Output file
     fout = open(CFG.data_path + fout_name, 'w')
     # Open the LevelDB
-    db = plyvel.DB(CFG.btc_core_path + "/chainstate", compression=None)  # Change with path to chainstate
+    db = plyvel.DB(CFG.btc_core_path + "/" + fin_name, compression=None)  # Change with path to chainstate
 
     # Load obfuscation key (if it exists)
     o_key = db.get((unhexlify("0e00") + "obfuscate_key"))
@@ -281,7 +338,7 @@ def parse_ldb(fout_name):
     # For every UTXO (identified with a leading 'c'), the key (tx_id) and the value (encoded utxo) is displayed.
     # UTXOs are obfuscated using the obfuscation key (o_key), in order to get them non-obfuscated, a XOR between the
     # value and the key (concatenated until the length of the value is reached) if performed).
-    for key, o_value in db.iterator(prefix=b'c'):
+    for key, o_value in db.iterator(prefix=b'C'):
         value = "".join([format(int(v, 16) ^ int(o_key[i % len(o_key)], 16), 'x') for i, v in enumerate(hexlify(o_value))])
         assert len(hexlify(o_value)) == len(value)
         fout.write(dumps({"key":  hexlify(key), "value": value}) + "\n")

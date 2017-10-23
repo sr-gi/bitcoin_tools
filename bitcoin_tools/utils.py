@@ -141,61 +141,6 @@ def encode_varint(value):
     return varint
 
 
-def txout_compress(n):
-    """ Compresses the Satoshi amount of a UTXO to be stored in the LevelDB. Code is a port from the Bitcoin Core C++
-    source:
-        https://github.com/bitcoin/bitcoin/blob/v0.13.2/src/compressor.cpp#L133#L160
-
-    :param n: Satoshi amount to be compressed.
-    :type n: int
-    :return: The compressed amount of Satoshis.
-    :rtype: int
-    """
-
-    if n == 0:
-        return 0
-    e = 0
-    while ((n % 10) == 0) and e < 9:
-        n /= 10
-        e += 1
-
-    if e < 9:
-        d = (n % 10)
-        assert (1 <= d <= 9)
-        n /= 10
-        return 1 + (n * 9 + d - 1) * 10 + e
-    else:
-        return 1 + (n - 1) * 10 + 9
-
-
-def txout_decompress(x):
-    """ Decompresses the Satoshi amount of a UTXO stored in the LevelDB. Code is a port from the Bitcoin Core C++
-    source:
-        https://github.com/bitcoin/bitcoin/blob/v0.13.2/src/compressor.cpp#L161#L185
-
-    :param x: Compressed amount to be decompressed.
-    :type x: int
-    :return: The decompressed amount of Satoshis.
-    :rtype: int
-    """
-
-    if x == 0:
-        return 0
-    x -= 1
-    e = x % 10
-    x /= 10
-    if e < 9:
-        d = (x % 9) + 1
-        x /= 9
-        n = x * 10 + d
-    else:
-        n = x + 1
-    while e > 0:
-        n *= 10
-        e -= 1
-    return n
-
-
 def check_public_key(pk):
     """ Checks if a given string is a public (or at least if it is formatted as if it is).
 
