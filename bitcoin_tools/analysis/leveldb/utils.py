@@ -175,8 +175,88 @@ def parse_b128(utxo, offset=0):
     return data, offset
 
 
-def decode_utxo(utxo):
-    """ Decodes a LevelDB serialized UTXO. The serialized format is defined in the Bitcoin Core source as follows:
+def decode_utxo(coin, outpoint, version=0.15):
+    """
+    Decodes a LevelDB serialized UTXO for Bitcoin core v 0.15 onwards. The serialized format is defined in the Bitcoin
+    Core source code as outpoint:coin.
+
+    Outpoint structure is as follows: key | tx_hash | index.
+
+    Where the key corresponds to b'C', or 43 in hex. The transaction hash in encoded in Little endian, and the index
+    is a base128 varint. The corresponding Bitcoin Core source code can be found at:
+
+    https://github.com/bitcoin/bitcoin/blob/ea729d55b4dbd17a53ced474a8457d4759cfb5a5/src/txdb.cpp#L40-L53
+
+    On the other hand, a coin if formed by: code | value | out_type | script.
+
+    Where code encodes the block height and whether the tx is coinbase or not, as 2*height + coinbase, the value is
+    a txout_compressed base128 Varint, the out_type is also a base128 Varint, and the script is the remaining data.
+    The corresponding Bitcoin Core soruce code can be found at:
+
+    https://github.com/bitcoin/bitcoin/blob/6c4fecfaf7beefad0d1c3f8520bf50bb515a0716/src/coins.h#L58-L64
+
+    :param coin: The coin to be decoded (extracted from the chainstate)
+    :type coin: str
+    :param outpoint: The outpoint to be decoded (extracted from the chainstate)
+    :type outpoint: str
+    :param version: Bitcoin Core version that created the chainstate LevelDB
+    :return; The decoded UTXO.
+    :rtype: dict
+    """
+
+    if version in [0.08, 0.14]:
+        return decode_utxo_v08_v014(coin)
+    elif version < 0.08:
+        raise Exception("The utxo decoder only works for version 0.8 onwards.")
+    else:
+        # First we will parse all the data encoded in the outpoint, that is, the transaction id and index of the utxo.
+        # Check that the input data corresponds to a transaction.
+        assert outpoint[:2] == '43'
+        # Check the provided outpoint has at least the minimum length (1 byte of key code, 32 bytes tx id, 1 byte index)
+        assert len(outpoint) >= 68
+        # Get the transaction id (LE) by parsing the next 32 bytes of the outpoint.
+        tx_id = outpoint[2:66]
+        # Finally get the transaction index by decoding the remaining bytes as a b128 VARINT
+        tx_index = b128_decode(outpoint[66:])
+
+        # Once all the outpoint data has been parsed, we can proceed with the data encoded in the coin, that is, block
+        # height, whether the transaction is coinbase or not, value, script type and script.
+        # We start by decoding the first b128 VARINT of the provided data, that may contain 2*Height + coinbase
+        code, offset = parse_b128(coin)
+        code = b128_decode(code)
+        coinbase = code >> 2
+        height = code & 0x01
+
+        # The next value in the sequence corresponds to the utxo value, the amount of Satoshi hold by the utxo. Data is
+        # encoded as a B128 VARINT, and compressed using the equivalent to txout_compressor.
+        data, offset = parse_b128(coin, offset)
+        amount = txout_decompress(b128_decode(data))
+
+        # Finally, we can obtain the data type by parsing the last B128 VARINT
+        out_type, offset = parse_b128(coin, offset)
+        # And the remaining data corresponds to the script.
+        script = coin[offset:]
+
+        # And to conclude, the output can be encoded. We will store it in a list for backward compatibility with the
+        # previous decoder
+        out = [{'amount': amount, 'out_type': out_type, 'data': script}]
+
+        # This time, since the script correspond to the tailing data, there is no need of asserting that we have parsed
+        # all of it.
+
+    # Even though there is just one output, we will identify it as outputs for backward compatibility with the previous
+    # decoder.
+    return {'tx_id': tx_id, 'index': tx_index, 'coinbase': coinbase, 'outs': out, 'height': height}
+
+
+def decode_utxo_v08_v014(utxo):
+    """ Disclaimer: The internal structure of the chainstate LevelDB has been changed with Bitcoin Core v 0.15 release.
+    Therefore, this function works for chainstate created with Bitcoin Core v 0.8-v0.14, for v 0.15 onwards use
+    decode_utxo.
+
+    Decodes a LevelDB serialized UTXO for Bitcoin core v 0.8 - v 0.14. The serialized format is defined in the Bitcoin
+    Core source as follows:
+
      Serialized format:
      - VARINT(nVersion)
      - VARINT(nCode)
@@ -434,8 +514,8 @@ def get_min_input_size(out, height, count_p2sh=False):
     The size is computed in two parts, a fixed size that is non type dependant, and a variable size which
     depends on the output type.
 
-    :param out: Output type.
-    :type out: int
+    :param out: Output to be analyzed.
+    :type out: dict
     :param height: Block height where the utxo was created. Used to set P2PKH min_size.
     :type height: int
     :param count_p2sh: Whether P2SH should be taken into account.

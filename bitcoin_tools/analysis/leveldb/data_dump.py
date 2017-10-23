@@ -5,7 +5,7 @@ from bitcoin_tools.analysis.leveldb import MIN_FEE_PER_BYTE, MAX_FEE_PER_BYTE, F
 from bitcoin_tools.analysis.leveldb.utils import check_multisig, get_min_input_size, decode_utxo
 
 
-def transaction_dump(fin_name, fout_name):
+def transaction_dump(fin_name, fout_name, version=0.15):
     # Transaction dump
 
     # Input file
@@ -15,24 +15,36 @@ def transaction_dump(fin_name, fout_name):
 
     for line in fin:
         data = loads(line[:-1])
-        utxo = decode_utxo(data["value"])
+        if version < 0.15:
+            utxo = decode_utxo(data["value"], None, version)
 
-        imprt = sum([out["amount"] for out in utxo.get("outs")])
+            imprt = sum([out["amount"] for out in utxo.get("outs")])
 
-        result = {"tx_id": change_endianness(data["key"][2:]),
-                  "num_utxos": len(utxo.get("outs")),
-                  "total_value": imprt,
-                  "total_len": (len(data["key"]) + len(data["value"])) / 2,
-                  "height": utxo["height"],
-                  "coinbase": utxo["coinbase"],
-                  "version": utxo["version"]}
+            result = {"tx_id": change_endianness(data["key"][2:]),
+                      "num_utxos": len(utxo.get("outs")),
+                      "total_value": imprt,
+                      "total_len": (len(data["key"]) + len(data["value"])) / 2,
+                      "height": utxo["height"],
+                      "coinbase": utxo["coinbase"],
+                      "version": utxo["version"]}
+
+        else:
+            utxo = decode_utxo(data["value"], data["key"], version)
+
+            result = {"tx_id": change_endianness(utxo.get('tx_id')),
+                      "num_utxos": 1,
+                      "total_value": utxo.get('outs').get('amount'),
+                      "total_len": (len(data["key"]) + len(data["value"])) / 2,
+                      "height": utxo["height"],
+                      "coinbase": utxo["coinbase"],
+                      "version": None}
 
         fout.write(dumps(result) + '\n')
 
     fout.close()
 
 
-def utxo_dump(fin_name, fout_name, count_p2sh=False, non_std_only=False):
+def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=False):
     # UTXO dump
 
     # Input file
@@ -45,8 +57,12 @@ def utxo_dump(fin_name, fout_name, count_p2sh=False, non_std_only=False):
 
     for line in fin:
         data = loads(line[:-1])
-        utxo = decode_utxo(data["value"])
-
+        if version < 0.15:
+            utxo = decode_utxo(data["value"], None, version)
+            tx_id = change_endianness(data["key"][2:])
+        else:
+            utxo = decode_utxo(data["value"], data['key'], version)
+            tx_id = change_endianness(utxo.get('tx_id'))
         for out in utxo.get("outs"):
             # Checks whether we are looking for every type of UTXO or just for non-standard ones.
             if not non_std_only or (non_std_only and out["out_type"] not in std_types
@@ -69,7 +85,7 @@ def utxo_dump(fin_name, fout_name, count_p2sh=False, non_std_only=False):
                     fee_per_byte += FEE_STEP
 
                 # Builds the output dictionary
-                result = {"tx_id": change_endianness(data["key"][2:]),
+                result = {"tx_id": tx_id,
                           "tx_height": utxo["height"],
                           "utxo_data_len": len(out["data"]) / 2,
                           "dust": dust,
