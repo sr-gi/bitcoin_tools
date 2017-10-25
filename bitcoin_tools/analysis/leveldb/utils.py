@@ -204,10 +204,10 @@ def decode_utxo(coin, outpoint, version=0.15):
     :rtype: dict
     """
 
-    if version in [0.08, 0.14]:
+    if 0.08 <= version < 0.15:
         return decode_utxo_v08_v014(coin)
     elif version < 0.08:
-        raise Exception("The utxo decoder only works for version 0.8 onwards.")
+        raise Exception("The utxo decoder only works for version 0.08 onwards.")
     else:
         # First we will parse all the data encoded in the outpoint, that is, the transaction id and index of the utxo.
         # Check that the input data corresponds to a transaction.
@@ -234,15 +234,27 @@ def decode_utxo(coin, outpoint, version=0.15):
 
         # Finally, we can obtain the data type by parsing the last B128 VARINT
         out_type, offset = parse_b128(coin, offset)
+        out_type = b128_decode(out_type)
+
+        if out_type in [0, 1]:
+            data_size = 40  # 20 bytes
+        elif out_type in [2, 3, 4, 5]:
+            data_size = 66  # 33 bytes (1 byte for the type + 32 bytes of data)
+            offset -= 2
+        # Finally, if another value is found, it represents the length of the following data, which is uncompressed.
+        else:
+            data_size = (out_type - NSPECIALSCRIPTS) * 2  # If the data is not compacted, the out_type corresponds
+            # to the data size adding the number os special scripts (nSpecialScripts).
+
         # And the remaining data corresponds to the script.
         script = coin[offset:]
+
+        # Assert that the script hash the expected length
+        assert len(script) == data_size
 
         # And to conclude, the output can be encoded. We will store it in a list for backward compatibility with the
         # previous decoder
         out = [{'amount': amount, 'out_type': out_type, 'data': script}]
-
-        # This time, since the script correspond to the tailing data, there is no need of asserting that we have parsed
-        # all of it.
 
     # Even though there is just one output, we will identify it as outputs for backward compatibility with the previous
     # decoder.
@@ -251,10 +263,10 @@ def decode_utxo(coin, outpoint, version=0.15):
 
 def decode_utxo_v08_v014(utxo):
     """ Disclaimer: The internal structure of the chainstate LevelDB has been changed with Bitcoin Core v 0.15 release.
-    Therefore, this function works for chainstate created with Bitcoin Core v 0.8-v0.14, for v 0.15 onwards use
+    Therefore, this function works for chainstate created with Bitcoin Core v 0.08-v0.14, for v 0.15 onwards use
     decode_utxo.
 
-    Decodes a LevelDB serialized UTXO for Bitcoin core v 0.8 - v 0.14. The serialized format is defined in the Bitcoin
+    Decodes a LevelDB serialized UTXO for Bitcoin core v 0.08 - v 0.14. The serialized format is defined in the Bitcoin
     Core source as follows:
 
      Serialized format:
@@ -389,16 +401,25 @@ def display_decoded_utxo(decoded_utxo):
     print "Block height: " + str(decoded_utxo['height'])
 
 
-def parse_ldb(fout_name, fin_name='chainstate'):
+def parse_ldb(fout_name, fin_name='chainstate', version=0.15):
     """
     Parsed data from the chainstate LevelDB and stores it in a output file.
     :param fout_name: Name of the file to output the data.
     :type fout_name: str
     :param fin_name: Name of the LevelDB folder (chainstate by default)
     :type fin_name: str
+    :param version: Bitcoin Core client version. Determines the prefix of the transaction entries.
+    :param version: float
     :return: None
     :rtype: None
     """
+
+    if 0.08 <= version < 0.15:
+        prefix = b'c'
+    elif version < 0.08:
+        raise Exception("The utxo decoder only works for version 0.08 onwards.")
+    else:
+        prefix = b'C'
 
     # Output file
     fout = open(CFG.data_path + fout_name, 'w')
@@ -418,7 +439,7 @@ def parse_ldb(fout_name, fin_name='chainstate'):
     # For every UTXO (identified with a leading 'c'), the key (tx_id) and the value (encoded utxo) is displayed.
     # UTXOs are obfuscated using the obfuscation key (o_key), in order to get them non-obfuscated, a XOR between the
     # value and the key (concatenated until the length of the value is reached) if performed).
-    for key, o_value in db.iterator(prefix=b'C'):
+    for key, o_value in db.iterator(prefix=prefix):
         value = "".join([format(int(v, 16) ^ int(o_key[i % len(o_key)], 16), 'x') for i, v in enumerate(hexlify(o_value))])
         assert len(hexlify(o_value)) == len(value)
         fout.write(dumps({"key":  hexlify(key), "value": value}) + "\n")
@@ -426,7 +447,7 @@ def parse_ldb(fout_name, fin_name='chainstate'):
     db.close()
 
 
-def accumulate_dust_lm(fin_name, fout_name="dust.txt"):
+def accumulate_dust_lm(fin_name, fout_name="dust.json"):
     """
     Accumulates all the dust / lm of a given parsed utxo file (from utxo_dump function).
 

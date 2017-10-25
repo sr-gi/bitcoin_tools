@@ -4,7 +4,8 @@ from json import loads
 
 from collections import Counter
 
-def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, save_fig=False, legend=None,
+
+def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, version=0.15, save_fig=False, legend=None,
                    legend_loc=1, font_size=20):
     """
     Generates plots from utxo/tx data extracted from utxo_dump.
@@ -18,6 +19,8 @@ def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, save_fig=F
     :param log_axis: Determines which axis are plotted using (accepted values are False, "x", "y" or "xy").
     logarithmic scale
     :type log_axis: str
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
     :param save_fig: Figure's filename or False (to show the interactive plot)
     :type save_fig: str
     :param legend: List of strings with legend entries or None (if no legend is needed)
@@ -31,13 +34,16 @@ def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, save_fig=F
     """
 
     if y == "tx":
-        fin = open(CFG.data_path + 'parsed_txs.txt', 'r')
+        fin = open(CFG.data_path + str(version) + '/' + 'parsed_txs.json', 'r')
         ylabel = "Number of tx."
     elif y == "utxo":
-        fin = open(CFG.data_path + 'parsed_utxos.txt', 'r')
+        fin = open(CFG.data_path + str(version) + '/' + 'parsed_utxos.json', 'r')
         ylabel = "Number of UTXOs"
     else:
         raise ValueError('Unrecognized y value')
+
+    # Adds the folder in which the data will be stored
+    save_fig = str(version) + '/' + save_fig
 
     samples = []
     for line in fin:
@@ -55,10 +61,10 @@ def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, save_fig=F
 
 
 def plot_from_file_dict(x_attribute, y="dust", fin_name=None, percentage=False, xlabel=False,
-                        log_axis=False, save_fig=False, legend=None, legend_loc=1, font_size=20):
+                        log_axis=False, version=0.15, save_fig=False, legend=None, legend_loc=1, font_size=20):
 
     """
-    Generate plots from files in which the loaded data is a dictionary, such as dust.txt.
+    Generate plots from files in which the loaded data is a dictionary, such as dust.json.
 
     :param x_attribute: Attribute to plot (must be a key in the dictionary of the dumped data).
     :type x_attribute: str
@@ -73,6 +79,8 @@ def plot_from_file_dict(x_attribute, y="dust", fin_name=None, percentage=False, 
     :param log_axis: Determines which axis are plotted using (accepted values are False, "x", "y" or "xy").
     logarithmic scale
     :type log_axis: str
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
     :param save_fig: Figure's filename or False (to show the interactive plot)
     :type save_fig: str
     :param legend: List of strings with legend entries or None (if no legend is needed)
@@ -113,6 +121,9 @@ def plot_from_file_dict(x_attribute, y="dust", fin_name=None, percentage=False, 
     else:
         raise ValueError('Unrecognized y value')
 
+    # Adds the folder in which the data will be stored
+    save_fig = str(version) + '/' + save_fig
+
     xs = []
     ys = []
     # Sort the data
@@ -137,7 +148,8 @@ def plot_from_file_dict(x_attribute, y="dust", fin_name=None, percentage=False, 
     plot_distribution(xs, ys, title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
 
 
-def plot_pie_chart_from_file(x_attribute, y="tx", title="", labels=[], groups=[], colors=[], save_fig=False, font_size=20):
+def plot_pie_chart_from_file(x_attribute, y="tx", title="", labels=[], groups=[], colors=[], version=0.15,
+                             save_fig=False, font_size=20):
     """
     Generates pie charts from UTXO/tx data extracted from utxo_dump.
 
@@ -151,6 +163,8 @@ def plot_pie_chart_from_file(x_attribute, y="tx", title="", labels=[], groups=[]
     :type groups: list of lists
     :param colors: List of colors (one color for each piece of the pie)
     :type colors: str lit
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
     :param save_fig: Figure's filename or False (to show the interactive plot)
     :type save_fig: str
     :param font_size: Title, xlabel and ylabel font size
@@ -160,10 +174,10 @@ def plot_pie_chart_from_file(x_attribute, y="tx", title="", labels=[], groups=[]
     """
 
     if y == "tx":
-        fin = open(CFG.data_path + 'parsed_txs.txt', 'r')
+        fin = open(CFG.data_path + str(version) + '/' + 'parsed_txs.json', 'r')
         ylabel = "Number of tx."
     elif y == "utxo":
-        fin = open(CFG.data_path + 'parsed_utxos.txt', 'r')
+        fin = open(CFG.data_path + str(version) + '/' + 'parsed_utxos.json', 'r')
         ylabel = "Number of UTXOs"
     else:
         raise ValueError('Unrecognized y value')
@@ -174,6 +188,9 @@ def plot_pie_chart_from_file(x_attribute, y="tx", title="", labels=[], groups=[]
         samples.append(data[x_attribute])
 
     fin.close()
+
+    # Adds the folder in which the data will be stored
+    save_fig = str(version) + '/' + save_fig
 
     # Count occurences
     ctr = Counter(samples)

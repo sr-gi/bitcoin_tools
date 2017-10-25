@@ -30,10 +30,11 @@ def transaction_dump(fin_name, fout_name, version=0.15):
 
         else:
             utxo = decode_utxo(data["value"], data["key"], version)
+            # ToDO: Check this Cris
 
             result = {"tx_id": change_endianness(utxo.get('tx_id')),
                       "num_utxos": 1,
-                      "total_value": utxo.get('outs').get('amount'),
+                      "total_value": utxo.get('outs')[0].get('amount'),
                       "total_len": (len(data["key"]) + len(data["value"])) / 2,
                       "height": utxo["height"],
                       "coinbase": utxo["coinbase"],
@@ -90,6 +91,11 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                           "utxo_data_len": len(out["data"]) / 2,
                           "dust": dust,
                           "loss_making": lm}
+
+                # Index added at the end when updated the result with the out, since the index is not part of the
+                # encoded data anymore (coin) but of the entry identifier (outpoint), we add it manually.
+                if version >= 0.15:
+                    result['index'] = utxo['index']
 
                 # Updates the dictionary with the remaining data from out, and stores it in disk.
                 result.update(out)
