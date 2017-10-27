@@ -93,6 +93,7 @@ def plot_distribution(xs, ys, title, xlabel, ylabel, log_axis=False, save_fig=Fa
     # Output result
     if save_fig:
         plt.savefig(CFG.figs_path + save_fig + '.pdf', format='pdf', dpi=600)
+        plt.close()
     else:
         plt.show()
 
