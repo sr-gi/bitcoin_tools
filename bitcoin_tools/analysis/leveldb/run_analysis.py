@@ -10,7 +10,7 @@ from os import mkdir, path
 
 # Set version and chainstate dir name
 version = 0.15
-chainstate = 'chainstate'
+chainstate = 'chainstate/' + str(version)
 
 # Check if the directories for both data and figures exist, create them otherwise.
 if not path.isdir(CFG.data_path + str(version)) and not path.isdir(CFG.figs_path + str(version)):
