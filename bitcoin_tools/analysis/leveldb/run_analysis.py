@@ -40,6 +40,13 @@ plot_from_file("total_len", xlabel="Total length (bytes)", version=version, save
 plot_from_file("total_len", xlabel="Total length (bytes)", log_axis="x", version=version, save_fig="tx_total_len_logx")
 plot_from_file("version", version=version, save_fig="tx_version")
 plot_from_file("total_value", log_axis="x", version=version, save_fig="tx_total_value_logx")
+plot_from_file("num_utxos", xlabel="Number of utxos per tx", version=version, save_fig="tx_num_utxos")
+plot_from_file("num_utxos", xlabel="Number of utxos per tx", log_axis="x", version=version, save_fig="tx_num_utxos_logx")
+
+plot_pie_chart_from_file("coinbase", y="tx", title="",
+                         labels=['Coinbase', 'No-coinbasae'], groups=[[1], [0]],
+                         colors=["#165873", "#428C5C"],
+                         version=version, save_fig="tx_coinbase", font_size=20)
 
 # Generate plots from utxo data (from f_parsed_utxos)
 plot_from_file("tx_height", y="utxo", version=version, save_fig="utxo_tx_height")
@@ -50,6 +57,8 @@ plot_from_file("out_type", y="utxo", version=version, save_fig="utxo_out_type")
 plot_from_file("out_type", y="utxo", log_axis="x", version=version, save_fig="utxo_out_type_logx")
 plot_from_file("utxo_data_len", y="utxo", version=version, save_fig="utxo_data_len")
 plot_from_file("utxo_data_len", y="utxo", log_axis="x", version=version, save_fig="utxo_data_len_logx")
+plot_from_file("index", y="utxo", version=version, save_fig="utxo_index")
+plot_from_file("index", y="utxo", log_axis="x", version=version, save_fig="utxo_index_logx")
 
 plot_pie_chart_from_file("out_type", y="utxo", title="",
                          labels=['C-even', 'C-odd', 'U-even', 'U-odd'], groups=[[2], [3], [4], [5]],
@@ -63,6 +72,7 @@ plot_pie_chart_from_file("out_type", y="utxo", title="",
 
 # Generate plots for dust analysis (including percentage scale).
 # First, the dust accumulation file is generated (if requited).
+
 accumulate_dust_lm(f_parsed_utxos, fout_name=f_dust)
 
 # Finally, we can plot the data.
