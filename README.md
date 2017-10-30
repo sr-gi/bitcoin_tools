@@ -17,7 +17,12 @@ bitcoin_tools allows you to:
 
 ### Dependencies
 
-The library has the following dependencies (which can be satisfied by using pip install -r requirements.txt):
+The library has the abovementioned dependencies (which can be satisfied by using pip install -r requirements.txt).
+
+Note that some additional system packages may also be needed. For instance, for Debian/Ubuntu based systems, `python-tk` and
+`libleveldb-dev` must be installed:
+
+`sudo apt-get install python-tk libleveldb-dev`
 
 ##### Key management and address creation
 
