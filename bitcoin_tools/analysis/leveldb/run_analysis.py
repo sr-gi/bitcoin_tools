@@ -10,7 +10,12 @@ from os import mkdir, path
 
 # Set version and chainstate dir name
 version = 0.15
+
+# When using snapshots of the chainstate, we store it as 'chainstate/version
 chainstate = 'chainstate/' + str(version)
+
+# When not using a snapshot, we directly use the chainstate under btc_core_dir (actually that's its default value)
+# chainstate = 'chainstate'
 
 # Check if the directories for both data and figures exist, create them otherwise.
 if not path.isdir(CFG.data_path + str(version)) and not path.isdir(CFG.figs_path + str(version)):
