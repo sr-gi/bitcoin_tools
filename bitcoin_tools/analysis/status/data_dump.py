@@ -1,10 +1,9 @@
 from bitcoin_tools import CFG
 from bitcoin_tools.utils import change_endianness
-from bitcoin_tools.analysis.leveldb import MIN_FEE_PER_BYTE, MAX_FEE_PER_BYTE, FEE_STEP
-from bitcoin_tools.analysis.leveldb.utils import check_multisig, get_min_input_size, decode_utxo
+from bitcoin_tools.analysis.status import MIN_FEE_PER_BYTE, MAX_FEE_PER_BYTE, FEE_STEP
+from bitcoin_tools.analysis.status.utils import check_multisig, get_min_input_size, decode_utxo
 from json import loads, dumps
 from collections import OrderedDict
-from os import remove
 from subprocess import call
 
 

@@ -4,7 +4,7 @@ from json import dumps
 from math import ceil
 from copy import deepcopy
 from json import loads
-from bitcoin_tools.analysis.leveldb import *
+from bitcoin_tools.analysis.status import *
 from bitcoin_tools.utils import change_endianness
 
 

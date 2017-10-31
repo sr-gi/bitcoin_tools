@@ -5,6 +5,7 @@ from json import loads
 from collections import Counter
 import numpy as np
 
+
 def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, version=0.15, save_fig=False, legend=None,
                    legend_loc=1, font_size=20):
     """
@@ -244,7 +245,6 @@ def overview_from_file(version=0.15):
     print "Avg. size per utxo: ", str(np.mean(samples))
     print "Std. size per utxo: ", str(np.std(samples))
     print "Median size per utxo: ", str(np.median(samples))
-
 
 
 def get_samples(x_attribute, y="tx", version=0.15):
