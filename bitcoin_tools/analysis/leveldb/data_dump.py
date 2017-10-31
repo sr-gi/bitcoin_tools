@@ -1,25 +1,28 @@
 from bitcoin_tools import CFG
 from bitcoin_tools.utils import change_endianness
-from json import loads, dumps
 from bitcoin_tools.analysis.leveldb import MIN_FEE_PER_BYTE, MAX_FEE_PER_BYTE, FEE_STEP
 from bitcoin_tools.analysis.leveldb.utils import check_multisig, get_min_input_size, decode_utxo
+from json import loads, dumps
+from collections import OrderedDict
+from os import remove
+from subprocess import call
 
 
 def transaction_dump(fin_name, fout_name, version=0.15):
     # Transaction dump
 
-    # Input file
-    fin = open(CFG.data_path + fin_name, 'r')
-    # Output file
-    fout = open(CFG.data_path + fout_name, 'w')
+    if version < 0.15:
 
-    for line in fin:
-        data = loads(line[:-1])
-        if version < 0.15:
+        # Input file
+        fin = open(CFG.data_path + fin_name, 'r')
+        # Output file
+        fout = open(CFG.data_path + fout_name, 'w')
+
+        for line in fin:
+            data = loads(line[:-1])
+
             utxo = decode_utxo(data["value"], None, version)
-
             imprt = sum([out["amount"] for out in utxo.get("outs")])
-
             result = {"tx_id": change_endianness(data["key"][2:]),
                       "num_utxos": len(utxo.get("outs")),
                       "total_value": imprt,
@@ -28,21 +31,79 @@ def transaction_dump(fin_name, fout_name, version=0.15):
                       "coinbase": utxo["coinbase"],
                       "version": utxo["version"]}
 
-        else:
+            fout.write(dumps(result) + '\n')
+
+        fout.close()
+        fin.close()
+
+    else:
+
+        # Input file
+        fin = open(CFG.data_path + fin_name, 'r')
+        # Temp file (unsorted & unaggregated tx data)
+        fout = open(CFG.data_path + "temp.json", 'w')
+
+        # [1] Create temp file
+        for line in fin:
+            data = loads(line[:-1])
+
             utxo = decode_utxo(data["value"], data["key"], version)
-            # ToDO: Check this Cris
 
-            result = {"tx_id": change_endianness(utxo.get('tx_id')),
-                      "num_utxos": 1,
-                      "total_value": utxo.get('outs')[0].get('amount'),
-                      "total_len": (len(data["key"]) + len(data["value"])) / 2,
-                      "height": utxo["height"],
-                      "coinbase": utxo["coinbase"],
-                      "version": None}
+            result = OrderedDict([
+                ("tx_id", change_endianness(utxo.get('tx_id'))),
+                ("num_utxos", 1),
+                ("total_value", utxo.get('outs')[0].get('amount')),
+                ("total_len", (len(data["key"]) + len(data["value"])) / 2),
+                ("height", utxo["height"]),
+                ("coinbase", utxo["coinbase"]),
+                ("version", None)])
 
-        fout.write(dumps(result) + '\n')
+            fout.write(dumps(result) + '\n')
 
-    fout.close()
+        fout.close()
+        fin.close()
+
+        # [2] Sort file
+        call(["sort", CFG.data_path + "temp.json", "-o", CFG.data_path + "temp.json"])
+
+        # [3] Aggregate tx data
+        fin = open(CFG.data_path + "temp.json", 'r')
+        fout = open(CFG.data_path + fout_name, 'w')
+
+        line_1 = fin.readline()
+        line_2 = fin.readline()
+        line_1 = loads(line_1) if line_1 else None
+        line_2 = loads(line_2) if line_2 else None
+
+        while line_1:
+
+            total_len = line_1["total_len"]
+            total_value = line_1["total_value"]
+            num_utxos = line_1["num_utxos"]
+            while line_2 and (line_1["tx_id"] == line_2["tx_id"]):
+                total_len += line_2["total_len"]
+                total_value += line_2["total_value"]
+                num_utxos += line_2["num_utxos"]
+                line_2 = fin.readline()
+                line_2 = loads(line_2) if line_2 else None
+
+            result = OrderedDict([
+                ("tx_id", line_1["tx_id"]),
+                ("num_utxos", num_utxos),
+                ("total_value", total_value),
+                ("total_len", total_len),
+                ("height", line_1["height"]),
+                ("coinbase", line_1["coinbase"]),
+                ("version", line_1["version"])])
+            fout.write(dumps(result) + '\n')
+            line_1 = line_2
+            line_2 = fin.readline()
+            line_2 = loads(line_2) if line_2 else None
+
+        fin.close()
+        fout.close()
+
+        # remove(CFG.data_path + "temp.json")
 
 
 def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=False):
