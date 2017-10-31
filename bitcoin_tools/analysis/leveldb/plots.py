@@ -3,7 +3,7 @@ from bitcoin_tools.analysis.plots import plot_distribution, get_cdf, plot_pie
 from json import loads
 
 from collections import Counter
-
+import numpy as np
 
 def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, version=0.15, save_fig=False, legend=None,
                    legend_loc=1, font_size=20):
@@ -213,3 +213,67 @@ def plot_pie_chart_from_file(x_attribute, y="tx", title="", labels=[], groups=[]
     plot_pie(values, labels, title, colors, save_fig=save_fig, font_size=font_size)
 
 
+def overview_from_file(version=0.15):
+
+    """
+    Prints a summary of basic stats.
+
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
+    :return: None
+    :rtype: None
+    """
+
+    samples = get_samples("num_utxos", y="tx", version=version)
+
+    print "Num. of tx: ", str(len(samples))
+    print "Num. of UTXOs: ", str(sum(samples))
+    print "Avg. num. of UTXOs per tx: ", str(np.mean(samples))
+    print "Std. num. of UTXOs per tx: ", str(np.std(samples))
+    print "Median num. of UTXOs per tx: ", str(np.median(samples))
+
+    samples = get_samples("total_len", y="tx", version=version)
+
+    print "Size of the (serialized) UTXO set: ", str(np.sum(samples))
+    print "Avg. size per tx: ", str(np.mean(samples))
+    print "Std. size per tx: ", str(np.std(samples))
+    print "Median size per tx: ", str(np.median(samples))
+
+    samples = get_samples("utxo_data_len", y="utxo", version=version)
+
+    print "Avg. size per utxo: ", str(np.mean(samples))
+    print "Std. size per utxo: ", str(np.std(samples))
+    print "Median size per utxo: ", str(np.median(samples))
+
+
+
+def get_samples(x_attribute, y="tx", version=0.15):
+    """
+    Reads data from .json files and creates a list with the attribute of interest values.
+
+    :param x_attribute: Attribute to plot (must be a key in the dictionary of the dumped data).
+    :type x_attribute: str
+    :param y: Either "tx" or "utxo"
+    :type y: str
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
+    :return:
+    """
+
+    # TODO: Use this function to simplify plot_from_file functions!
+
+    if y == "tx":
+        fin = open(CFG.data_path + str(version) + '/' + 'parsed_txs.json', 'r')
+    elif y == "utxo":
+        fin = open(CFG.data_path + str(version) + '/' + 'parsed_utxos.json', 'r')
+    else:
+        raise ValueError('Unrecognized y value')
+
+    samples = []
+    for line in fin:
+        data = loads(line[:-1])
+        samples.append(data[x_attribute])
+
+    fin.close()
+
+    return samples
