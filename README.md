@@ -12,7 +12,9 @@ bitcoin_tools allows you to:
 * Transaction serialization / deserialization.
 * Creation of standard and custom scripts (`scriptSig` and `scriptPubKey`).
 * Transaction analysis from hex encoded transactions.
-* Chainstate (`utxo set`) analysis
+
+Additionally, bitcoin_tools contains ``STATUS`` an
+**ST**atistical **A**nalysis **T**ool for **U**txo **S**et under `analysis/status`
 
 
 ### Dependencies
@@ -111,10 +113,10 @@ tx = TX.deserialize(hex_tx)
 tx.display()
 ``` 
 
-#### LevelDB UTXO dump
+#### Using STATUS to dump the UTXOs LevelDB
 ```python
-from bitcoin_tools.analysis.leveldb.data_dump import utxo_dump
-from bitcoin_tools.analysis.leveldb.utils import parse_ldb
+from bitcoin_tools.analysis.status.data_dump import utxo_dump
+from bitcoin_tools.analysis.status.utils import parse_ldb
 
 f_utxos = "utxos.txt"
 f_parsed_utxos = "parsed_utxos.txt"
