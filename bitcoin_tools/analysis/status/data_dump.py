@@ -39,7 +39,7 @@ def transaction_dump(fin_name, fout_name, version=0.15):
 
         # Input file
         fin = open(CFG.data_path + fin_name, 'r')
-        # Temp file (unsorted & unaggregated tx data)
+        # Temp file (unsorted & non-aggregated tx data)
         fout = open(CFG.data_path + "temp.json", 'w')
 
         # [1] Create temp file

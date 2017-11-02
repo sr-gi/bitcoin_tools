@@ -224,7 +224,7 @@ def decode_utxo(coin, outpoint, version=0.15):
         # We start by decoding the first b128 VARINT of the provided data, that may contain 2*Height + coinbase
         code, offset = parse_b128(coin)
         code = b128_decode(code)
-        height = code >> 2
+        height = code >> 1
         coinbase = code & 0x01
 
         # The next value in the sequence corresponds to the utxo value, the amount of Satoshi hold by the utxo. Data is
