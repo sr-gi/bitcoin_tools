@@ -128,22 +128,27 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
             # Checks whether we are looking for every type of UTXO or just for non-standard ones.
             if not non_std_only or (non_std_only and out["out_type"] not in std_types
                                     and not check_multisig(out['data'])):
+
                 # Calculates the dust threshold for every UTXO value and every fee per byte ratio between min and max.
                 min_size = get_min_input_size(out, utxo["height"], count_p2sh)
-                # Initialize dust, lm and the fee_per_byte ratio.
+
+                # Initialize dust, lm and the fee_per_byte rate.
                 dust = 0
                 lm = 0
-                fee_per_byte = MIN_FEE_PER_BYTE
-                # Check whether the utxo is dust/lm for the fee_per_byte range.
-                while MAX_FEE_PER_BYTE > fee_per_byte and lm == 0:
-                    # Set the dust and loss_making thresholds.
-                    if dust is 0 and min_size * fee_per_byte > out["amount"] / 3:
-                        dust = fee_per_byte
-                    if lm is 0 and out["amount"] < min_size * fee_per_byte:
-                        lm = fee_per_byte
 
-                    # Increase the ratio
-                    fee_per_byte += FEE_STEP
+                # We skip the calculation for P2SH when we are not counting them, and for non-std.
+                if min_size > 0:
+                    fee_per_byte = MIN_FEE_PER_BYTE
+                    # Check whether the utxo is dust/lm for the fee_per_byte range.
+                    while MAX_FEE_PER_BYTE > fee_per_byte and lm == 0:
+                        # Set the dust and loss_making thresholds.
+                        if dust is 0 and min_size * fee_per_byte > out["amount"] / 3:
+                            dust = fee_per_byte
+                        if lm is 0 and out["amount"] < min_size * fee_per_byte:
+                            lm = fee_per_byte
+
+                        # Increase the ratio
+                        fee_per_byte += FEE_STEP
 
                 # Builds the output dictionary
                 result = {"tx_id": tx_id,

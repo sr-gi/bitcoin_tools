@@ -479,11 +479,11 @@ def accumulate_dust_lm(fin_name, fout_name="dust.json"):
         data = loads(line[:-1])
 
         for fee_per_byte in range(MIN_FEE_PER_BYTE, MAX_FEE_PER_BYTE, FEE_STEP):
-            if fee_per_byte >= data["dust"] != 0:
+            if fee_per_byte >= data["dust"] and data['dust'] != 0:
                 dust[str(fee_per_byte)] += 1
                 value_dust[str(fee_per_byte)] += data["amount"]
                 data_len_dust[str(fee_per_byte)] += data["utxo_data_len"]
-            if fee_per_byte >= data["loss_making"] != 0:
+            if fee_per_byte >= data["loss_making"] and data['loss_making'] != 0:
                 lm[str(fee_per_byte)] += 1
                 value_lm[str(fee_per_byte)] += data["amount"]
                 data_len_lm[str(fee_per_byte)] += data["utxo_data_len"]
