@@ -164,6 +164,7 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                 # encoded data anymore (coin) but of the entry identifier (outpoint), we add it manually.
                 if version >= 0.15:
                     result['index'] = utxo['index']
+                    result['register_len'] = len(data["value"]) / 2 + len(data["key"]) / 2
 
                 # Updates the dictionary with the remaining data from out, and stores it in disk.
                 result.update(out)
