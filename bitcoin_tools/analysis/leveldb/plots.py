@@ -277,3 +277,21 @@ def get_samples(x_attribute, y="tx", version=0.15):
     fin.close()
 
     return samples
+    
+
+def get_unique_values(x_attribute, y="tx", version=0.15):
+    """
+    Reads data from a .json file and returns all values found in x_attribute.
+
+    :param x_attribute: Attribute to analyse.
+    :type x_attribute: str
+    :param y: Either "tx" or "utxo"
+    :type y: str
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
+    :return: list of unique x_attribute values
+    """
+
+    samples = get_samples(x_attribute, y=y, version=version)
+
+    return list(set(samples))
