@@ -67,7 +67,7 @@ def plot_distribution(xs, ys, title, xlabel, ylabel, log_axis=False, save_fig=Fa
     ax = plt.subplot(111)
 
     # Plot data
-    if not isinstance(xs[0], list):
+    if not (isinstance(xs[0], list) or isinstance(xs[0], np.ndarray)):
         plt.plot(xs, ys)  # marker='o'
     else:
         for i in range(len(xs)):
