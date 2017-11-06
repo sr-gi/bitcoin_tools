@@ -1,7 +1,7 @@
 from bitcoin_tools import CFG
 from bitcoin_tools.utils import change_endianness
 from bitcoin_tools.analysis.leveldb import MIN_FEE_PER_BYTE, MAX_FEE_PER_BYTE, FEE_STEP
-from bitcoin_tools.analysis.leveldb.utils import check_multisig, get_min_input_size, decode_utxo
+from bitcoin_tools.analysis.leveldb.utils import check_multisig, get_min_input_size, decode_utxo, check_multisig_type
 from json import loads, dumps
 from collections import OrderedDict
 from os import remove
@@ -146,12 +146,19 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                     # Increase the ratio
                     fee_per_byte += FEE_STEP
 
+				# Adds multisig type info
+                if out["out_type"] in [0, 1, 2, 3, 4, 5]:
+                    non_std_type = "std"
+                else:
+                    non_std_type = check_multisig_type(out["data"])
+                    
                 # Builds the output dictionary
                 result = {"tx_id": tx_id,
                           "tx_height": utxo["height"],
                           "utxo_data_len": len(out["data"]) / 2,
                           "dust": dust,
-                          "loss_making": lm}
+                          "loss_making": lm,
+                          "non_std_type": non_std_type}
 
                 # Index added at the end when updated the result with the out, since the index is not part of the
                 # encoded data anymore (coin) but of the entry identifier (outpoint), we add it manually.
