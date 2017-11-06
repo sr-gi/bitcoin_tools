@@ -551,6 +551,21 @@ def check_multisig_type(script):
     return False
 
 
+def check_opreturn(script):
+    """
+    Checks whether a given script is an OP_RETURN one.
+
+    Warning: there should NOT be any OP_RETURN output in the UTXO set.
+
+    :param script: The script to be checked.
+    :type script: str
+    :return: True if the script is an OP_RETURN, False otherwise.
+    :rtype: bool
+    """
+    op_return_opcode = 0x6a
+    return int(script[:2], 16) == op_return_opcode
+
+
 def get_min_input_size(out, height, count_p2sh=False):
     """
     Computes the minimum size an input created by a given output type (parsed from the chainstate) will have.
