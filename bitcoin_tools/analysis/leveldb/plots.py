@@ -6,7 +6,7 @@ from collections import Counter
 import numpy as np
 
 def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, version=0.15, save_fig=False, legend=None,
-                   legend_loc=1, font_size=20):
+                   legend_loc=1, font_size=20, filtr=lambda x: True):
     """
     Generates plots from utxo/tx data extracted from utxo_dump.
 
@@ -33,24 +33,15 @@ def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, version=0.
     :rtype: None
     """
 
+    samples = get_samples(x_attribute, y=y, version=version, filtr=filtr)
+
     if y == "tx":
-        fin = open(CFG.data_path + str(version) + '/' + 'parsed_txs.json', 'r')
         ylabel = "Number of tx."
     elif y == "utxo":
-        fin = open(CFG.data_path + str(version) + '/' + 'parsed_utxos.json', 'r')
         ylabel = "Number of UTXOs"
-    else:
-        raise ValueError('Unrecognized y value')
 
     # Adds the folder in which the data will be stored
     save_fig = str(version) + '/' + save_fig
-
-    samples = []
-    for line in fin:
-        data = loads(line[:-1])
-        samples.append(data[x_attribute])
-
-    fin.close()
 
     [xs, ys] = get_cdf(samples, normalize=True)
     title = ""
