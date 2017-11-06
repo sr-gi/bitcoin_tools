@@ -51,6 +51,60 @@ def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, version=0.
     plot_distribution(xs, ys, title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
 
 
+def plots_from_file(x_attribute, y=["tx"], xlabel=False, log_axis=False, version=[0.15], save_fig=False, legend=None,
+                    legend_loc=1, font_size=20, filtr=[lambda x: True]):
+    """
+    Generates plots from utxo/tx data extracted from utxo_dump.
+
+    :param x_attribute: Attribute to plot (must be a key in the dictionary of the dumped data).
+    :type x_attribute: str
+    :param y: Either "tx" or "utxo"
+    :type y: str
+    :param xlabel: Label on the x axis
+    :type xlabel: str
+    :param log_axis: Determines which axis are plotted using (accepted values are False, "x", "y" or "xy").
+    logarithmic scale
+    :type log_axis: str
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
+    :param save_fig: Figure's filename or False (to show the interactive plot)
+    :type save_fig: str
+    :param legend: List of strings with legend entries or None (if no legend is needed)
+    :type legend: str list
+    :param legend_loc: Indicates the location of the legend (if present)
+    :type legend_loc: int
+    :param font_size: Title, xlabel and ylabel font size
+    :type font_size: int
+    :return: None
+    :rtype: None
+    """
+
+    assert len(x_attribute) == len(y) == len(version) == len(filtr), \
+        "There is a mismatch on the list lenght of some of the parameters"
+
+    if y[0] == "tx":
+        ylabel = "Number of tx."
+    elif y[0] == "utxo":
+        ylabel = "Number of UTXOs"
+
+    title = ""
+    if not xlabel:
+        xlabel = x_attribute
+
+    xs, ys = [], []
+    for i in range(len(x_attribute)):
+        samples = get_samples(x_attribute[i], y=y[i], version=version[i], filtr=filtr[i])
+        [xc, yc] = get_cdf(samples, normalize=True)
+        xs.append(xc)
+        ys.append(yc)
+
+    # Adds the folder in which the data will be stored (if multiple versions are involved, store it
+    # in the first one folder)
+    save_fig = str(version[0]) + '/' + save_fig
+
+    plot_distribution(xs, ys, title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
+    
+    
 def plot_from_file_dict(x_attribute, y="dust", fin_name=None, percentage=False, xlabel=False,
                         log_axis=False, version=0.15, save_fig=False, legend=None, legend_loc=1, font_size=20):
 
