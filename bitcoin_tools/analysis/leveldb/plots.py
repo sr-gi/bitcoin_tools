@@ -291,8 +291,7 @@ def overview_from_file(version=0.15):
     print "Median size per utxo: ", str(np.median(samples))
 
 
-
-def get_samples(x_attribute, y="tx", version=0.15):
+def get_samples(x_attribute, y="tx", version=0.15, filtr=lambda x: True):
     """
     Reads data from .json files and creates a list with the attribute of interest values.
 
@@ -302,10 +301,10 @@ def get_samples(x_attribute, y="tx", version=0.15):
     :type y: str
     :param version: Bitcoin core version, used to decide the folder in which to store the data.
     :type version: float
+    :param filtr: Function to filter samples (returns a boolean value for a given sample)
+    :type filtr: function
     :return:
     """
-
-    # TODO: Use this function to simplify plot_from_file functions!
 
     if y == "tx":
         fin = open(CFG.data_path + str(version) + '/' + 'parsed_txs.json', 'r')
@@ -317,7 +316,8 @@ def get_samples(x_attribute, y="tx", version=0.15):
     samples = []
     for line in fin:
         data = loads(line[:-1])
-        samples.append(data[x_attribute])
+        if filtr(data):
+            samples.append(data[x_attribute])
 
     fin.close()
 
