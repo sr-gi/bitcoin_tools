@@ -1,6 +1,6 @@
 from bitcoin_tools.analysis.leveldb.data_dump import transaction_dump, utxo_dump
 from bitcoin_tools.analysis.leveldb.utils import parse_ldb, accumulate_dust_lm
-from bitcoin_tools.analysis.leveldb.plots import plot_from_file, plot_from_file_dict, plot_pie_chart_from_file, overview_from_file
+from bitcoin_tools.analysis.leveldb.plots import plot_from_file, plot_from_file_dict, plot_pie_chart_from_file, overview_from_file, plots_from_file
 from bitcoin_tools import CFG
 from os import mkdir, path
 
