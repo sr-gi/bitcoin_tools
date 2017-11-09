@@ -138,11 +138,13 @@ def generate_btc_addr(pk, v='test',  compressed=True):
     return btc_addr
 
 
-def sk_to_wif(sk, mode='image', v='test'):
+def sk_to_wif(sk, compressed=True, mode='image', v='test'):
     """ Generates a Wallet Import Format (WIF) representation of a provided elliptic curve private key.
 
     :param sk: elliptic curve private key.
     :type sk: hex str
+    :param compressed: Whether the WIF will be used with a compressed or uncompressed public key
+    :type compressed: bool
     :param mode: defines the type of return.
     :type mode: str
     :param v: version (prefix) used to calculate the WIF, it depends on the type of network.
@@ -167,6 +169,9 @@ def sk_to_wif(sk, mode='image', v='test'):
 
     # Add the network version leading the private key (in hex).
     e_pkey = chr(v) + unhexlify(sk)
+    # Flag compressed pk when needed
+    if compressed:
+        e_pkey += unhexlify('01')
     # Double sha256.
     h = sha256(sha256(e_pkey).digest()).digest()
     # Add the two first bytes of the result as a checksum tailing the encoded key.
@@ -204,7 +209,7 @@ def generate_wif(btc_addr, sk, mode='image', v='test', vault_path=None):
     """
 
     # Get a private key in hex format and create the WIF representation.
-    wif = sk_to_wif(serialize_sk(sk), mode, v)
+    wif = sk_to_wif(serialize_sk(sk), mode=mode, v=v)
 
     if vault_path is None:
         vault_path = CFG.address_vault
