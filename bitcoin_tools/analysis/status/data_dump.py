@@ -136,6 +136,9 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                 dust = 0
                 lm = 0
 
+                # ToDo: All this while can be optimized to perform just two multiplications and an if check.
+                # ToDO: Calculate dust as ceil(out["amount"] / (3 * min_size)) and lm as ceil(out["amount] * min_size)
+                # ToDo: If any of the results is multiple of FEE_STEP, add FEE_STEP
                 # We skip the calculation for P2SH when we are not counting them, and for non-std.
                 if min_size > 0:
                     fee_per_byte = MIN_FEE_PER_BYTE

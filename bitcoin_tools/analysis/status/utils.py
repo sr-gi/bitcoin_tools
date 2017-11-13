@@ -1,11 +1,11 @@
 import plyvel
 from binascii import hexlify, unhexlify
-from json import dumps
+from json import dumps, loads
 from math import ceil
 from copy import deepcopy
-from json import loads
 from bitcoin_tools.analysis.status import *
 from bitcoin_tools.utils import change_endianness
+from re import match
 
 
 def txout_compress(n):
@@ -440,8 +440,7 @@ def parse_ldb(fout_name, fin_name='chainstate', version=0.15):
     # UTXOs are obfuscated using the obfuscation key (o_key), in order to get them non-obfuscated, a XOR between the
     # value and the key (concatenated until the length of the value is reached) if performed).
     for key, o_value in db.iterator(prefix=prefix):
-        value = "".join([format(int(v, 16) ^ int(o_key[i % len(o_key)], 16), 'x') for i, v in enumerate(hexlify(o_value))])
-        assert len(hexlify(o_value)) == len(value)
+        value = deobfuscate_value(o_key, o_value)
         fout.write(dumps({"key":  hexlify(key), "value": value}) + "\n")
 
     db.close()
@@ -608,3 +607,83 @@ def get_min_input_size(out, height, count_p2sh=False):
     var_size = scriptSig_len + scriptSig
 
     return fixed_size + var_size
+
+
+def get_utxo(tx_id, index, fin_name='chainstate', version=0.15):
+    """
+    Gets a UTXO from the chainstate identified by a given transaction id and index.
+    If the requested UTXO does not exist, return None.
+
+    :param tx_id: Transaction ID that identifies the UTXO you are looking for.
+    :type tx_id: str
+    :param index: Index that identifies the specific output.
+    :type index: int
+    :param fin_name: Name of the LevelDB folder (chainstate by default)
+    :type fin_name: str
+    :param version: Bitcoin Core client version. Determines the prefix of the transaction entries.
+    :param version: float
+    :return: A outpoint:coin pair representing the requested UTXO
+    :rtype: str, str
+    """
+
+    if 0.08 <= version < 0.15:
+        prefix = b'c'
+        outpoint = prefix + unhexlify(tx_id)
+    elif version < 0.08:
+        raise Exception("The utxo decoder only works for version 0.08 onwards.")
+    else:
+        prefix = b'C'
+        outpoint = prefix + unhexlify(tx_id + b128_encode(index))
+
+    # Open the LevelDB
+    db = plyvel.DB(CFG.btc_core_path + "/" + fin_name, compression=None)  # Change with path to chainstate
+
+    # Load obfuscation key (if it exists)
+    o_key = db.get((unhexlify("0e00") + "obfuscate_key"))
+
+    # If the key exists, the leading byte indicates the length of the key (8 byte by default). If there is no key,
+    # 8-byte zeros are used (since the key will be XORed with the given values).
+    if o_key is not None:
+        o_key = hexlify(o_key)[2:]
+    else:
+        o_key = "0000000000000000"
+
+    coin = db.get(outpoint)
+
+    if coin is not None:
+        coin = deobfuscate_value(o_key, coin)
+
+    db.close()
+
+    # ToDO: Add code to return a single output for 0.8 - 0.14
+
+    return hexlify(outpoint), coin
+
+
+def deobfuscate_value(obfuscation_key, value):
+    """
+    Deobfuscate a given value parsed from the chainstate.
+
+    :param obfuscation_key: Key used to obfuscate the given value (extracted from the chainstate).
+    :type obfuscation_key: str
+    :param value: Obfuscated value.
+    :type value: str
+    :return: The deofuscated value.
+    :rtype: str.
+    """
+
+    if not match('^[0-9a-fA-F]*$', value):
+        return deobfuscate_value(obfuscation_key, hexlify(value))
+
+    if not match('^[0-9a-fA-F]*$', obfuscation_key):
+        return deobfuscate_value(hexlify(obfuscation_key), value)
+
+    # XORs ith content of value with the ith content of obfuscation_key for every position fo value. If the length of
+    #  value is greater than the key length, the obfuscation_key is concatenated with itself to fit the proper size.
+
+    r = "".join([format(int(v, 16) ^ int(obfuscation_key[i % len(obfuscation_key)], 16), 'x') for i, v in
+                 enumerate(value)])
+
+    assert len(value) == len(r)
+
+    return r
