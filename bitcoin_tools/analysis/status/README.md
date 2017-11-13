@@ -1,6 +1,7 @@
 # STATUS
 
-**STATUS** (**ST**atistical **A**nalysis **T**ool for **U**txo **S**et) is an open source tool that provides an easy way to access, decode and analyze data from the Bitcoin's `utxo set`.
+**STATUS** (**ST**atistical **A**nalysis **T**ool for **U**txo **S**et) is an open source tool that provides an easy way to access, decode and analyze data from the Bitcoin's `utxo set`. The accompanying working paper further explains its design, application, and and presents results of a recently perform analysis: [https://eprint.iacr.org/2017/1095.pdf](https://eprint.iacr.org/2017/1095.pdf)
+
 
 STATUS is coded in Python 2 and works for both the existing versions of Bitcoin Core's `utxo set`, that is, the first defined format (versions 0.8 - 0.14) and the recently defined one (version 0.15). 
 
