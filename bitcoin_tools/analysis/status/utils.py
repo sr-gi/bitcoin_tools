@@ -1,11 +1,10 @@
 import plyvel
 from binascii import hexlify, unhexlify
-from json import dumps, loads
+import ujson
 from math import ceil
 from copy import deepcopy
 from bitcoin_tools.analysis.status import *
 from bitcoin_tools.utils import change_endianness
-from re import match
 
 
 def txout_compress(n):
@@ -433,15 +432,17 @@ def parse_ldb(fout_name, fin_name='chainstate', version=0.15):
     # 8-byte zeros are used (since the key will be XORed with the given values).
     if o_key is not None:
         o_key = hexlify(o_key)[2:]
-    else:
-        o_key = "0000000000000000"
 
     # For every UTXO (identified with a leading 'c'), the key (tx_id) and the value (encoded utxo) is displayed.
     # UTXOs are obfuscated using the obfuscation key (o_key), in order to get them non-obfuscated, a XOR between the
     # value and the key (concatenated until the length of the value is reached) if performed).
     for key, o_value in db.iterator(prefix=prefix):
-        value = deobfuscate_value(o_key, o_value)
-        fout.write(dumps({"key":  hexlify(key), "value": value}) + "\n")
+        if o_key is not None:
+            value = deobfuscate_value(o_key, hexlify(o_value))
+        else:
+            value = hexlify(o_value)
+
+        fout.write(ujson.dumps({"key":  hexlify(key), "value": value}) + "\n")
 
     db.close()
 
@@ -475,7 +476,7 @@ def accumulate_dust_lm(fin_name, fout_name="dust.json"):
     total_data_len = 0
 
     for line in fin:
-        data = loads(line[:-1])
+        data = ujson.loads(line[:-1])
 
         for fee_per_byte in range(MIN_FEE_PER_BYTE, MAX_FEE_PER_BYTE, FEE_STEP):
             if fee_per_byte >= data["dust"] and data['dust'] != 0:
@@ -499,7 +500,7 @@ def accumulate_dust_lm(fin_name, fout_name="dust.json"):
 
     # Store dust calculation in a file.
     out = open(CFG.data_path + fout_name, 'w')
-    out.write(dumps(data))
+    out.write(ujson.dumps(data))
     out.close()
 
 
@@ -645,12 +646,10 @@ def get_utxo(tx_id, index, fin_name='chainstate', version=0.15):
     # 8-byte zeros are used (since the key will be XORed with the given values).
     if o_key is not None:
         o_key = hexlify(o_key)[2:]
-    else:
-        o_key = "0000000000000000"
 
     coin = db.get(outpoint)
 
-    if coin is not None:
+    if coin is not None and o_key is not None:
         coin = deobfuscate_value(o_key, coin)
 
     db.close()
@@ -662,28 +661,35 @@ def get_utxo(tx_id, index, fin_name='chainstate', version=0.15):
 
 def deobfuscate_value(obfuscation_key, value):
     """
-    Deobfuscate a given value parsed from the chainstate.
+    De-obfuscate a given value parsed from the chainstate.
 
     :param obfuscation_key: Key used to obfuscate the given value (extracted from the chainstate).
     :type obfuscation_key: str
     :param value: Obfuscated value.
     :type value: str
-    :return: The deofuscated value.
+    :return: The de-ofuscated value.
     :rtype: str.
     """
 
-    if not match('^[0-9a-fA-F]*$', value):
-        return deobfuscate_value(obfuscation_key, hexlify(value))
+    l_value = len(value)
+    l_obf = len(obfuscation_key)
 
-    if not match('^[0-9a-fA-F]*$', obfuscation_key):
-        return deobfuscate_value(hexlify(obfuscation_key), value)
+    # Get the extended obfuscation key by concatenating the obfuscation key with itself until it is as large as the
+    # value to be de-obfuscated.
+    if l_obf < l_value:
+        extended_key = (obfuscation_key * ((l_value / l_obf) + 1))[:l_value]
+    else:
+        extended_key = obfuscation_key[:l_value]
 
-    # XORs ith content of value with the ith content of obfuscation_key for every position fo value. If the length of
-    #  value is greater than the key length, the obfuscation_key is concatenated with itself to fit the proper size.
+    r = format(int(value, 16) ^ int(extended_key, 16), 'x')
 
-    r = "".join([format(int(v, 16) ^ int(obfuscation_key[i % len(obfuscation_key)], 16), 'x') for i, v in
-                 enumerate(value)])
+    # In some cases, the obtained value could be 1 byte smaller than the original, since the leading 0 is dropped off
+    # when the formatting.
+    if len(r) is l_value-1:
+        r = r.zfill(l_value)
 
     assert len(value) == len(r)
 
     return r
+
+
