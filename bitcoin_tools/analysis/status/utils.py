@@ -42,7 +42,7 @@ def txout_decompress(x):
 
     :param x: Compressed amount to be decompressed.
     :type x: int
-    :return: The decompressed amount of Satoshis.
+    :return: The decompressed amount of satoshi.
     :rtype: int
     """
 
@@ -285,7 +285,7 @@ def decode_utxo_v08_v014(utxo):
         least one non-spent output).
 
     VARINT refers to the CVarint used along the Bitcoin Core client, that is base128 encoding. A CTxOut contains the
-    compressed amount of Satoshis that the UTXO holds. That amount is encoded using the equivalent to txout_compress +
+    compressed amount of satoshi that the UTXO holds. That amount is encoded using the equivalent to txout_compress +
     b128_encode.
 
     :param utxo: UTXO to be decoded (extracted from the chainstate)
@@ -344,7 +344,7 @@ def decode_utxo_v08_v014(utxo):
     # Once the number of outs and their index is known, they could be parsed.
     outs = []
     for i in vout:
-        # The Satoshis amount is parsed, decoded and decompressed.
+        # The satoshi amount is parsed, decoded and decompressed.
         data, offset = parse_b128(utxo, offset)
         amount = txout_decompress(b128_decode(data))
         # The output type is also parsed.
@@ -747,6 +747,7 @@ def deobfuscate_value(obfuscation_key, value):
 
 
 def roundup_rate(fee_rate, fee_step=FEE_STEP):
+
     """
     Rounds up a given fee rate to the nearest fee_step (FEE_STEP by default). If the rounded value it the value itself,
     adds fee_step, assuring that the returning rate is always bigger than the given one.

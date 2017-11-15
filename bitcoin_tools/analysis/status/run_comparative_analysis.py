@@ -1,7 +1,6 @@
 from bitcoin_tools.analysis.status.data_dump import transaction_dump, utxo_dump
-from bitcoin_tools.analysis.status.utils import parse_ldb, accumulate_dust_lm
-from bitcoin_tools.analysis.status.plots import plot_from_file_dict, plot_pie_chart_from_file, overview_from_file, \
-    plots_from_file
+from bitcoin_tools.analysis.status.utils import parse_ldb
+from bitcoin_tools.analysis.status.plots import plots_from_file
 from bitcoin_tools import CFG
 from os import mkdir, path
 
@@ -46,9 +45,8 @@ if not path.isdir(CFG.figs_path + str(version)):
 plots_from_file(["total_len"]*2, y=["tx"]*2, xlabel="Total length (bytes)", log_axis="x", version=[0.14, 0.15],
                 filtr=[lambda x: True]*2,
                 save_fig="tx_total_len_logx_0.14-0.15")
-plots_from_file(["register_len", "total_len"], y=["utxo", "tx"], xlabel="Register size (in bytes)", version=[0.15, 0.14],
-                filtr=[lambda x: True] * 2,
-                save_fig="tx_register_size_all")
+plots_from_file(["register_len", "total_len"], y=["utxo", "tx"], xlabel="Register size (in bytes)",
+                version=[0.15, 0.14], filtr=[lambda x: True] * 2, save_fig="tx_register_size_all")
 
 plots_from_file(["total_len"]*2, y=["tx"]*2, xlabel="Total length (bytes)", log_axis="x", version=[0.14, 0.15],
                 filtr=[lambda x: True]*2,

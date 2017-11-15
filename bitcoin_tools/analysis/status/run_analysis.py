@@ -40,10 +40,10 @@ parse_ldb(f_utxos, fin_name=chainstate, version=version)
 
 # Parses transactions and utxos from the dumped data.
 transaction_dump(f_utxos, f_parsed_txs, version=version)
-# utxo_dump(f_utxos, f_parsed_utxos, version=version)
+utxo_dump(f_utxos, f_parsed_utxos, version=version)
 
 # In case we want to count P2SH
-utxo_dump(f_utxos, f_parsed_utxos_w_p2sh, count_p2sh=True, version=version)
+# utxo_dump(f_utxos, f_parsed_utxos_w_p2sh, count_p2sh=True, version=version)
 
 # Non-standard utxos can be parsed separately by setting the flag.
 # utxo_dump(f_utxos, non_std_utxos, version=version, non_std_only=True)
@@ -59,7 +59,8 @@ plots_from_file("total_len", xlabel="Total length (bytes)", log_axis="x", versio
 plots_from_file("version", version=version, save_fig="tx_version")
 plots_from_file("total_value", log_axis="x", version=version, save_fig="tx_total_value_logx")
 plots_from_file("num_utxos", xlabel="Number of utxos per tx", version=version, save_fig="tx_num_utxos")
-plots_from_file("num_utxos", xlabel="Number of utxos per tx", log_axis="x", version=version, save_fig="tx_num_utxos_logx")
+plots_from_file('num_utxos', xlabel="Number of utxos per tx", log_axis="x", version=version,
+                save_fig="tx_num_utxos_logx")
 
 plot_pie_chart_from_file("coinbase", y="tx", title="",
                          labels=['Coinbase', 'No-coinbasae'], groups=[[1], [0]],
@@ -89,12 +90,14 @@ plot_pie_chart_from_file("out_type", y="utxo", title="",
                          colors=["#165873", "#428C5C", "#4EA64B", "#ADD96C"],
                          version=version, save_fig="utxo_types", font_size=20)
 
-#get_unique_values("non_std_type", y="utxo", version=0.15)
-g = [[u'multisig-1-3'], [u'multisig-1-2'], [u'multisig-1-1'], [u'multisig-3-3'], [u'multisig-2-2'], [u'multisig-2-3'],
-     [False, u'multisig-OP_NOTIF-OP_NOTIF', u'multisig-<2153484f55544f555420544f2023424954434f494e2d415353455453202020202020202020202020202020202020202020202020202020202020202020202020>-1']]
-l = ['M. 1-3', 'M. 1-2', 'M. 1-1', 'M. 3-3', 'M. 2-2', 'M. 2-3', 'Other']
+# ToDo: Cris add comment
+# get_unique_values("non_std_type", y="utxo", version=0.15)
+groups = [[u'multisig-1-3'], [u'multisig-1-2'], [u'multisig-1-1'], [u'multisig-3-3'], [u'multisig-2-2'],
+          [u'multisig-2-3'],[False, u'multisig-OP_NOTIF-OP_NOTIF', u'multisig-<2153484f55544f555420544f2023424954434f494e2d415353455453202020202020202020202020202020202020202020202020202020202020202020202020>-1']]
+labels = ['M. 1-3', 'M. 1-2', 'M. 1-1', 'M. 3-3', 'M. 2-2', 'M. 2-3', 'Other']
+
 plot_pie_chart_from_file("non_std_type", y="utxo", title="",
-                         labels=l, groups=g,
+                         labels=labels, groups=groups,
                          colors=["#165873", "#428C5C", "#4EA64B", "#ADD96C", "#B1D781", "#FAD02F", "#F69229"],
                          version=version, save_fig="utxo_non_std_type", font_size=20)
 
@@ -123,9 +126,8 @@ plots_from_file(["tx_height"]*4, y=["utxo"]*4, xlabel="Tx. height", version=[ver
                 filtr=[lambda x: x["out_type"] == 0,
                        lambda x: x["out_type"] == 1,
                        lambda x: x["out_type"] in [2, 3, 4, 5],
-                       lambda x: x["out_type"] not in range(0,6)],
+                       lambda x: x["out_type"] not in range(0, 6)],
                 legend=['P2PKH', 'P2SH', 'P2PK', 'Other'], legend_loc=2)
-
 
 
 plots_from_file(["amount"] * 4, y=["utxo"] * 4, xlabel="Height", version=[version]*4,
@@ -136,7 +138,7 @@ plots_from_file(["amount"] * 4, y=["utxo"] * 4, xlabel="Height", version=[versio
                        lambda x: x["amount"] < 10 ** 8],
                 legend=['$<10^2$', '$<10^4$', '$<10^6$', '$<10^8$'], legend_loc=2)
 
-# P2SH segwit
+# P2SH SegWit
 plots_from_file("tx_height", y="utxo", xlabel="Tx. height", version=version, save_fig="temp",
                 filtr=lambda x: x["out_type"] == 1,
                 legend=['P2SH'], legend_loc=2)

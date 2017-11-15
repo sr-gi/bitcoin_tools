@@ -5,23 +5,23 @@ from json import loads
 from collections import Counter
 import numpy as np
 
+
 def plots_from_file(x_attribute, y=["tx"], xlabel=False, log_axis=False, version=[0.15], save_fig=False, legend=None,
                     legend_loc=1, font_size=20, filtr=[lambda x: True]):
-
     """
     Generates plots from utxo/tx data extracted from utxo_dump.
 
     :param x_attribute: Attribute to plot (must be a key in the dictionary of the dumped data).
-    :type x_attribute: str
+    :type x_attribute: str or list
     :param y: Either "tx" or "utxo"
-    :type y: str
+    :type y: str or list
     :param xlabel: Label on the x axis
     :type xlabel: str
     :param log_axis: Determines which axis are plotted using (accepted values are False, "x", "y" or "xy").
     logarithmic scale
     :type log_axis: str
     :param version: Bitcoin core version, used to decide the folder in which to store the data.
-    :type version: float
+    :type version: float or list
     :param save_fig: Figure's filename or False (to show the interactive plot)
     :type save_fig: str
     :param legend: List of strings with legend entries or None (if no legend is needed)
@@ -30,6 +30,8 @@ def plots_from_file(x_attribute, y=["tx"], xlabel=False, log_axis=False, version
     :type legend_loc: int
     :param font_size: Title, xlabel and ylabel font size
     :type font_size: int
+    :param filtr: Function to filter samples (returns a boolean value for a given sample)
+    :type filtr: function or list of functions
     :return: None
     :rtype: None
     """
@@ -47,7 +49,7 @@ def plots_from_file(x_attribute, y=["tx"], xlabel=False, log_axis=False, version
         filtr = [filtr]
 
     assert len(x_attribute) == len(y) == len(version) == len(filtr), \
-        "There is a mismatch on the list lenght of some of the parameters"
+        "There is a mismatch on the list length of some of the parameters"
 
     if y[0] == "tx":
         ylabel = "Number of tx."
@@ -74,7 +76,6 @@ def plots_from_file(x_attribute, y=["tx"], xlabel=False, log_axis=False, version
     
 def plot_from_file_dict(x_attribute, y="dust", fin_name=None, percentage=False, xlabel=False,
                         log_axis=False, version=0.15, save_fig=False, legend=None, legend_loc=1, font_size=20):
-
     """
     Generate plots from files in which the loaded data is a dictionary, such as dust.json.
 
@@ -167,6 +168,8 @@ def plot_pie_chart_from_file(x_attribute, y="tx", title="", labels=[], groups=[]
 
     :param x_attribute: Attribute to plot (must be a key in the dictionary of the dumped data).
     :type x_attribute: str
+    :param title: Title of the chart.
+    :type title: str
     :param y: Either "tx" or "utxo"
     :type y: str
     :param labels: List of labels (one label for each piece of the pie)
@@ -187,10 +190,8 @@ def plot_pie_chart_from_file(x_attribute, y="tx", title="", labels=[], groups=[]
 
     if y == "tx":
         fin = open(CFG.data_path + str(version) + '/' + 'parsed_txs.json', 'r')
-        ylabel = "Number of tx."
     elif y == "utxo":
         fin = open(CFG.data_path + str(version) + '/' + 'parsed_utxos.json', 'r')
-        ylabel = "Number of UTXOs"
     else:
         raise ValueError('Unrecognized y value')
 
@@ -226,7 +227,6 @@ def plot_pie_chart_from_file(x_attribute, y="tx", title="", labels=[], groups=[]
 
 
 def overview_from_file(version=0.15):
-
     """
     Prints a summary of basic stats.
 
@@ -259,7 +259,6 @@ def overview_from_file(version=0.15):
 
 
 def get_samples(x_attribute, y="tx", version=0.15, filtr=lambda x: True):
-
     """
     Reads data from .json files and creates a list with the attribute of interest values.
 
