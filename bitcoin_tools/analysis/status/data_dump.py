@@ -7,8 +7,11 @@ import ujson
 from collections import OrderedDict
 from subprocess import call
 
+from os import remove
+
 
 def transaction_dump(fin_name, fout_name, version=0.15):
+    # ToDo: Profile this function
     # Transaction dump
 
     if version < 0.15:
@@ -103,7 +106,7 @@ def transaction_dump(fin_name, fout_name, version=0.15):
         fin.close()
         fout.close()
 
-        # remove(CFG.data_path + "temp.json")
+        remove(CFG.data_path + "temp.json")
 
 
 def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=False):
@@ -132,28 +135,15 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
 
                 # Calculates the dust threshold for every UTXO value and every fee per byte ratio between min and max.
                 min_size = get_min_input_size(out, utxo["height"], count_p2sh)
+                dust = 0
+                lm = 0
 
                 if min_size > 0:
-                    # Check the exact values of dust and non-profitable for the given output.
                     raw_dust = out["amount"] / float(3 * min_size)
                     raw_lm = out["amount"] / float(min_size)
 
-                    # Round up the values to the FEE_STEP if necessary.
-                    if MIN_FEE_PER_BYTE <= raw_dust <= MAX_FEE_PER_BYTE:
-                        dust = roundup_rate(raw_dust, FEE_STEP)
-                    else:
-                        dust = MIN_FEE_PER_BYTE
-                    if MIN_FEE_PER_BYTE <= raw_lm <= MAX_FEE_PER_BYTE:
-                        lm = roundup_rate(raw_lm, FEE_STEP)
-                    else:
-                        lm = MIN_FEE_PER_BYTE
-
-                # Set the values to 0 if the outputs are marked to not be analyzed (size 0 or -1), or if the amount
-                # is big enough to exclude it from the analysis (> MAX_FEE_PER_BYTE)
-                if dust > MAX_FEE_PER_BYTE or min_size <= 0:
-                    dust = 0
-                if lm > MAX_FEE_PER_BYTE or min_size <= 0:
-                    lm = 0
+                    dust = roundup_rate(raw_dust, FEE_STEP)
+                    lm = roundup_rate(raw_lm, FEE_STEP)
 
                 # Adds multisig type info
                 if out["out_type"] in [0, 1, 2, 3, 4, 5]:

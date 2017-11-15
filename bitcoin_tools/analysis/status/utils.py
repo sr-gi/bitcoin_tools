@@ -481,16 +481,26 @@ def accumulate_dust_lm(fin_name, fout_name="dust.json"):
 
         # If the UTXO is dust for the checked range, we increment the dust count, dust value and dust length for the
         # given threshold.
-        if MIN_FEE_PER_BYTE <= data['dust'] < MAX_FEE_PER_BYTE:
-            dust[data['dust']] += 1
-            value_dust[data['dust']] += data["amount"]
-            data_len_dust[data['dust']] += data["utxo_data_len"]
+        if 0 < data['dust'] < MAX_FEE_PER_BYTE:
+            if data['dust'] < MIN_FEE_PER_BYTE:
+                rate = MIN_FEE_PER_BYTE
+            elif MIN_FEE_PER_BYTE <= data['dust']:
+                rate = data['dust']
+
+            dust[rate] += 1
+            value_dust[rate] += data["amount"]
+            data_len_dust[rate] += data["utxo_data_len"]
 
         # Same with non-profitable outputs.
-        if MIN_FEE_PER_BYTE <= data['loss_making'] < MAX_FEE_PER_BYTE:
-            lm[data['loss_making']] += 1
-            value_lm[data['loss_making']] += data["amount"]
-            data_len_lm[data['loss_making']] += data["utxo_data_len"]
+        if 0 < data['loss_making'] < MAX_FEE_PER_BYTE:
+            if data['loss_making'] < MIN_FEE_PER_BYTE:
+                rate = MIN_FEE_PER_BYTE
+            elif MIN_FEE_PER_BYTE <= data['loss_making']:
+                rate = data['loss_making']
+
+            lm[rate] += 1
+            value_lm[rate] += data["amount"]
+            data_len_lm[rate] += data["utxo_data_len"]
 
         # And we increase the total counters for each read utxo.
         total_utxo = total_utxo + 1
@@ -767,9 +777,9 @@ def roundup_rate(fee_rate, fee_step=FEE_STEP):
     else:
         rate = int(ceil(fee_rate / float(10))) * 10
 
-    # If the rounded up value is
-    if rate >= MAX_FEE_PER_BYTE:
-        rate = 0
+    # # If the rounded up value is
+    # if rate >= MAX_FEE_PER_BYTE:
+    #     rate = 0
 
     return rate
 
