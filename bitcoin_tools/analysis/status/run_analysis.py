@@ -90,8 +90,11 @@ plot_pie_chart_from_file("out_type", y="utxo", title="",
                          colors=["#165873", "#428C5C", "#4EA64B", "#ADD96C"],
                          version=version, save_fig="utxo_types", font_size=20)
 
-# ToDo: Cris add comment
+# We can use get_unique_values() to obtain all values for the non_std_type attribute found in the analysed samples:
 # get_unique_values("non_std_type", y="utxo", version=0.15)
+# Once we know all the possible values, we can create a pie chart, assigning a piece of the pie to the main values
+# and grouping all the rest into an "Other" category. E.g., we create pieces for multisig 1-1, 1-2, 1-3, 2-2, 2-3
+# and 3-3, and put the rest into "Other".
 groups = [[u'multisig-1-3'], [u'multisig-1-2'], [u'multisig-1-1'], [u'multisig-3-3'], [u'multisig-2-2'],
           [u'multisig-2-3'],[False, u'multisig-OP_NOTIF-OP_NOTIF', u'multisig-<2153484f55544f555420544f2023424954434f494e2d415353455453202020202020202020202020202020202020202020202020202020202020202020202020>-1']]
 labels = ['M. 1-3', 'M. 1-2', 'M. 1-1', 'M. 3-3', 'M. 2-2', 'M. 2-3', 'Other']
