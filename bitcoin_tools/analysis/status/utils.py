@@ -5,6 +5,7 @@ from math import ceil
 from copy import deepcopy
 from bitcoin_tools.analysis.status import *
 from bitcoin_tools.utils import change_endianness
+from bitcoin_tools.core.script import OutputScript
 
 
 def txout_compress(n):
@@ -543,6 +544,42 @@ def check_multisig(script, std=True):
         return True
     else:
         return False
+
+
+def check_multisig_type(script):
+    """
+    Checks whether a given script is a multisig one. If it is multisig, return type (m and n values).
+
+    :param script: The script to be checked.
+    :type script: str
+    :return: "multisig-m-n" or False
+    """
+
+    if len(OutputScript.deserialize(script).split()) > 2:
+        # TODO: should we be more restrictive?
+        m = OutputScript.deserialize(script).split()[0]
+        n = OutputScript.deserialize(script).split()[-2]
+        op_multisig = OutputScript.deserialize(script).split()[-1]
+
+        if op_multisig == "OP_CHECKMULTISIG" and script[2:4] in ["21", "41"]:
+            return "multisig-"+ str(m) + "-" + str(n)
+
+    return False
+
+
+def check_opreturn(script):
+    """
+    Checks whether a given script is an OP_RETURN one.
+
+    Warning: there should NOT be any OP_RETURN output in the UTXO set.
+
+    :param script: The script to be checked.
+    :type script: str
+    :return: True if the script is an OP_RETURN, False otherwise.
+    :rtype: bool
+    """
+    op_return_opcode = 0x6a
+    return int(script[:2], 16) == op_return_opcode
 
 
 def get_min_input_size(out, height, count_p2sh=False):

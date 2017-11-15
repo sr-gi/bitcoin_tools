@@ -1,6 +1,7 @@
 from bitcoin_tools.analysis.status.data_dump import transaction_dump, utxo_dump
 from bitcoin_tools.analysis.status.utils import parse_ldb, accumulate_dust_lm
-from bitcoin_tools.analysis.status.plots import plot_from_file, plot_from_file_dict, plot_pie_chart_from_file, overview_from_file
+from bitcoin_tools.analysis.status.plots import plot_from_file_dict, plot_pie_chart_from_file, overview_from_file, \
+    plots_from_file
 from bitcoin_tools import CFG
 from os import mkdir, path
 
@@ -51,13 +52,14 @@ utxo_dump(f_utxos, f_parsed_utxos_w_p2sh, count_p2sh=True, version=version)
 overview_from_file(version)
 
 # Generate plots from tx data (from f_parsed_txs)
-plot_from_file("height", version=version, save_fig="tx_height")
-plot_from_file("total_len", xlabel="Total length (bytes)", version=version, save_fig="tx_total_len")
-plot_from_file("total_len", xlabel="Total length (bytes)", log_axis="x", version=version, save_fig="tx_total_len_logx")
-plot_from_file("version", version=version, save_fig="tx_version")
-plot_from_file("total_value", log_axis="x", version=version, save_fig="tx_total_value_logx")
-plot_from_file("num_utxos", xlabel="Number of utxos per tx", version=version, save_fig="tx_num_utxos")
-plot_from_file("num_utxos", xlabel="Number of utxos per tx", log_axis="x", version=version, save_fig="tx_num_utxos_logx")
+
+plots_from_file("height", version=version, save_fig="tx_height")
+plots_from_file("total_len", xlabel="Total length (bytes)", version=version, save_fig="tx_total_len")
+plots_from_file("total_len", xlabel="Total length (bytes)", log_axis="x", version=version, save_fig="tx_total_len_logx")
+plots_from_file("version", version=version, save_fig="tx_version")
+plots_from_file("total_value", log_axis="x", version=version, save_fig="tx_total_value_logx")
+plots_from_file("num_utxos", xlabel="Number of utxos per tx", version=version, save_fig="tx_num_utxos")
+plots_from_file("num_utxos", xlabel="Number of utxos per tx", log_axis="x", version=version, save_fig="tx_num_utxos_logx")
 
 plot_pie_chart_from_file("coinbase", y="tx", title="",
                          labels=['Coinbase', 'No-coinbasae'], groups=[[1], [0]],
@@ -65,16 +67,17 @@ plot_pie_chart_from_file("coinbase", y="tx", title="",
                          version=version, save_fig="tx_coinbase", font_size=20)
 
 # Generate plots from utxo data (from f_parsed_utxos)
-plot_from_file("tx_height", y="utxo", version=version, save_fig="utxo_tx_height")
-plot_from_file("amount", y="utxo", log_axis="x", version=version, save_fig="utxo_amount_logx")
-plot_from_file("index", y="utxo", version=version, save_fig="utxo_index")
-plot_from_file("index", y="utxo", log_axis="x", version=version, save_fig="utxo_index_logx")
-plot_from_file("out_type", y="utxo", version=version, save_fig="utxo_out_type")
-plot_from_file("out_type", y="utxo", log_axis="x", version=version, save_fig="utxo_out_type_logx")
-plot_from_file("utxo_data_len", y="utxo", version=version, save_fig="utxo_data_len")
-plot_from_file("utxo_data_len", y="utxo", log_axis="x", version=version, save_fig="utxo_data_len_logx")
-plot_from_file("index", y="utxo", version=version, save_fig="utxo_index")
-plot_from_file("index", y="utxo", log_axis="x", version=version, save_fig="utxo_index_logx")
+
+plots_from_file("tx_height", y="utxo", version=version, save_fig="utxo_tx_height")
+plots_from_file("amount", y="utxo", log_axis="x", version=version, save_fig="utxo_amount_logx")
+plots_from_file("index", y="utxo", version=version, save_fig="utxo_index")
+plots_from_file("index", y="utxo", log_axis="x", version=version, save_fig="utxo_index_logx")
+plots_from_file("out_type", y="utxo", version=version, save_fig="utxo_out_type")
+plots_from_file("out_type", y="utxo", log_axis="x", version=version, save_fig="utxo_out_type_logx")
+plots_from_file("utxo_data_len", y="utxo", version=version, save_fig="utxo_data_len")
+plots_from_file("utxo_data_len", y="utxo", log_axis="x", version=version, save_fig="utxo_data_len_logx")
+plots_from_file("index", y="utxo", version=version, save_fig="utxo_index")
+plots_from_file("index", y="utxo", log_axis="x", version=version, save_fig="utxo_index_logx")
 
 plot_pie_chart_from_file("out_type", y="utxo", title="",
                          labels=['C-even', 'C-odd', 'U-even', 'U-odd'], groups=[[2], [3], [4], [5]],
@@ -85,6 +88,58 @@ plot_pie_chart_from_file("out_type", y="utxo", title="",
                          labels=['P2PKH', 'P2PK', 'P2SH', 'Other'], groups=[[0], [2, 3, 4, 5], [1]],
                          colors=["#165873", "#428C5C", "#4EA64B", "#ADD96C"],
                          version=version, save_fig="utxo_types", font_size=20)
+
+#get_unique_values("non_std_type", y="utxo", version=0.15)
+g = [[u'multisig-1-3'], [u'multisig-1-2'], [u'multisig-1-1'], [u'multisig-3-3'], [u'multisig-2-2'], [u'multisig-2-3'],
+     [False, u'multisig-OP_NOTIF-OP_NOTIF', u'multisig-<2153484f55544f555420544f2023424954434f494e2d415353455453202020202020202020202020202020202020202020202020202020202020202020202020>-1']]
+l = ['M. 1-3', 'M. 1-2', 'M. 1-1', 'M. 3-3', 'M. 2-2', 'M. 2-3', 'Other']
+plot_pie_chart_from_file("non_std_type", y="utxo", title="",
+                         labels=l, groups=g,
+                         colors=["#165873", "#428C5C", "#4EA64B", "#ADD96C", "#B1D781", "#FAD02F", "#F69229"],
+                         version=version, save_fig="utxo_non_std_type", font_size=20)
+
+plots_from_file("register_len", y="utxo", version=version, save_fig="utxo_register_len")
+
+# Generate plots with both transaction and utxo data (f_parsed_txs and f_parsed_utxos)
+
+plots_from_file(["total_value", "amount"], y=["tx", "utxo"], xlabel="Amount (Satoshis)", version=[version]*2,
+                filtr=[lambda x: True]*2,
+                save_fig="tx_utxo_amount")
+
+plots_from_file(["height", "tx_height"], y=["tx", "utxo"], xlabel="Height", version=[version]*2,
+                filtr=[lambda x: True]*2,
+                legend = ['Tx.', 'UTXO'], legend_loc=2,
+                save_fig="tx_utxo_height")
+
+plots_from_file(["total_value", "amount"], y=["tx", "utxo"], xlabel="Amount (Satoshis)", version=[version]*2,
+                filtr=[lambda x: True]*2,
+                save_fig="tx_utxo_amount")
+
+# Generate plots with filters
+
+plots_from_file("height", version=version, save_fig="tx_height_coinbase", filtr=lambda x: x["coinbase"])
+
+plots_from_file(["tx_height"]*4, y=["utxo"]*4, xlabel="Tx. height", version=[version]*4, save_fig="tx_height_outtype",
+                filtr=[lambda x: x["out_type"] == 0,
+                       lambda x: x["out_type"] == 1,
+                       lambda x: x["out_type"] in [2, 3, 4, 5],
+                       lambda x: x["out_type"] not in range(0,6)],
+                legend=['P2PKH', 'P2SH', 'P2PK', 'Other'], legend_loc=2)
+
+
+
+plots_from_file(["amount"] * 4, y=["utxo"] * 4, xlabel="Height", version=[version]*4,
+                save_fig="tx_height_amount",
+                filtr=[lambda x: x["amount"] < 10 ** 2,
+                       lambda x: x["amount"] < 10 ** 4,
+                       lambda x: x["amount"] < 10 ** 6,
+                       lambda x: x["amount"] < 10 ** 8],
+                legend=['$<10^2$', '$<10^4$', '$<10^6$', '$<10^8$'], legend_loc=2)
+
+# P2SH segwit
+plots_from_file("tx_height", y="utxo", xlabel="Tx. height", version=version, save_fig="temp",
+                filtr=lambda x: x["out_type"] == 1,
+                legend=['P2SH'], legend_loc=2)
 
 # Generate plots for dust analysis (including percentage scale).
 # First, the dust accumulation file is generated (if requited).

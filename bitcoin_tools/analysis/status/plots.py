@@ -5,9 +5,9 @@ from json import loads
 from collections import Counter
 import numpy as np
 
+def plots_from_file(x_attribute, y=["tx"], xlabel=False, log_axis=False, version=[0.15], save_fig=False, legend=None,
+                    legend_loc=1, font_size=20, filtr=[lambda x: True]):
 
-def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, version=0.15, save_fig=False, legend=None,
-                   legend_loc=1, font_size=20):
     """
     Generates plots from utxo/tx data extracted from utxo_dump.
 
@@ -34,33 +34,44 @@ def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, version=0.
     :rtype: None
     """
 
-    if y == "tx":
-        fin = open(CFG.data_path + str(version) + '/' + 'parsed_txs.json', 'r')
+    if not (isinstance(x_attribute, list) or isinstance(x_attribute, np.ndarray)):
+        x_attribute = [x_attribute]
+
+    if not (isinstance(y, list) or isinstance(y, np.ndarray)):
+        y = [y]
+
+    if not (isinstance(version, list) or isinstance(version, np.ndarray)):
+        version = [version]
+
+    if not (isinstance(filtr, list) or isinstance(filtr, np.ndarray)):
+        filtr = [filtr]
+
+    assert len(x_attribute) == len(y) == len(version) == len(filtr), \
+        "There is a mismatch on the list lenght of some of the parameters"
+
+    if y[0] == "tx":
         ylabel = "Number of tx."
-    elif y == "utxo":
-        fin = open(CFG.data_path + str(version) + '/' + 'parsed_utxos.json', 'r')
+    elif y[0] == "utxo":
         ylabel = "Number of UTXOs"
-    else:
-        raise ValueError('Unrecognized y value')
 
-    # Adds the folder in which the data will be stored
-    save_fig = str(version) + '/' + save_fig
-
-    samples = []
-    for line in fin:
-        data = loads(line[:-1])
-        samples.append(data[x_attribute])
-
-    fin.close()
-
-    [xs, ys] = get_cdf(samples, normalize=True)
     title = ""
     if not xlabel:
         xlabel = x_attribute
 
+    xs, ys = [], []
+    for i in range(len(x_attribute)):
+        samples = get_samples(x_attribute[i], y=y[i], version=version[i], filtr=filtr[i])
+        [xc, yc] = get_cdf(samples, normalize=True)
+        xs.append(xc)
+        ys.append(yc)
+
+    # Adds the folder in which the data will be stored (if multiple versions are involved, store it
+    # in the first one folder)
+    save_fig = str(version[0]) + '/' + save_fig
+
     plot_distribution(xs, ys, title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
-
-
+    
+    
 def plot_from_file_dict(x_attribute, y="dust", fin_name=None, percentage=False, xlabel=False,
                         log_axis=False, version=0.15, save_fig=False, legend=None, legend_loc=1, font_size=20):
 
@@ -193,10 +204,10 @@ def plot_pie_chart_from_file(x_attribute, y="tx", title="", labels=[], groups=[]
     # Adds the folder in which the data will be stored
     save_fig = str(version) + '/' + save_fig
 
-    # Count occurences
+    # Count occurrences
     ctr = Counter(samples)
 
-    # Sum occurences that belong to the same pie group
+    # Sum occurrences that belong to the same pie group
     values = []
     for group in groups:
         group_value = 0
@@ -247,7 +258,8 @@ def overview_from_file(version=0.15):
     print "Median size per utxo: ", str(np.median(samples))
 
 
-def get_samples(x_attribute, y="tx", version=0.15):
+def get_samples(x_attribute, y="tx", version=0.15, filtr=lambda x: True):
+
     """
     Reads data from .json files and creates a list with the attribute of interest values.
 
@@ -257,10 +269,10 @@ def get_samples(x_attribute, y="tx", version=0.15):
     :type y: str
     :param version: Bitcoin core version, used to decide the folder in which to store the data.
     :type version: float
+    :param filtr: Function to filter samples (returns a boolean value for a given sample)
+    :type filtr: function
     :return:
     """
-
-    # TODO: Use this function to simplify plot_from_file functions!
 
     if y == "tx":
         fin = open(CFG.data_path + str(version) + '/' + 'parsed_txs.json', 'r')
@@ -272,8 +284,27 @@ def get_samples(x_attribute, y="tx", version=0.15):
     samples = []
     for line in fin:
         data = loads(line[:-1])
-        samples.append(data[x_attribute])
+        if filtr(data):
+            samples.append(data[x_attribute])
 
     fin.close()
 
     return samples
+    
+
+def get_unique_values(x_attribute, y="tx", version=0.15):
+    """
+    Reads data from a .json file and returns all values found in x_attribute.
+
+    :param x_attribute: Attribute to analyse.
+    :type x_attribute: str
+    :param y: Either "tx" or "utxo"
+    :type y: str
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
+    :return: list of unique x_attribute values
+    """
+
+    samples = get_samples(x_attribute, y=y, version=version)
+
+    return list(set(samples))
