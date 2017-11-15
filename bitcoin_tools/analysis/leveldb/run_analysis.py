@@ -57,10 +57,6 @@ plot_pie_chart_from_file("coinbase", y="tx", title="",
                          colors=["#165873", "#428C5C"],
                          version=version, save_fig="tx_coinbase", font_size=20)
 
-plots_from_file(["total_len"]*2, y=["tx"]*2, xlabel="Total length (bytes)", log_axis="x", version=[0.14, 0.15],
-                filtr=[lambda x: True]*2,
-                save_fig="tx_total_len_logx_0.14-0.15")
-
 # Generate plots from utxo data (from f_parsed_utxos)
 
 plot_from_file("tx_height", y="utxo", version=version, save_fig="utxo_tx_height")
@@ -97,23 +93,18 @@ plot_from_file("register_len", y="utxo", version=version, save_fig="utxo_registe
 
 # Generate plots with both transaction and utxo data (f_parsed_txs and f_parsed_utxos)
 
-plots_from_file(["total_value", "amount"], y=["tx", "utxo"], xlabel="Amount (Satoshis)", version=[0.14]*2,
+plots_from_file(["total_value", "amount"], y=["tx", "utxo"], xlabel="Amount (Satoshis)", version=[version]*2,
                 filtr=[lambda x: True]*2,
                 save_fig="tx_utxo_amount")
 
-plots_from_file(["height", "tx_height"], y=["tx", "utxo"], xlabel="Height", version=[0.14]*2,
+plots_from_file(["height", "tx_height"], y=["tx", "utxo"], xlabel="Height", version=[version]*2,
                 filtr=[lambda x: True]*2,
                 legend = ['Tx.', 'UTXO'], legend_loc=2,
                 save_fig="tx_utxo_height")
 
-plots_from_file(["register_len", "total_len"], y=["utxo", "tx"], xlabel="Register size (in bytes)", version=[0.15, 0.14],
-                filtr=[lambda x: True] * 2,
-                save_fig="tx_register_size_all")
-
-plots_from_file(["total_value", "amount"], y=["tx", "utxo"], xlabel="Amount (Satoshis)", version=[0.14]*2,
+plots_from_file(["total_value", "amount"], y=["tx", "utxo"], xlabel="Amount (Satoshis)", version=[version]*2,
                 filtr=[lambda x: True]*2,
                 save_fig="tx_utxo_amount")
-
 
 # Generate plots with filters
 
@@ -126,10 +117,7 @@ plots_from_file(["tx_height"]*4, y=["utxo"]*4, xlabel="Tx. height", version=[ver
                        lambda x: x["out_type"] not in range(0,6)],
                 legend=['P2PKH', 'P2SH', 'P2PK', 'Other'], legend_loc=2)
 
-plots_from_file(["total_len"]*2, y=["tx"]*2, xlabel="Total length (bytes)", log_axis="x", version=[0.14, 0.15],
-                filtr=[lambda x: True]*2,
-                legend=["v0.14", "v0.15"],
-                save_fig="tx_total_len_logx_0.14-0.15")
+
 
 plots_from_file(["amount"] * 4, y=["utxo"] * 4, xlabel="Height", version=[version]*4,
                 save_fig="tx_height_amount",
