@@ -5,51 +5,6 @@ from json import loads
 from collections import Counter
 import numpy as np
 
-def plot_from_file(x_attribute, y="tx", xlabel=False, log_axis=False, version=0.15, save_fig=False, legend=None,
-                   legend_loc=1, font_size=20, filtr=lambda x: True):
-    """
-    Generates plots from utxo/tx data extracted from utxo_dump.
-
-    :param x_attribute: Attribute to plot (must be a key in the dictionary of the dumped data).
-    :type x_attribute: str
-    :param y: Either "tx" or "utxo"
-    :type y: str
-    :param xlabel: Label on the x axis
-    :type xlabel: str
-    :param log_axis: Determines which axis are plotted using (accepted values are False, "x", "y" or "xy").
-    logarithmic scale
-    :type log_axis: str
-    :param version: Bitcoin core version, used to decide the folder in which to store the data.
-    :type version: float
-    :param save_fig: Figure's filename or False (to show the interactive plot)
-    :type save_fig: str
-    :param legend: List of strings with legend entries or None (if no legend is needed)
-    :type legend: str list
-    :param legend_loc: Indicates the location of the legend (if present)
-    :type legend_loc: int
-    :param font_size: Title, xlabel and ylabel font size
-    :type font_size: int
-    :return: None
-    :rtype: None
-    """
-
-    samples = get_samples(x_attribute, y=y, version=version, filtr=filtr)
-
-    if y == "tx":
-        ylabel = "Number of tx."
-    elif y == "utxo":
-        ylabel = "Number of UTXOs"
-
-    # Adds the folder in which the data will be stored
-    save_fig = str(version) + '/' + save_fig
-
-    [xs, ys] = get_cdf(samples, normalize=True)
-    title = ""
-    if not xlabel:
-        xlabel = x_attribute
-
-    plot_distribution(xs, ys, title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
-
 
 def plots_from_file(x_attribute, y=["tx"], xlabel=False, log_axis=False, version=[0.15], save_fig=False, legend=None,
                     legend_loc=1, font_size=20, filtr=[lambda x: True]):
@@ -78,6 +33,18 @@ def plots_from_file(x_attribute, y=["tx"], xlabel=False, log_axis=False, version
     :return: None
     :rtype: None
     """
+
+    if not (isinstance(x_attribute, list) or isinstance(x_attribute, np.ndarray)):
+        x_attribute = [x_attribute]
+
+    if not (isinstance(y, list) or isinstance(y, np.ndarray)):
+        y = [y]
+
+    if not (isinstance(version, list) or isinstance(version, np.ndarray)):
+        version = [version]
+
+    if not (isinstance(filtr, list) or isinstance(filtr, np.ndarray)):
+        filtr = [filtr]
 
     assert len(x_attribute) == len(y) == len(version) == len(filtr), \
         "There is a mismatch on the list lenght of some of the parameters"
