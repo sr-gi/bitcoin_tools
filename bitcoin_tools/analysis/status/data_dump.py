@@ -1,8 +1,8 @@
 from bitcoin_tools import CFG
 from bitcoin_tools.utils import change_endianness
 from bitcoin_tools.analysis.status import MIN_FEE_PER_BYTE, MAX_FEE_PER_BYTE, FEE_STEP
-from bitcoin_tools.analysis.status.utils import check_multisig, get_min_input_size, decode_utxo
-from json import loads, dumps
+from bitcoin_tools.analysis.status.utils import check_multisig, get_min_input_size, decode_utxo, roundup_rate
+import ujson
 from collections import OrderedDict
 from subprocess import call
 
@@ -18,7 +18,7 @@ def transaction_dump(fin_name, fout_name, version=0.15):
         fout = open(CFG.data_path + fout_name, 'w')
 
         for line in fin:
-            data = loads(line[:-1])
+            data = ujson.loads(line[:-1])
 
             utxo = decode_utxo(data["value"], None, version)
             imprt = sum([out["amount"] for out in utxo.get("outs")])
@@ -30,7 +30,7 @@ def transaction_dump(fin_name, fout_name, version=0.15):
                       "coinbase": utxo["coinbase"],
                       "version": utxo["version"]}
 
-            fout.write(dumps(result) + '\n')
+            fout.write(ujson.dumps(result) + '\n')
 
         fout.close()
         fin.close()
@@ -44,7 +44,7 @@ def transaction_dump(fin_name, fout_name, version=0.15):
 
         # [1] Create temp file
         for line in fin:
-            data = loads(line[:-1])
+            data = ujson.loads(line[:-1])
 
             utxo = decode_utxo(data["value"], data["key"], version)
 
@@ -57,7 +57,7 @@ def transaction_dump(fin_name, fout_name, version=0.15):
                 ("coinbase", utxo["coinbase"]),
                 ("version", None)])
 
-            fout.write(dumps(result) + '\n')
+            fout.write(ujson.dumps(result) + '\n')
 
         fout.close()
         fin.close()
@@ -71,8 +71,8 @@ def transaction_dump(fin_name, fout_name, version=0.15):
 
         line_1 = fin.readline()
         line_2 = fin.readline()
-        line_1 = loads(line_1) if line_1 else None
-        line_2 = loads(line_2) if line_2 else None
+        line_1 = ujson.loads(line_1) if line_1 else None
+        line_2 = ujson.loads(line_2) if line_2 else None
 
         while line_1:
 
@@ -84,7 +84,7 @@ def transaction_dump(fin_name, fout_name, version=0.15):
                 total_value += line_2["total_value"]
                 num_utxos += line_2["num_utxos"]
                 line_2 = fin.readline()
-                line_2 = loads(line_2) if line_2 else None
+                line_2 = ujson.loads(line_2) if line_2 else None
 
             result = OrderedDict([
                 ("tx_id", line_1["tx_id"]),
@@ -94,10 +94,10 @@ def transaction_dump(fin_name, fout_name, version=0.15):
                 ("height", line_1["height"]),
                 ("coinbase", line_1["coinbase"]),
                 ("version", line_1["version"])])
-            fout.write(dumps(result) + '\n')
+            fout.write(ujson.dumps(result) + '\n')
             line_1 = line_2
             line_2 = fin.readline()
-            line_2 = loads(line_2) if line_2 else None
+            line_2 = ujson.loads(line_2) if line_2 else None
 
         fin.close()
         fout.close()
@@ -117,7 +117,7 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
     std_types = [0, 1, 2, 3, 4, 5]
 
     for line in fin:
-        data = loads(line[:-1])
+        data = ujson.loads(line[:-1])
         if version < 0.15:
             utxo = decode_utxo(data["value"], None, version)
             tx_id = change_endianness(data["key"][2:])
@@ -132,26 +132,27 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                 # Calculates the dust threshold for every UTXO value and every fee per byte ratio between min and max.
                 min_size = get_min_input_size(out, utxo["height"], count_p2sh)
 
-                # Initialize dust, lm and the fee_per_byte rate.
-                dust = 0
-                lm = 0
-
-                # ToDo: All this while can be optimized to perform just two multiplications and an if check.
-                # ToDO: Calculate dust as ceil(out["amount"] / (3 * min_size)) and lm as ceil(out["amount] * min_size)
-                # ToDo: If any of the results is multiple of FEE_STEP, add FEE_STEP
-                # We skip the calculation for P2SH when we are not counting them, and for non-std.
                 if min_size > 0:
-                    fee_per_byte = MIN_FEE_PER_BYTE
-                    # Check whether the utxo is dust/lm for the fee_per_byte range.
-                    while MAX_FEE_PER_BYTE > fee_per_byte and lm == 0:
-                        # Set the dust and loss_making thresholds.
-                        if dust is 0 and min_size * fee_per_byte > out["amount"] / 3:
-                            dust = fee_per_byte
-                        if lm is 0 and out["amount"] < min_size * fee_per_byte:
-                            lm = fee_per_byte
+                    # Check the exact values of dust and non-profitable for the given output.
+                    raw_dust = out["amount"] / float(3 * min_size)
+                    raw_lm = out["amount"] / float(min_size)
 
-                        # Increase the ratio
-                        fee_per_byte += FEE_STEP
+                    # Round up the values to the FEE_STEP if necessary.
+                    if MIN_FEE_PER_BYTE <= raw_dust <= MAX_FEE_PER_BYTE:
+                        dust = roundup_rate(raw_dust, FEE_STEP)
+                    else:
+                        dust = MIN_FEE_PER_BYTE
+                    if MIN_FEE_PER_BYTE <= raw_lm <= MAX_FEE_PER_BYTE:
+                        lm = roundup_rate(raw_lm, FEE_STEP)
+                    else:
+                        lm = MIN_FEE_PER_BYTE
+
+                # Set the values to 0 if the outputs are marked to not be analyzed (size 0 or -1), or if the amount
+                # is big enough to exclude it from the analysis (> MAX_FEE_PER_BYTE)
+                if dust > MAX_FEE_PER_BYTE or min_size <= 0:
+                    dust = 0
+                if lm > MAX_FEE_PER_BYTE or min_size <= 0:
+                    lm = 0
 
                 # Builds the output dictionary
                 result = {"tx_id": tx_id,
@@ -167,6 +168,6 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
 
                 # Updates the dictionary with the remaining data from out, and stores it in disk.
                 result.update(out)
-                fout.write(dumps(result) + '\n')
+                fout.write(ujson.dumps(result) + '\n')
 
     fout.close()

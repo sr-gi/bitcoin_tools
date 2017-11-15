@@ -463,7 +463,7 @@ def accumulate_dust_lm(fin_name, fout_name="dust.json"):
     # Input file
     fin = open(CFG.data_path + fin_name, 'r')
 
-    dust = {str(fee_per_byte): 0 for fee_per_byte in range(MIN_FEE_PER_BYTE, MAX_FEE_PER_BYTE, FEE_STEP)}
+    dust = {fee_per_byte: 0 for fee_per_byte in range(MIN_FEE_PER_BYTE, MAX_FEE_PER_BYTE, FEE_STEP)}
     value_dust = deepcopy(dust)
     data_len_dust = deepcopy(dust)
 
@@ -478,22 +478,38 @@ def accumulate_dust_lm(fin_name, fout_name="dust.json"):
     for line in fin:
         data = ujson.loads(line[:-1])
 
-        for fee_per_byte in range(MIN_FEE_PER_BYTE, MAX_FEE_PER_BYTE, FEE_STEP):
-            if fee_per_byte >= data["dust"] and data['dust'] != 0:
-                dust[str(fee_per_byte)] += 1
-                value_dust[str(fee_per_byte)] += data["amount"]
-                data_len_dust[str(fee_per_byte)] += data["utxo_data_len"]
-            if fee_per_byte >= data["loss_making"] and data['loss_making'] != 0:
-                lm[str(fee_per_byte)] += 1
-                value_lm[str(fee_per_byte)] += data["amount"]
-                data_len_lm[str(fee_per_byte)] += data["utxo_data_len"]
+        # If the UTXO is dust for the checked range, we increment the dust count, dust value and dust length for the
+        # given threshold.
+        if MIN_FEE_PER_BYTE <= data['dust'] < MAX_FEE_PER_BYTE:
+            dust[data['dust']] += 1
+            value_dust[data['dust']] += data["amount"]
+            data_len_dust[data['dust']] += data["utxo_data_len"]
 
+        # Same with non-profitable outputs.
+        if MIN_FEE_PER_BYTE <= data['loss_making'] < MAX_FEE_PER_BYTE:
+            lm[data['loss_making']] += 1
+            value_lm[data['loss_making']] += data["amount"]
+            data_len_lm[data['loss_making']] += data["utxo_data_len"]
+
+        # And we increase the total counters for each read utxo.
         total_utxo = total_utxo + 1
         total_value += data["amount"]
         total_data_len += data["utxo_data_len"]
 
     fin.close()
 
+    # Moreover, since if an output is dust/non-profitable for a given threshold, it will also be for every other step
+    # onwards, we accumulate the result of a given step with the accumulated value from the previous step.
+    for fee_per_byte in range(MIN_FEE_PER_BYTE+FEE_STEP, MAX_FEE_PER_BYTE, FEE_STEP):
+        dust[fee_per_byte] += dust[fee_per_byte - FEE_STEP]
+        value_dust[fee_per_byte] += value_dust[fee_per_byte - FEE_STEP]
+        data_len_dust[fee_per_byte] += value_dust[fee_per_byte - FEE_STEP]
+
+        lm[fee_per_byte] += lm[fee_per_byte - FEE_STEP]
+        value_lm[fee_per_byte] += value_lm[fee_per_byte - FEE_STEP]
+        data_len_lm[fee_per_byte] += value_lm[fee_per_byte - FEE_STEP]
+
+    # Finally we create the output with the accumulated data and store it.
     data = {"dust_utxos": dust, "dust_value": value_dust, "dust_data_len": data_len_dust,
             "lm_utxos": lm, "lm_value": value_lm, "lm_data_len": data_len_lm,
             "total_utxos": total_utxo, "total_value": total_value, "total_data_len": total_data_len}
@@ -667,7 +683,7 @@ def deobfuscate_value(obfuscation_key, value):
     :type obfuscation_key: str
     :param value: Obfuscated value.
     :type value: str
-    :return: The de-ofuscated value.
+    :return: The de-obfuscated value.
     :rtype: str.
     """
 
@@ -692,4 +708,30 @@ def deobfuscate_value(obfuscation_key, value):
 
     return r
 
+
+def roundup_rate(fee_rate, fee_step=FEE_STEP):
+    """
+    Rounds up a given fee rate to the nearest fee_step (FEE_STEP by default). If the rounded value it the value itself,
+    adds fee_step, assuring that the returning rate is always bigger than the given one.
+
+    :param fee_rate: Fee rate to be rounded up.
+    :type fee_rate: float
+    :param fee_step: Value at which fee_rate will be round up (FEE_STEP by default)
+    :type fee_step: int
+    :return: The rounded up fee_rate.
+    :rtype: int
+    """
+
+    # If the value to be rounded is already multiple of the fee step, we just add another step. Otherwise the value
+    # is rounded up.
+    if (fee_rate % fee_step) == 0.0:
+        rate = int(fee_rate + fee_step)
+    else:
+        rate = int(ceil(fee_rate / float(10))) * 10
+
+    # If the rounded up value is
+    if rate >= MAX_FEE_PER_BYTE:
+        rate = 0
+
+    return rate
 
