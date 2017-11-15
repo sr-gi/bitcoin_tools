@@ -12,10 +12,10 @@ from os import mkdir, path
 version = 0.15
 
 # When using snapshots of the chainstate, we store it as 'chainstate/version
-chainstate = 'chainstate/' + str(version)
+# chainstate = 'chainstate/' + str(version)
 
 # When not using a snapshot, we directly use the chainstate under btc_core_dir (actually that's its default value)
-# chainstate = 'chainstate'
+chainstate = 'chainstate'
 
 # Check if the directories for both data and figures exist, create them otherwise.
 if not path.isdir(CFG.data_path + str(version)) and not path.isdir(CFG.figs_path + str(version)):
@@ -31,21 +31,21 @@ f_dust = str(version) + "/dust.json"
 non_std_utxos = str(version) + "/parsed_non_std_utxos.json"
 
 # In case we want to count P2SH
-# f_parsed_utxos_w_p2sh = str(version) + "/parsed_utxos_w_p2sh.json"
-# f_dust_w_p2sh = str(version) + "/dust_w_p2sh.json"
+f_parsed_utxos_w_p2sh = str(version) + "/parsed_utxos_w_p2sh.json"
+f_dust_w_p2sh = str(version) + "/dust_w_p2sh.json"
 
 # Parse all the data in the chainstate.
 parse_ldb(f_utxos, fin_name=chainstate, version=version)
 
 # Parses transactions and utxos from the dumped data.
 transaction_dump(f_utxos, f_parsed_txs, version=version)
-utxo_dump(f_utxos, f_parsed_utxos, version=version)
+# utxo_dump(f_utxos, f_parsed_utxos, version=version)
 
 # In case we want to count P2SH
-utxo_dump(f_utxos, f_parsed_utxos, count_p2sh=True, version=version)
+utxo_dump(f_utxos, f_parsed_utxos_w_p2sh, count_p2sh=True, version=version)
 
 # Non-standard utxos can be parsed separately by setting the flag.
-utxo_dump(f_utxos, non_std_utxos, version=version, non_std_only=True)
+# utxo_dump(f_utxos, non_std_utxos, version=version, non_std_only=True)
 
 # Print basic stats from data
 overview_from_file(version)
@@ -88,10 +88,10 @@ plot_pie_chart_from_file("out_type", y="utxo", title="",
 
 # Generate plots for dust analysis (including percentage scale).
 # First, the dust accumulation file is generated (if requited).
-accumulate_dust_lm(f_parsed_utxos, fout_name=f_dust)
+# accumulate_dust_lm(f_parsed_utxos, fout_name=f_dust)
 
 # If we want to count P2SH
-# accumulate_dust_lm(f_parsed_utxos_w_p2sh, fout_name=f_dust_w_p2sh)
+accumulate_dust_lm(f_parsed_utxos_w_p2sh, fout_name=f_dust_w_p2sh)
 
 # Finally, we can plot the data.
 plot_from_file_dict("fee_per_byte", "dust", fin_name=f_dust, version=version, save_fig="dust_utxos")

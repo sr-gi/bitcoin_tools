@@ -503,11 +503,11 @@ def accumulate_dust_lm(fin_name, fout_name="dust.json"):
     for fee_per_byte in range(MIN_FEE_PER_BYTE+FEE_STEP, MAX_FEE_PER_BYTE, FEE_STEP):
         dust[fee_per_byte] += dust[fee_per_byte - FEE_STEP]
         value_dust[fee_per_byte] += value_dust[fee_per_byte - FEE_STEP]
-        data_len_dust[fee_per_byte] += value_dust[fee_per_byte - FEE_STEP]
+        data_len_dust[fee_per_byte] += data_len_dust[fee_per_byte - FEE_STEP]
 
         lm[fee_per_byte] += lm[fee_per_byte - FEE_STEP]
         value_lm[fee_per_byte] += value_lm[fee_per_byte - FEE_STEP]
-        data_len_lm[fee_per_byte] += value_lm[fee_per_byte - FEE_STEP]
+        data_len_lm[fee_per_byte] += data_len_lm[fee_per_byte - FEE_STEP]
 
     # Finally we create the output with the accumulated data and store it.
     data = {"dust_utxos": dust, "dust_value": value_dust, "dust_data_len": data_len_dust,
