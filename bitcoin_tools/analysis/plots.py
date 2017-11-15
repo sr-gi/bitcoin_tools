@@ -56,12 +56,18 @@ def plot_distribution(xs, ys, title, xlabel, ylabel, log_axis=False, save_fig=Fa
     :param title: String, plot title
     :param xlabel: String, label on the x axis
     :param ylabel: String, label on the y axis
-    :param log_axis: String (accepted values are False, "x", "y" or "xy"), determines which axis are plotted using logarithmic scale
+    :param log_axis: String (accepted values are False, "x", "y" or "xy"), determines which axis are plotted using
+    logarithmic scale
     :param save_fig: String, figure's filename or False (to show the interactive plot)
     :param legend: list of strings with legend entries or None (if no legend is needed)
     :param legend_loc: integer, indicates the location of the legend (if present)
     :param font_size: integer, title, xlabel and ylabel font size
+    :param y_sup_lim:
+    :type y_sup_lim:
+    :return: None
+    :type: None
     """
+    # ToDO: Cris add doc for y_sup_lim
 
     plt.figure()
     ax = plt.subplot(111)
@@ -123,7 +129,7 @@ def plot_pie(values, labels, title, colors, save_fig=False, font_size=20):
     ax = plt.subplot(111)
 
     ax.pie(values, labels=labels, colors=colors,
-           autopct='%1.1f%%', startangle=90, labeldistance=1.1, wedgeprops = {'linewidth': 0})
+           autopct='%1.1f%%', startangle=90, labeldistance=1.1, wedgeprops={'linewidth': 0})
 
     # Equal aspect ratio ensures that pie is drawn as a circle
     ax.axis('equal')
