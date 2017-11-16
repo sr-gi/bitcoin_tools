@@ -401,13 +401,15 @@ def display_decoded_utxo(decoded_utxo):
     print "Block height: " + str(decoded_utxo['height'])
 
 
-def parse_ldb(fout_name, fin_name='chainstate', version=0.15):
+def parse_ldb(fout_name, fin_name='chainstate', decode=True, version=0.15):
     """
     Parsed data from the chainstate LevelDB and stores it in a output file.
     :param fout_name: Name of the file to output the data.
     :type fout_name: str
     :param fin_name: Name of the LevelDB folder (chainstate by default)
     :type fin_name: str
+    :param decode: Whether the parsed data is decoded before stored or not (default: True)
+    :type decode: bool
     :param version: Bitcoin Core client version. Determines the prefix of the transaction entries.
     :param version: float
     :return: None
@@ -438,13 +440,24 @@ def parse_ldb(fout_name, fin_name='chainstate', version=0.15):
     # UTXOs are obfuscated using the obfuscation key (o_key), in order to get them non-obfuscated, a XOR between the
     # value and the key (concatenated until the length of the value is reached) if performed).
     for key, o_value in db.iterator(prefix=prefix):
+        key = hexlify(key)
         if o_key is not None:
             value = deobfuscate_value(o_key, hexlify(o_value))
         else:
             value = hexlify(o_value)
 
-        fout.write(ujson.dumps({"key":  hexlify(key), "value": value}) + "\n")
+        # If the decode flag is passed, we also decode the utxo before storing it. This is really useful when running
+        # a full analysis since will avoid decoding the whole utxo set twice (once for the utxo and once for the tx
+        # based analysis)
+        if decode:
+            if version < 0.15:
+                value = decode_utxo(value, None, version)
+            else:
+                value = decode_utxo(value, key, version)
 
+        fout.write(ujson.dumps({"key": key[2:], "value": value}, sort_keys=True) + "\n")
+
+    fout.close()
     db.close()
 
 
