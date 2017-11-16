@@ -1,17 +1,12 @@
 from bitcoin_tools import CFG
-from bitcoin_tools.utils import change_endianness
-from bitcoin_tools.analysis.status import MIN_FEE_PER_BYTE, MAX_FEE_PER_BYTE, FEE_STEP
-from bitcoin_tools.analysis.status.utils import check_multisig, get_min_input_size, decode_utxo, roundup_rate, \
-    check_multisig_type
+from bitcoin_tools.analysis.status import FEE_STEP
+from bitcoin_tools.analysis.status.utils import check_multisig, get_min_input_size, roundup_rate, check_multisig_type
 import ujson
-from collections import OrderedDict
 from subprocess import call
-
 from os import remove
 
 
 def transaction_dump(fin_name, fout_name, version=0.15):
-    # ToDo: Profile this function
     # Transaction dump
 
     if version < 0.15:
@@ -24,9 +19,10 @@ def transaction_dump(fin_name, fout_name, version=0.15):
         for line in fin:
             data = ujson.loads(line[:-1])
 
-            utxo = decode_utxo(data["value"], None, version)
+            # utxo = decode_utxo(data["value"], None, version)
+            utxo = data['value']
             imprt = sum([out["amount"] for out in utxo.get("outs")])
-            result = {"tx_id": change_endianness(data["key"][2:]),
+            result = {"tx_id": data["key"],
                       "num_utxos": len(utxo.get("outs")),
                       "total_value": imprt,
                       "total_len": (len(data["key"]) + len(data["value"])) / 2,
@@ -41,72 +37,45 @@ def transaction_dump(fin_name, fout_name, version=0.15):
 
     else:
 
-        # Input file
-        fin = open(CFG.data_path + fin_name, 'r')
-        # Temp file (unsorted & non-aggregated tx data)
-        fout = open(CFG.data_path + "temp.json", 'w')
+        # Sort the decoded utxo data by transaction id.
+        call(["sort", CFG.data_path + fin_name, "-o", CFG.data_path + str(version) + '/sorted_decoded_utxos.json'])
 
-        # [1] Create temp file
-        for line in fin:
-            data = ujson.loads(line[:-1])
-
-            utxo = decode_utxo(data["value"], data["key"], version)
-
-            result = OrderedDict([
-                ("tx_id", change_endianness(utxo.get('tx_id'))),
-                ("num_utxos", 1),
-                ("total_value", utxo.get('outs')[0].get('amount')),
-                ("total_len", (len(data["key"]) + len(data["value"])) / 2),
-                ("height", utxo["height"]),
-                ("coinbase", utxo["coinbase"]),
-                ("version", None)])
-
-            fout.write(ujson.dumps(result) + '\n')
-
-        fout.close()
-        fin.close()
-
-        # [2] Sort file
-        call(["sort", CFG.data_path + "temp.json", "-o", CFG.data_path + "temp.json"])
-
-        # [3] Aggregate tx data
-        fin = open(CFG.data_path + "temp.json", 'r')
+        # Set the input and output files
+        fin = open(CFG.data_path + str(version) + '/sorted_decoded_utxos.json', 'r')
         fout = open(CFG.data_path + fout_name, 'w')
 
-        line_1 = fin.readline()
-        line_2 = fin.readline()
-        line_1 = ujson.loads(line_1) if line_1 else None
-        line_2 = ujson.loads(line_2) if line_2 else None
+        # Initial definition
+        tx = dict()
 
-        while line_1:
+        # Read the ordered file and aggregate the data by transaction.
+        for line in fin:
+            data = ujson.loads(line[:-1])
+            utxo = data['value']
 
-            total_len = line_1["total_len"]
-            total_value = line_1["total_value"]
-            num_utxos = line_1["num_utxos"]
-            while line_2 and (line_1["tx_id"] == line_2["tx_id"]):
-                total_len += line_2["total_len"]
-                total_value += line_2["total_value"]
-                num_utxos += line_2["num_utxos"]
-                line_2 = fin.readline()
-                line_2 = ujson.loads(line_2) if line_2 else None
+            # If the read line contains information of the same transaction we are analyzing we add it to our dictionary
+            if utxo.get('tx_id') == tx.get('tx_id'):
+                tx['num_utxos'] += 1
+                tx['total_value'] += utxo.get('outs')[0].get('amount')
+                tx['total_len'] += len(data["key"]) + len(data["value"]) / 2
 
-            result = OrderedDict([
-                ("tx_id", line_1["tx_id"]),
-                ("num_utxos", num_utxos),
-                ("total_value", total_value),
-                ("total_len", total_len),
-                ("height", line_1["height"]),
-                ("coinbase", line_1["coinbase"]),
-                ("version", line_1["version"])])
-            fout.write(ujson.dumps(result) + '\n')
-            line_1 = line_2
-            line_2 = fin.readline()
-            line_2 = ujson.loads(line_2) if line_2 else None
+            # Otherwise, we save the transaction data to the output file and start aggregating the next transaction data
+            else:
+                # Save previous transaction data
+                if len(tx) is not 0:
+                    fout.write(ujson.dumps(tx) + '\n')
+
+                # Create the new transaction
+                tx['tx_id'] = utxo.get('tx_id')
+                tx['num_utxos'] = 1
+                tx['total_value'] = utxo.get('outs')[0].get('amount')
+                tx['total_len'] = (len(data["key"]) + len(data["value"])) / 2
+                tx['height'] = utxo["height"]
+                tx['coinbase'] = utxo["coinbase"]
+                tx['version'] = None
 
         fin.close()
         fout.close()
-
-        remove(CFG.data_path + "temp.json")
+        remove(CFG.data_path + str(version) + '/sorted_decoded_utxos.json')
 
 
 def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=False):
@@ -122,12 +91,14 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
 
     for line in fin:
         data = ujson.loads(line[:-1])
+        utxo = data['value']
         if version < 0.15:
-            utxo = decode_utxo(data["value"], None, version)
-            tx_id = change_endianness(data["key"][2:])
+            # utxo = decode_utxo(data["value"], None, version)
+            # tx_id = change_endianness(data["key"][2:])
+            tx_id = data["key"]
         else:
-            utxo = decode_utxo(data["value"], data['key'], version)
-            tx_id = change_endianness(utxo.get('tx_id'))
+            # utxo = decode_utxo(data["value"], data['key'], version)
+            tx_id = utxo.get('tx_id')
         for out in utxo.get("outs"):
             # Checks whether we are looking for every type of UTXO or just for non-standard ones.
             if not non_std_only or (non_std_only and out["out_type"] not in std_types
@@ -169,4 +140,5 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                 result.update(out)
                 fout.write(ujson.dumps(result) + '\n')
 
+    fin.close()
     fout.close()
