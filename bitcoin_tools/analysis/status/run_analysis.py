@@ -23,25 +23,24 @@ def run_experiment(version, chainstate, count_p2sh, non_std_only):
     # Parse all the data in the chainstate.
     parse_ldb(f_utxos, fin_name=chainstate, version=version)
 
-    # # Parses transactions and utxos from the dumped data.
+    # Parses transactions and utxos from the dumped data.
     transaction_dump(f_utxos, f_parsed_txs, version=version)
     utxo_dump(f_utxos, f_parsed_utxos, count_p2sh=count_p2sh, non_std_only=non_std_only, version=version)
 
-    # Print basic stats from data
+    # # Print basic stats from data
     overview_from_file(f_parsed_txs, f_parsed_utxos)
 
     # Generate plots from tx data (from f_parsed_txs)
     plots_from_file("height", version=version, fin_name=f_parsed_txs, save_fig="tx_height")
-    plots_from_file("total_len", xlabel="Total length (bytes)", version=version, fin_name=f_parsed_txs,
-                    save_fig="tx_total_len")
-    plots_from_file("total_len", xlabel="Total length (bytes)", log_axis="x", version=version, fin_name=f_parsed_txs,
-                    save_fig="tx_total_len_logx")
+
+    plots_from_file("total_len", xlabel="Total length (bytes)", log_axis=[None, "x"], version=version,
+                    fin_name=f_parsed_txs, save_fig=["tx_total_len_logx", "tx_total_len_logx"])
+
     plots_from_file("version", version=version, fin_name=f_parsed_txs, save_fig="tx_version")
     plots_from_file("total_value", log_axis="x", version=version, fin_name=f_parsed_txs, save_fig="tx_total_value_logx")
-    plots_from_file("num_utxos", xlabel="Number of utxos per tx", version=version, fin_name=f_parsed_txs,
-                    save_fig="tx_num_utxos")
-    plots_from_file('num_utxos', xlabel="Number of utxos per tx", log_axis="x", version=version, fin_name=f_parsed_txs,
-                    save_fig="tx_num_utxos_logx")
+
+    plots_from_file('num_utxos', xlabel="Number of utxos per tx", log_axis=[None, "x"], version=version,
+                    fin_name=f_parsed_txs, save_fig=["tx_num_utxos", "tx_num_utxos_logx"])
 
     plot_pie_chart_from_file("coinbase", y="tx", title="", fin_name=f_parsed_txs,
                              labels=['Coinbase', 'No-coinbase'], groups=[[1], [0]],
@@ -49,22 +48,22 @@ def run_experiment(version, chainstate, count_p2sh, non_std_only):
                              version=version, save_fig="tx_coinbase", font_size=20)
 
     # Generate plots from utxo data (from f_parsed_utxos)
-
     plots_from_file("tx_height", y="utxo", version=version, fin_name=f_parsed_utxos, save_fig="utxo_tx_height")
-    plots_from_file("amount", y="utxo", log_axis="x", version=version, fin_name='f_parsed_utxos',
+
+    plots_from_file("amount", y="utxo", log_axis="x", version=version, fin_name=f_parsed_utxos,
                     save_fig="utxo_amount_logx")
-    plots_from_file("index", y="utxo", version=version, fin_name=f_parsed_utxos, save_fig="utxo_index")
-    plots_from_file("index", y="utxo", log_axis="x", version=version, fin_name=f_parsed_utxos,
-                    save_fig="utxo_index_logx")
-    plots_from_file("out_type", y="utxo", version=version, fin_name=f_parsed_utxos, save_fig="utxo_out_type")
-    plots_from_file("out_type", y="utxo", log_axis="x", version=version, fin_name='f_parsed_utxos',
-                    save_fig="utxo_out_type_logx")
-    plots_from_file("utxo_data_len", y="utxo", version=version, fin_name=f_parsed_utxos, save_fig="utxo_data_len")
-    plots_from_file("utxo_data_len", y="utxo", log_axis="x", version=version, fin_name='f_parsed_utxos',
-                    save_fig="utxo_data_len_logx")
-    plots_from_file("index", y="utxo", version=version, fin_name=f_parsed_utxos, save_fig="utxo_index")
-    plots_from_file("index", y="utxo", log_axis="x", version=version, fin_name=f_parsed_utxos,
-                    save_fig="utxo_index_logx")
+
+    plots_from_file("index", y="utxo", log_axis=[None, "x"], version=version, fin_name=f_parsed_utxos,
+                    save_fig=["utxo_index", "utxo_index_logx"])
+
+    plots_from_file("out_type", y="utxo", log_axis=[None, "x"], version=version, fin_name=f_parsed_utxos,
+                    save_fig=["utxo_out_type", "utxo_out_type_logx"])
+
+    plots_from_file("utxo_data_len", y="utxo", log_axis=[None, "x"], version=version, fin_name=f_parsed_utxos,
+                    save_fig=["utxo_data_len", "utxo_data_len_logx"])
+
+    plots_from_file("index", y="utxo", log_axis=[None, "x"], version=version, fin_name=f_parsed_utxos,
+                    save_fig=["utxo_index", "utxo_index_logx"])
 
     plot_pie_chart_from_file("out_type", y="utxo", title="", fin_name=f_parsed_utxos,
                              labels=['C-even', 'C-odd', 'U-even', 'U-odd'], groups=[[2], [3], [4], [5]],
@@ -78,6 +77,7 @@ def run_experiment(version, chainstate, count_p2sh, non_std_only):
 
     # We can use get_unique_values() to obtain all values for the non_std_type attribute found in the analysed samples:
     # get_unique_values("non_std_type", y="utxo", version=0.15)
+
     # Once we know all the possible values, we can create a pie chart, assigning a piece of the pie to the main values
     # and grouping all the rest into an "Other" category. E.g., we create pieces for multisig 1-1, 1-2, 1-3, 2-2, 2-3
     # and 3-3, and put the rest into "Other".
@@ -125,10 +125,9 @@ def run_experiment(version, chainstate, count_p2sh, non_std_only):
     # P2SH SegWit
     plots_from_file("tx_height", y="utxo", xlabel="Tx. height", version=version, fin_name=f_parsed_utxos,
                     filtr=lambda x: x["out_type"] == 1,
-                    legend=['P2SH'], legend_loc=2, save_fig="temp")
+                    legend=['P2SH'], legend_loc=2, save_fig="segwit")
 
     # Generate plots for dust analysis (including percentage scale).
-
     # First, the dust accumulation file is generated
     accumulate_dust_lm(f_parsed_utxos, fout_name=f_dust)
 
