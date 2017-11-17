@@ -796,3 +796,28 @@ def roundup_rate(fee_rate, fee_step=FEE_STEP):
 
     return rate
 
+
+def set_out_names(version, count_p2sh, non_std_only):
+    f_utxos = str(version) + "/decoded_utxos.json"
+
+    # In case of the parsed files we consider the parameters
+    f_parsed_utxos = str(version) + "/parsed_utxos"
+    f_parsed_txs = str(version) + "/parsed_txs"
+    f_dust = str(version) + "/dust"
+
+    if non_std_only:
+        f_parsed_txs += "_nstd"
+        f_parsed_utxos += "_nstd"
+        f_dust += "_nstd"
+
+    if count_p2sh:
+        f_parsed_txs += "_wp2sh"
+        f_parsed_utxos += "_wp2sh"
+        f_dust += "_wp2sh"
+
+    f_parsed_txs += ".json"
+    f_parsed_utxos += ".json"
+    f_dust += ".json"
+
+    return f_utxos, f_parsed_txs, f_parsed_utxos, f_dust
+

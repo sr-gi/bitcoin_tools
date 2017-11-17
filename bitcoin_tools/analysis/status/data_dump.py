@@ -19,16 +19,17 @@ def transaction_dump(fin_name, fout_name, version=0.15):
         for line in fin:
             data = ujson.loads(line[:-1])
 
-            # utxo = decode_utxo(data["value"], None, version)
             utxo = data['value']
             imprt = sum([out["amount"] for out in utxo.get("outs")])
             result = {"tx_id": data["key"],
                       "num_utxos": len(utxo.get("outs")),
                       "total_value": imprt,
-                      "total_len": (len(data["key"]) + len(data["value"])) / 2,
+                      "total_len": (len(data["key"]) + 2 + len(data["value"])) / 2,
                       "height": utxo["height"],
                       "coinbase": utxo["coinbase"],
                       "version": utxo["version"]}
+
+            # Notice that 2 is added to the length of the key since the prefix was removed when parsing the chainstate
 
             fout.write(ujson.dumps(result) + '\n')
 
@@ -52,11 +53,14 @@ def transaction_dump(fin_name, fout_name, version=0.15):
             data = ujson.loads(line[:-1])
             utxo = data['value']
 
+            # Notice that 2 is added to the length of the key since the prefix was removed when parsing the
+            # chainstate
+
             # If the read line contains information of the same transaction we are analyzing we add it to our dictionary
             if utxo.get('tx_id') == tx.get('tx_id'):
                 tx['num_utxos'] += 1
                 tx['total_value'] += utxo.get('outs')[0].get('amount')
-                tx['total_len'] += len(data["key"]) + len(data["value"]) / 2
+                tx['total_len'] += (len(data["key"]) + 2 + len(data["value"])) / 2
 
             # Otherwise, we save the transaction data to the output file and start aggregating the next transaction data
             else:
@@ -68,7 +72,7 @@ def transaction_dump(fin_name, fout_name, version=0.15):
                 tx['tx_id'] = utxo.get('tx_id')
                 tx['num_utxos'] = 1
                 tx['total_value'] = utxo.get('outs')[0].get('amount')
-                tx['total_len'] = (len(data["key"]) + len(data["value"])) / 2
+                tx['total_len'] = (len(data["key"]) + 2 + len(data["value"])) / 2
                 tx['height'] = utxo["height"]
                 tx['coinbase'] = utxo["coinbase"]
                 tx['version'] = None
@@ -93,11 +97,8 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
         data = ujson.loads(line[:-1])
         utxo = data['value']
         if version < 0.15:
-            # utxo = decode_utxo(data["value"], None, version)
-            # tx_id = change_endianness(data["key"][2:])
             tx_id = data["key"]
         else:
-            # utxo = decode_utxo(data["value"], data['key'], version)
             tx_id = utxo.get('tx_id')
         for out in utxo.get("outs"):
             # Checks whether we are looking for every type of UTXO or just for non-standard ones.
@@ -134,7 +135,10 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                 # encoded data anymore (coin) but of the entry identifier (outpoint), we add it manually.
                 if version >= 0.15:
                     result['index'] = utxo['index']
-                    result['register_len'] = len(data["value"]) / 2 + len(data["key"]) / 2
+                    result['register_len'] = (len(data["key"]) + 2 + len(data["value"])) / 2
+
+                    # Notice that 2 is added to the length of the key since the prefix was removed when parsing the
+                    # chainstate
 
                 # Updates the dictionary with the remaining data from out, and stores it in disk.
                 result.update(out)
