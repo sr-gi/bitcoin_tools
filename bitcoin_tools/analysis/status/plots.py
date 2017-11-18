@@ -5,11 +5,13 @@ from collections import Counter
 import numpy as np
 
 
-def plots_from_samples(x_attribute, samples, y=["tx"], xlabel=False, log_axis=False, version=0.15,
+def plots_from_samples(samples, x_attribute, y="tx", xlabel=False, log_axis=False, version=0.15,
                        save_fig=False, legend=None, legend_loc=1, font_size=20, filtr=[lambda x: True]):
     """
     Generates plots from utxo/tx samples extracted from utxo_dump.
 
+    :param samples: Samples to be printed (from get_samples)
+    :type: list
     :param x_attribute: Attribute to plot (must be a key in the dictionary of the dumped data).
     :type x_attribute: str or list
     :param y: Either "tx" or "utxo"
@@ -38,18 +40,15 @@ def plots_from_samples(x_attribute, samples, y=["tx"], xlabel=False, log_axis=Fa
     if not (isinstance(x_attribute, list) or isinstance(x_attribute, np.ndarray)):
         x_attribute = [x_attribute]
 
-    if not (isinstance(y, list) or isinstance(y, np.ndarray)):
-        y = [y]
-
     if not (isinstance(filtr, list) or isinstance(filtr, np.ndarray)):
         filtr = [filtr]
 
-    assert len(x_attribute) == len(y) == len(filtr), \
-        "There is a mismatch on the list length of some of the parameters"
+    assert len(x_attribute) == len(filtr), "There is a mismatch on the list length of some of the parameters"
 
-    if y[0] == "tx":
-        ylabel = "Number of tx"
-    elif y[0] == "utxo":
+    # ToDo: Check if there are lacking labels
+    if y == "tx":
+        ylabel = "Number of txs"
+    elif y == "utxo":
         ylabel = "Number of UTXOs"
     else:
         raise ValueError('Unrecognized y value')
@@ -76,15 +75,15 @@ def plots_from_samples(x_attribute, samples, y=["tx"], xlabel=False, log_axis=Fa
         plot_distribution(xs, ys, title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
 
 
-def plot_pie_chart_from_samples(samples, y="tx", title="", labels=[], groups=[], colors=[],
-                                version=0.15, save_fig=False, font_size=20):
+def plot_pie_chart_from_samples(samples, title="", labels=[], groups=[], colors=[], version=0.15, save_fig=False,
+                                font_size=20):
     """
     Generates pie charts from UTXO/tx data extracted from utxo_dump.
 
+    :param samples: Samples to be printed (from get_samples)
+    :type: list
     :param title: Title of the chart.
     :type title: str
-    :param y: Either "tx" or "utxo"
-    :type y: str
     :param labels: List of labels (one label for each piece of the pie)
     :type labels: str list
     :param groups: List of group keys (one list for each piece of the pie).
@@ -100,9 +99,6 @@ def plot_pie_chart_from_samples(samples, y="tx", title="", labels=[], groups=[],
     :return: None
     :rtype: None
     """
-
-    if y not in ['tx', 'utxo']:
-        raise ValueError('Unrecognized y value')
 
     # Adds the folder in which the data will be stored
     save_fig = str(version) + '/' + save_fig
@@ -128,13 +124,12 @@ def plot_pie_chart_from_samples(samples, y="tx", title="", labels=[], groups=[],
     plot_pie(values, labels, title, colors, save_fig=save_fig, font_size=font_size)
 
 
-def plot_from_file_dict(x_attribute, y="dust", fin_name=None, percentage=False, xlabel=False, log_axis=False,
+def plot_dict_from_file(y="dust", fin_name=None, percentage=False, xlabel=False, log_axis=False,
                         version=0.15, save_fig=False, legend=None, legend_loc=1, font_size=20):
     """
-    Generate plots from files in which the loaded data is a dictionary, such as dust.json.
+    Loads data from a given file (stored in a dictionary) and plots it in a chart. dust.json is a perfect example of
+    the loaded format.
 
-    :param x_attribute: Attribute to plot (must be a key in the dictionary of the dumped data).
-    :type x_attribute: str
     :param y: Either "tx" or "utxo"
     :type y: str
     :param fin_name: Name of the file containing the data to be plotted.
@@ -201,7 +196,7 @@ def plot_from_file_dict(x_attribute, y="dust", fin_name=None, percentage=False, 
 
     title = ""
     if not xlabel:
-        xlabel = x_attribute
+        xlabel = "fee_per_byte"
 
     # If percentage is set, a chart with y axis as a percentage (dividing every single y value by the
     # corresponding total value) is created.
@@ -230,7 +225,7 @@ def overview_from_file(tx_fin_name, utxo_fin_name):
 
     attributes = ['num_utxos', 'total_len']
 
-    samples = get_samples(attributes, y="tx", fin_name=tx_fin_name)
+    samples = get_samples(attributes, fin_name=tx_fin_name)
 
     print "Num. of tx: ", str(len(samples['num_utxos']))
     print "Num. of UTXOs: ", str(sum(samples['num_utxos']))
@@ -243,14 +238,14 @@ def overview_from_file(tx_fin_name, utxo_fin_name):
     print "Std. size per tx: ", str(np.std(samples['total_len']))
     print "Median size per tx: ", str(np.median(samples['total_len']))
 
-    samples = get_samples("utxo_data_len", y="utxo", fin_name=utxo_fin_name)
+    samples = get_samples("utxo_data_len", fin_name=utxo_fin_name)
 
     print "Avg. size per UTXO: ", str(np.mean(samples))
     print "Std. size per UTXO: ", str(np.std(samples))
     print "Median size per UTXO: ", str(np.median(samples))
 
 
-def get_samples(x_attribute, fin_name, y="tx", filtr=lambda x: True):
+def get_samples(x_attribute, fin_name, filtr=lambda x: True):
     """
     Reads data from .json files and creates a list with the attribute of interest values.
 
@@ -258,18 +253,12 @@ def get_samples(x_attribute, fin_name, y="tx", filtr=lambda x: True):
     :type x_attribute: str or list
     :param fin_name: Input file from which data is loaded.
     :type fin_name: str
-    :param y: Either "tx" or "utxo"
-    :type y: str
     :param filtr: Function to filter samples (returns a boolean value for a given sample)
     :type filtr: function
     :return:
     """
 
-    if y in ['tx', 'utxo']:
-        fin = open(CFG.data_path + fin_name, 'r')
-    else:
-        raise ValueError('Unrecognized y value')
-
+    fin = open(CFG.data_path + fin_name, 'r')
     samples = dict()
 
     if isinstance(x_attribute, list):
@@ -292,7 +281,7 @@ def get_samples(x_attribute, fin_name, y="tx", filtr=lambda x: True):
     return samples
 
 
-def get_unique_values(x_attribute, fin_name, y="tx"):
+def get_unique_values(x_attribute, fin_name):
     """
     Reads data from a .json file and returns all values found in x_attribute.
 
@@ -300,11 +289,9 @@ def get_unique_values(x_attribute, fin_name, y="tx"):
     :type x_attribute: str
     :param fin_name: Input file from which data is loaded.
     :type fin_name: str
-    :param y: Either "tx" or "utxo"
-    :type y: str
     :return: list of unique x_attribute values
     """
 
-    samples = get_samples(x_attribute, y=y, fin_name=fin_name)
+    samples = get_samples(x_attribute, fin_name=fin_name)
 
     return list(set(samples))

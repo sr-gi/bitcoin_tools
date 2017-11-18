@@ -1,11 +1,32 @@
 from bitcoin_tools.analysis.status.data_dump import transaction_dump, utxo_dump
 from bitcoin_tools.analysis.status.utils import parse_ldb, accumulate_dust_lm, set_out_names
-from bitcoin_tools.analysis.status.plots import plot_from_file_dict, plot_pie_chart_from_samples, overview_from_file, \
+from bitcoin_tools.analysis.status.plots import plot_dict_from_file, plot_pie_chart_from_samples, overview_from_file, \
     plots_from_samples, get_samples
 from bitcoin_tools import CFG
 from os import mkdir, path
 from getopt import getopt
 from sys import argv
+
+
+def plot_non_std(samples, version):
+    # We can use get_unique_values() to obtain all values for the non_std_type attribute found in the analysed samples:
+    # get_unique_values("non_std_type",  fin_name=f_parsed_utxos)
+
+    # Once we know all the possible values, we can create a pie chart, assigning a piece of the pie to the main values
+    # and grouping all the rest into an "Other" category. E.g., we create pieces for multisig 1-1, 1-2, 1-3, 2-2, 2-3
+    # and 3-3, and put the rest into "Other".
+
+    groups = [[u'multisig-1-3'], [u'multisig-1-2'], [u'multisig-1-1'], [u'multisig-3-3'], [u'multisig-2-2'],
+              [u'multisig-2-3'], [False, u'multisig-OP_NOTIF-OP_NOTIF',
+                                  u'multisig-<2153484f55544f555420544f2023424954434f494e2d41535345545320202020202020202'
+                                  u'0202020202020202020202020202020202020202020202020202020>-1']]
+    labels = ['M. 1-3', 'M. 1-2', 'M. 1-1', 'M. 3-3', 'M. 2-2', 'M. 2-3', 'Other']
+
+    out_name = "utxo_non_std_type"
+
+    plot_pie_chart_from_samples(samples=samples, save_fig=out_name, labels=labels, version=version, groups=groups,
+                                title="",  colors=["#165873", "#428C5C", "#4EA64B", "#ADD96C", "#B1D781", "#FAD02F",
+                                                   "#F69229"])
 
 
 def tx_based_analysis(tx_fin_name, version=0.15):
@@ -32,11 +53,11 @@ def tx_based_analysis(tx_fin_name, version=0.15):
         out_names.pop(i)
         log_axis.pop(i)
 
-    samples = get_samples(x_attributes + x_attributes_pie, y="tx", fin_name=tx_fin_name)
+    samples = get_samples(x_attributes + x_attributes_pie,  fin_name=tx_fin_name)
 
     for attribute, label, log, out in zip(x_attributes, xlabels, log_axis, out_names):
         plots_from_samples(x_attribute=attribute, samples=samples[attribute], xlabel=label, log_axis=log, save_fig=out,
-                           version=str(version))
+                           version=str(version), y='tx')
 
     for attribute, label, out, groups in (zip(x_attributes_pie, xlabels_pie, out_names_pie, pie_groups)):
         plot_pie_chart_from_samples(samples=samples[attribute], save_fig=out, labels=label,
@@ -59,18 +80,42 @@ def utxo_based_analysis(tx_fin_name, version=0.15):
     out_names_pie = ["utxo_pk_types", "utxo_types"]
     pie_groups = [[[2], [3], [4], [5]], [[0], [2, 3, 4, 5], [1]]]
 
+    x_attribute_special = 'non_std_type'
+
     # Since the attributes for the pie chart are already included in the normal chart, we won't pass them to the
     # sampling function.
-    samples = get_samples(x_attributes, y="utxo", fin_name=tx_fin_name)
+    samples = get_samples(x_attributes + [x_attribute_special], fin_name=tx_fin_name)
 
     for attribute, label, log, out in zip(x_attributes, xlabels, log_axis, out_names):
         plots_from_samples(x_attribute=attribute, samples=samples[attribute], xlabel=label, log_axis=log, save_fig=out,
-                           version=str(version))
+                           version=str(version), y='utxo')
 
     for attribute, label, out, groups in (zip(x_attributes_pie, xlabels_pie, out_names_pie, pie_groups)):
         plot_pie_chart_from_samples(samples=samples[attribute], save_fig=out, labels=label,
                                     title="", version=version, groups=groups, colors=["#165873", "#428C5C",
                                                                                       "#4EA64B", "#ADD96C"])
+    # Special cases: non-standard and SegWit UTXOs
+
+    plot_non_std(samples[x_attribute_special], version)
+
+    plots_from_samples(x_attribute=x_attributes[0], samples=samples[x_attributes[0]], xlabel=xlabels[0],
+                       filtr=lambda x: x["out_type"] == 1, legend=['P2SH'], legend_loc=2,  version=str(version),
+                       save_fig='segwit', y='utxo')
+
+
+def dust_analysis(utxo_fin_name, f_dust, version):
+    # Generate plots for dust analysis (including percentage scale).
+    # First, the dust accumulation file is generated
+    accumulate_dust_lm(utxo_fin_name, fout_name=f_dust)
+
+    ys = ["dust", "value", "data_len"]
+    outs = ["dust_utxos", "dust_value", "dust_data_len"]
+
+    # Plot the aggregated data (with and without percentage axis).
+    for y, out in zip(ys, outs):
+        plot_dict_from_file(y, fin_name=f_dust, version=version, save_fig=out)
+        plot_dict_from_file(y, fin_name=f_dust, percentage=True, version=version,
+                            save_fig="perc_"+out)
 
 
 def run_experiment(version, chainstate, count_p2sh, non_std_only):
@@ -87,39 +132,25 @@ def run_experiment(version, chainstate, count_p2sh, non_std_only):
     f_utxos, f_parsed_txs, f_parsed_utxos, f_dust = set_out_names(version, count_p2sh, non_std_only)
 
     # Parse all the data in the chainstate.
-    parse_ldb(f_utxos, fin_name=chainstate, version=version)
-
-    # Parses transactions and utxos from the dumped data.
-    transaction_dump(f_utxos, f_parsed_txs, version=version)
-    utxo_dump(f_utxos, f_parsed_utxos, count_p2sh=count_p2sh, non_std_only=non_std_only, version=version)
-
-    # Print basic stats from data
-    overview_from_file(f_parsed_txs, f_parsed_utxos)
-
-    # Generate plots from tx data (from f_parsed_txs)
-    tx_based_analysis(f_parsed_txs)
-
-    # Generate plots from utxo data (from f_parsed_utxos)
-    utxo_based_analysis(f_parsed_utxos)
-
-    # We can use get_unique_values() to obtain all values for the non_std_type attribute found in the analysed samples:
-    # get_unique_values("non_std_type", y="utxo", version=0.15)
-
-    # Once we know all the possible values, we can create a pie chart, assigning a piece of the pie to the main values
-    # and grouping all the rest into an "Other" category. E.g., we create pieces for multisig 1-1, 1-2, 1-3, 2-2, 2-3
-    # and 3-3, and put the rest into "Other".
-    # groups = [[u'multisig-1-3'], [u'multisig-1-2'], [u'multisig-1-1'], [u'multisig-3-3'], [u'multisig-2-2'],
-    #           [u'multisig-2-3'], [False, u'multisig-OP_NOTIF-OP_NOTIF',
-    #                               u'multisig-<2153484f55544f555420544f2023424954434f494e2d415353455453202020202020202020202020202020202020202020202020202020202020202020202020>-1']]
-    # labels = ['M. 1-3', 'M. 1-2', 'M. 1-1', 'M. 3-3', 'M. 2-2', 'M. 2-3', 'Other']
+    # parse_ldb(f_utxos, fin_name=chainstate, version=version)
     #
-    # plot_pie_chart_from_file("non_std_type", y="utxo", title="", fin_name=f_parsed_utxos,
-    #                          labels=labels, groups=groups,
-    #                          colors=["#165873", "#428C5C", "#4EA64B", "#ADD96C", "#B1D781", "#FAD02F", "#F69229"],
-    #                          version=version, save_fig="utxo_non_std_type", font_size=20)
+    # # Parses transactions and utxos from the dumped data.
+    # transaction_dump(f_utxos, f_parsed_txs, version=version)
+    # utxo_dump(f_utxos, f_parsed_utxos, count_p2sh=count_p2sh, non_std_only=non_std_only, version=version)
     #
+    # # Print basic stats from data
+    # overview_from_file(f_parsed_txs, f_parsed_utxos)
     #
+    # # Generate plots from tx data (from f_parsed_txs)
+    # tx_based_analysis(f_parsed_txs)
     #
+    # # Generate plots from utxo data (from f_parsed_utxos)
+    # utxo_based_analysis(f_parsed_utxos)
+
+    # Aggregates dust and generates plots it.
+    dust_analysis(f_parsed_utxos, f_dust, version)
+
+    # ToDo Deal with comparative analysis
     # # Generate plots with both transaction and utxo data (f_parsed_txs and f_parsed_utxos)
     # plots_from_file(["total_value", "amount"], y=["tx", "utxo"], xlabel="Amount (Satoshis)", version=[version] * 2,
     #                 filtr=[lambda x: True] * 2, fin_name=[f_parsed_txs, f_parsed_utxos], save_fig="tx_utxo_amount")
@@ -131,6 +162,7 @@ def run_experiment(version, chainstate, count_p2sh, non_std_only):
     # plots_from_file(["total_value", "amount"], y=["tx", "utxo"], xlabel="Amount (Satoshis)", version=[version] * 2,
     #                 fin_name=[f_parsed_txs, f_parsed_utxos], filtr=[lambda x: True] * 2, save_fig="tx_utxo_amount")
     #
+    # ToDo Deal with analysis with filters
     # # Generate plots with filters
     # plots_from_file("height", version=version, fin_name=f_parsed_txs, filtr=lambda x: x["coinbase"],
     #                 save_fig="tx_height_coinbase")
@@ -151,27 +183,6 @@ def run_experiment(version, chainstate, count_p2sh, non_std_only):
     #                        lambda x: x["amount"] < 10 ** 8],
     #                 legend=['$<10^2$', '$<10^4$', '$<10^6$', '$<10^8$'], legend_loc=2, save_fig="tx_height_amount", )
     #
-    # # P2SH SegWit
-    # plots_from_file("tx_height", y="utxo", xlabel="Tx. height", version=version, fin_name=f_parsed_utxos,
-    #                 filtr=lambda x: x["out_type"] == 1,
-    #                 legend=['P2SH'], legend_loc=2, save_fig="segwit")
-
-    # Generate plots for dust analysis (including percentage scale).
-    # First, the dust accumulation file is generated
-    accumulate_dust_lm(f_parsed_utxos, fout_name=f_dust)
-
-    # Plot the aggregated data.
-    plot_from_file_dict("fee_per_byte", "dust", fin_name=f_dust, version=version, save_fig="dust_utxos")
-    plot_from_file_dict("fee_per_byte", "dust", fin_name=f_dust, percentage=True, version=version,
-                        save_fig="perc_dust_utxos")
-
-    plot_from_file_dict("fee_per_byte", "value", fin_name=f_dust, version=version, save_fig="dust_value")
-    plot_from_file_dict("fee_per_byte", "value", fin_name=f_dust, percentage=True, version=version,
-                        save_fig="perc_dust_value")
-
-    plot_from_file_dict("fee_per_byte", "data_len", fin_name=f_dust, version=version, save_fig="dust_data_len")
-    plot_from_file_dict("fee_per_byte", "data_len", fin_name=f_dust, percentage=True, version=version,
-                        save_fig="perc_dust_data_len")
 
 
 if __name__ == '__main__':
