@@ -132,20 +132,20 @@ def run_experiment(version, chainstate, count_p2sh, non_std_only):
     f_utxos, f_parsed_txs, f_parsed_utxos, f_dust = set_out_names(version, count_p2sh, non_std_only)
 
     # Parse all the data in the chainstate.
-    # parse_ldb(f_utxos, fin_name=chainstate, version=version)
-    #
-    # # Parses transactions and utxos from the dumped data.
-    # transaction_dump(f_utxos, f_parsed_txs, version=version)
-    # utxo_dump(f_utxos, f_parsed_utxos, count_p2sh=count_p2sh, non_std_only=non_std_only, version=version)
-    #
-    # # Print basic stats from data
-    # overview_from_file(f_parsed_txs, f_parsed_utxos)
-    #
-    # # Generate plots from tx data (from f_parsed_txs)
-    # tx_based_analysis(f_parsed_txs)
-    #
-    # # Generate plots from utxo data (from f_parsed_utxos)
-    # utxo_based_analysis(f_parsed_utxos)
+    parse_ldb(f_utxos, fin_name=chainstate, version=version)
+
+    # Parses transactions and utxos from the dumped data.
+    transaction_dump(f_utxos, f_parsed_txs, version=version)
+    utxo_dump(f_utxos, f_parsed_utxos, count_p2sh=count_p2sh, non_std_only=non_std_only, version=version)
+
+    # Print basic stats from data
+    overview_from_file(f_parsed_txs, f_parsed_utxos)
+
+    # Generate plots from tx data (from f_parsed_txs)
+    tx_based_analysis(f_parsed_txs)
+
+    # Generate plots from utxo data (from f_parsed_utxos)
+    utxo_based_analysis(f_parsed_utxos)
 
     # Aggregates dust and generates plots it.
     dust_analysis(f_parsed_utxos, f_dust, version)
