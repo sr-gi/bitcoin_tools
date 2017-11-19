@@ -5,8 +5,8 @@ from collections import Counter
 import numpy as np
 
 
-def plots_from_samples(samples, x_attribute, y="tx", xlabel=False, log_axis=False, version=0.15,
-                       save_fig=False, legend=None, legend_loc=1, font_size=20, filtr=[lambda x: True]):
+def plots_from_samples(samples, x_attribute, y="tx", xlabel=None, log_axis=None, version=0.15, comparative=False,
+                       save_fig=False, legend=None, legend_loc=1, font_size=20):
     """
     Generates plots from utxo/tx samples extracted from utxo_dump.
 
@@ -31,8 +31,6 @@ def plots_from_samples(samples, x_attribute, y="tx", xlabel=False, log_axis=Fals
     :type legend_loc: int
     :param font_size: Title, xlabel and ylabel font size
     :type font_size: int
-    :param filtr: Function to filter samples (returns a boolean value for a given sample)
-    :type filtr: function or list of functions
     :return: None
     :rtype: None
     """
@@ -40,10 +38,9 @@ def plots_from_samples(samples, x_attribute, y="tx", xlabel=False, log_axis=Fals
     if not (isinstance(x_attribute, list) or isinstance(x_attribute, np.ndarray)):
         x_attribute = [x_attribute]
 
-    if not (isinstance(filtr, list) or isinstance(filtr, np.ndarray)):
-        filtr = [filtr]
-
-    assert len(x_attribute) == len(filtr), "There is a mismatch on the list length of some of the parameters"
+    # In comparative analysis samples are passed as list of lists of samples.
+    if not comparative:
+        samples = [samples]
 
     # ToDo: Check if there are lacking labels
     if y == "tx":
@@ -59,9 +56,10 @@ def plots_from_samples(samples, x_attribute, y="tx", xlabel=False, log_axis=Fals
 
     xs, ys = [], []
     for i in range(len(x_attribute)):
-        [xc, yc] = get_cdf(samples, normalize=True)
-        xs.append(xc)
-        ys.append(yc)
+        for s in samples:
+            [xc, yc] = get_cdf(s, normalize=True)
+            xs.append(xc)
+            ys.append(yc)
 
     if isinstance(log_axis, list) and isinstance(save_fig, list):
         # If both the normal axis and the logx axis charts want to be displayed, we can take advantage of the same
@@ -75,7 +73,7 @@ def plots_from_samples(samples, x_attribute, y="tx", xlabel=False, log_axis=Fals
         plot_distribution(xs, ys, title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
 
 
-def plot_pie_chart_from_samples(samples, title="", labels=[], groups=[], colors=[], version=0.15, save_fig=False,
+def plot_pie_chart_from_samples(samples, title="", labels=None, groups=None, colors=None, version=0.15, save_fig=False,
                                 font_size=20):
     """
     Generates pie charts from UTXO/tx data extracted from utxo_dump.
@@ -124,7 +122,7 @@ def plot_pie_chart_from_samples(samples, title="", labels=[], groups=[], colors=
     plot_pie(values, labels, title, colors, save_fig=save_fig, font_size=font_size)
 
 
-def plot_dict_from_file(y="dust", fin_name=None, percentage=False, xlabel=False, log_axis=False,
+def plot_dict_from_file(y="dust", fin_name=None, percentage=False, xlabel=None, log_axis=None,
                         version=0.15, save_fig=False, legend=None, legend_loc=1, font_size=20):
     """
     Loads data from a given file (stored in a dictionary) and plots it in a chart. dust.json is a perfect example of

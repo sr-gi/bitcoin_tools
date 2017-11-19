@@ -94,13 +94,8 @@ def utxo_based_analysis(tx_fin_name, version=0.15):
         plot_pie_chart_from_samples(samples=samples[attribute], save_fig=out, labels=label,
                                     title="", version=version, groups=groups, colors=["#165873", "#428C5C",
                                                                                       "#4EA64B", "#ADD96C"])
-    # Special cases: non-standard and SegWit UTXOs
-
+    # Special case: non-standard
     plot_non_std(samples[x_attribute_special], version)
-
-    plots_from_samples(x_attribute=x_attributes[0], samples=samples[x_attributes[0]], xlabel=xlabels[0],
-                       filtr=lambda x: x["out_type"] == 1, legend=['P2SH'], legend_loc=2,  version=str(version),
-                       save_fig='segwit', y='utxo')
 
 
 def dust_analysis(utxo_fin_name, f_dust, version):
@@ -116,6 +111,29 @@ def dust_analysis(utxo_fin_name, f_dust, version):
         plot_dict_from_file(y, fin_name=f_dust, version=version, save_fig=out)
         plot_dict_from_file(y, fin_name=f_dust, percentage=True, version=version,
                             save_fig="perc_"+out)
+
+
+def comparative_data_analysis(tx_fin_name, utxo_fin_name, version):
+
+    # Generate plots with both transaction and utxo data (f_parsed_txs and f_parsed_utxos)
+    tx_attributes = ['total_value', 'height']
+    utxo_attributes = ['amount', 'tx_height']
+
+    xlabels = ['Amount (Satoshi)', 'Height']
+    out_names = ['tx_utxo_amount', 'tx_utxo_height']
+    legends = ['', ['Tx.', 'UTXO']]
+    legend_locations = [1, 2]
+
+    tx_samples = get_samples(tx_attributes, tx_fin_name)
+    utxo_samples = get_samples(utxo_attributes, utxo_fin_name)
+
+    for tx_attr, utxo_attr, label, out, legend, leg_loc in zip(tx_attributes, utxo_attributes, xlabels, out_names,
+                                                               legends, legend_locations):
+        plots_from_samples(x_attribute=[tx_attr, utxo_attr], xlabel=label, save_fig=out, version=str(version),
+                           samples=[tx_samples[tx_attr], utxo_samples[utxo_attr]], legend=legend, legend_loc=leg_loc,
+                           y='tx', comparative=True)
+
+    # ToDo: Set a proper 'y' value
 
 
 def run_experiment(version, chainstate, count_p2sh, non_std_only):
@@ -139,29 +157,25 @@ def run_experiment(version, chainstate, count_p2sh, non_std_only):
     utxo_dump(f_utxos, f_parsed_utxos, count_p2sh=count_p2sh, non_std_only=non_std_only, version=version)
 
     # Print basic stats from data
+    print "Running overview analysis"
     overview_from_file(f_parsed_txs, f_parsed_utxos)
 
     # Generate plots from tx data (from f_parsed_txs)
+    print "Running transaction based analysis"
     tx_based_analysis(f_parsed_txs)
 
     # Generate plots from utxo data (from f_parsed_utxos)
+    print "Running UTXO based analysis"
     utxo_based_analysis(f_parsed_utxos)
 
     # Aggregates dust and generates plots it.
+    print "Running dust analysis"
     dust_analysis(f_parsed_utxos, f_dust, version)
 
-    # ToDo Deal with comparative analysis
-    # # Generate plots with both transaction and utxo data (f_parsed_txs and f_parsed_utxos)
-    # plots_from_file(["total_value", "amount"], y=["tx", "utxo"], xlabel="Amount (Satoshis)", version=[version] * 2,
-    #                 filtr=[lambda x: True] * 2, fin_name=[f_parsed_txs, f_parsed_utxos], save_fig="tx_utxo_amount")
-    #
-    # plots_from_file(["height", "tx_height"], y=["tx", "utxo"], xlabel="Height", version=[version] * 2,
-    #                 fin_name=[f_parsed_txs, f_parsed_utxos], filtr=[lambda x: True] * 2,
-    #                 legend=['Tx.', 'UTXO'], legend_loc=2, save_fig="tx_utxo_height")
-    #
-    # plots_from_file(["total_value", "amount"], y=["tx", "utxo"], xlabel="Amount (Satoshis)", version=[version] * 2,
-    #                 fin_name=[f_parsed_txs, f_parsed_utxos], filtr=[lambda x: True] * 2, save_fig="tx_utxo_amount")
-    #
+    # Comparative data analysis (transactions and UTXOs)
+    print "Running comparative data analysis"
+    comparative_data_analysis(f_parsed_txs, f_parsed_utxos, version)
+
     # ToDo Deal with analysis with filters
     # # Generate plots with filters
     # plots_from_file("height", version=version, fin_name=f_parsed_txs, filtr=lambda x: x["coinbase"],
@@ -182,6 +196,10 @@ def run_experiment(version, chainstate, count_p2sh, non_std_only):
     #                        lambda x: x["amount"] < 10 ** 6,
     #                        lambda x: x["amount"] < 10 ** 8],
     #                 legend=['$<10^2$', '$<10^4$', '$<10^6$', '$<10^8$'], legend_loc=2, save_fig="tx_height_amount", )
+    # SEGWIT
+    # plots_from_samples(x_attribute=x_attributes[0], samples=samples[x_attributes[0]], xlabel=xlabels[0],
+    #                    filtr=lambda x: x["out_type"] == 1, legend=['P2SH'], legend_loc=2,  version=str(version),
+    #                    save_fig='segwit', y='utxo')
     #
 
 
