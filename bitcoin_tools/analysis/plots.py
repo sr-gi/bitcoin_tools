@@ -44,7 +44,7 @@ def get_cdf(samples, normalize=False):
     return [xs, ys]
 
 
-def plot_distribution(xs, ys, title, xlabel, ylabel, log_axis=False, save_fig=False, legend=None, legend_loc=1,
+def plot_distribution(xs, ys, title, xlabel, ylabel, log_axis=None, save_fig=False, legend=None, legend_loc=1,
                       font_size=20, y_sup_lim=None):
     """
     Plots a set of values (xs, ys) with matplotlib.
@@ -94,6 +94,7 @@ def plot_distribution(xs, ys, title, xlabel, ylabel, log_axis=False, save_fig=Fa
 
     # Include legend
     if legend:
+        # ToDo: Cris never used
         lgd = ax.legend(legend, loc=legend_loc)
 
     # Force y limit
