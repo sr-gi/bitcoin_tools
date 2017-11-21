@@ -126,7 +126,7 @@ parse_ldb(f_utxos)
 # Parses transactions and utxos from the dumped data.
 utxo_dump(f_utxos, f_parsed_utxos)
 
-# Data is stored in f_utxos and f_parsed_utxos files respectivaly
+# Data is stored in f_utxos and f_parsed_utxos files respectively
 ```
 
 

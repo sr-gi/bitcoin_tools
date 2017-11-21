@@ -60,19 +60,20 @@ def transaction_dump(fin_name, fout_name, version=0.15):
             if utxo.get('tx_id') == tx.get('tx_id'):
                 tx['num_utxos'] += 1
                 tx['total_value'] += utxo.get('outs')[0].get('amount')
-                tx['total_len'] += (len(data["key"]) + 2 + len(data["value"])) / 2
+                tx['total_len'] += (len(data["key"]) + len(data["value"])) / 2
 
             # Otherwise, we save the transaction data to the output file and start aggregating the next transaction data
             else:
                 # Save previous transaction data
-                if len(tx) is not 0:
+                if tx:
                     fout.write(ujson.dumps(tx) + '\n')
 
                 # Create the new transaction
                 tx['tx_id'] = utxo.get('tx_id')
                 tx['num_utxos'] = 1
                 tx['total_value'] = utxo.get('outs')[0].get('amount')
-                tx['total_len'] = (len(data["key"]) + 2 + len(data["value"])) / 2
+                # ToDo: Add +2 for prefix?
+                tx['total_len'] = (len(data["key"]) + len(data["value"])) / 2
                 tx['height'] = utxo["height"]
                 tx['coinbase'] = utxo["coinbase"]
                 tx['version'] = None

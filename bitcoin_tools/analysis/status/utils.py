@@ -726,13 +726,13 @@ def get_utxo(tx_id, index, fin_name='chainstate', version=0.15):
     coin = db.get(outpoint)
 
     if coin is not None and o_key is not None:
-        coin = deobfuscate_value(o_key, coin)
+        coin = deobfuscate_value(o_key, hexlify(coin))
 
     db.close()
 
     # ToDO: Add code to return a single output for 0.8 - 0.14
 
-    return hexlify(outpoint), coin
+    return coin
 
 
 def deobfuscate_value(obfuscation_key, value):
