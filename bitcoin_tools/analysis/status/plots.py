@@ -3,6 +3,7 @@ from bitcoin_tools.analysis.plots import plot_distribution, get_cdf, plot_pie
 from json import loads
 from collections import Counter
 import numpy as np
+from bitcoin_tools.analysis.status.utils import get_samples
 
 
 def plots_from_samples(samples, x_attribute, y="tx", xlabel=None, log_axis=None, version=0.15, comparative=False,
@@ -209,7 +210,7 @@ def plot_dict_from_file(y="dust", fin_name=None, percentage=False, xlabel=None, 
     plot_distribution(xs, ys, title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
 
 
-def overview_from_file(tx_fin_name, utxo_fin_name):
+def overview_from_file(tx_fin_name, utxo_fin_name, version=0.15):
     """
     Prints a summary of basic stats.
 
@@ -221,75 +222,22 @@ def overview_from_file(tx_fin_name, utxo_fin_name):
     :rtype: None
     """
 
-    attributes = ['num_utxos', 'total_len']
+    samples = get_samples(['num_utxos', 'total_len'], fin_name=tx_fin_name)
 
-    samples = get_samples(attributes, fin_name=tx_fin_name)
+    print "\t Num. of tx: ", str(len(samples['num_utxos']))
+    print "\t Num. of UTXOs: ", str(sum(samples['num_utxos']))
+    print "\t Avg. num. of UTXOs per tx: ", str(np.mean(samples['num_utxos']))
+    print "\t Std. num. of UTXOs per tx: ", str(np.std(samples['num_utxos']))
+    print "\t Median num. of UTXOs per tx: ", str(np.median(samples['num_utxos']))
 
-    print "Num. of tx: ", str(len(samples['num_utxos']))
-    print "Num. of UTXOs: ", str(sum(samples['num_utxos']))
-    print "Avg. num. of UTXOs per tx: ", str(np.mean(samples['num_utxos']))
-    print "Std. num. of UTXOs per tx: ", str(np.std(samples['num_utxos']))
-    print "Median num. of UTXOs per tx: ", str(np.median(samples['num_utxos']))
+    len_attribute = "total_len"
 
-    print "Size of the (serialized) UTXO set: ", str(np.sum(samples['total_len']))
-    print "Avg. size per tx: ", str(np.mean(samples['total_len']))
-    print "Std. size per tx: ", str(np.std(samples['total_len']))
-    print "Median size per tx: ", str(np.median(samples['total_len']))
+    print "\t Size of the (serialized) UTXO set: ", str(np.sum(samples[len_attribute]))
 
-    samples = get_samples("utxo_data_len", fin_name=utxo_fin_name)
+    if version >= 0.15:
+        samples = get_samples("register_len", fin_name=utxo_fin_name)
+        len_attribute = "register_len"
 
-    print "Avg. size per UTXO: ", str(np.mean(samples))
-    print "Std. size per UTXO: ", str(np.std(samples))
-    print "Median size per UTXO: ", str(np.median(samples))
-
-
-def get_samples(x_attribute, fin_name, filtr=lambda x: True):
-    """
-    Reads data from .json files and creates a list with the attribute of interest values.
-
-    :param x_attribute: Attribute to plot (must be a key in the dictionary of the dumped data).
-    :type x_attribute: str or list
-    :param fin_name: Input file from which data is loaded.
-    :type fin_name: str
-    :param filtr: Function to filter samples (returns a boolean value for a given sample)
-    :type filtr: function
-    :return:
-    """
-
-    fin = open(CFG.data_path + fin_name, 'r')
-    samples = dict()
-
-    if isinstance(x_attribute, list):
-        for attribute in x_attribute:
-            samples[attribute] = []
-    else:
-        samples[x_attribute] = []
-
-    for line in fin:
-        data = loads(line[:-1])
-        if filtr(data):
-            for attribute in samples:
-                samples[attribute].append(data[attribute])
-
-    fin.close()
-
-    if not isinstance(x_attribute, list):
-        samples = samples.values()
-
-    return samples
-
-
-def get_unique_values(x_attribute, fin_name):
-    """
-    Reads data from a .json file and returns all values found in x_attribute.
-
-    :param x_attribute: Attribute to analyse.
-    :type x_attribute: str
-    :param fin_name: Input file from which data is loaded.
-    :type fin_name: str
-    :return: list of unique x_attribute values
-    """
-
-    samples = get_samples(x_attribute, fin_name=fin_name)
-
-    return list(set(samples))
+    print "\t Avg. size per register: ", str(np.mean(samples[len_attribute]))
+    print "\t Std. size per register: ", str(np.std(samples[len_attribute]))
+    print "\t Median size per register: ", str(np.median(samples[len_attribute]))

@@ -25,7 +25,7 @@ Additionally, bitcoin_tools contains ``STATUS`` an
 Download / clone the repository and add it as a Python repository by:
 
 - Placing it under the Python's lib folder (by default under `/usr/lib/python2.7/` for Linux systems and 
-`/Library/Python/2.6/site-packages/` for OS X)
+`/Library/Python/2.6/site-packages/` for OS X).
 
 or
 
@@ -46,7 +46,7 @@ Install all the dependencies (see next section).
 
 ### Dependencies
 
-The library has the abovementioned dependencies (which can be satisfied by using pip install -r requirements.txt):
+The library has the abovementioned dependencies (which can be satisfied by using `pip install -r requirements.txt`):
 
 ##### Key management and address creation
 

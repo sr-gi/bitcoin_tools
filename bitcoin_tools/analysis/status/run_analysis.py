@@ -1,14 +1,15 @@
 from bitcoin_tools.analysis.status.data_dump import transaction_dump, utxo_dump
-from bitcoin_tools.analysis.status.utils import parse_ldb, accumulate_dust_lm, set_out_names
+from bitcoin_tools.analysis.status.utils import parse_ldb, accumulate_dust_lm, set_out_names, get_samples, \
+    get_filtered_samples
 from bitcoin_tools.analysis.status.plots import plot_dict_from_file, plot_pie_chart_from_samples, overview_from_file, \
-    plots_from_samples, get_samples
+    plots_from_samples
 from bitcoin_tools import CFG
 from os import mkdir, path
 from getopt import getopt
 from sys import argv
 
 
-def plot_non_std(samples, version):
+def non_std_outs_analysis(samples, version):
     # We can use get_unique_values() to obtain all values for the non_std_type attribute found in the analysed samples:
     # get_unique_values("non_std_type",  fin_name=f_parsed_utxos)
 
@@ -24,6 +25,7 @@ def plot_non_std(samples, version):
 
     out_name = "utxo_non_std_type"
 
+    # ToDo: Set title
     plot_pie_chart_from_samples(samples=samples, save_fig=out_name, labels=labels, version=version, groups=groups,
                                 title="",  colors=["#165873", "#428C5C", "#4EA64B", "#ADD96C", "#B1D781", "#FAD02F",
                                                    "#F69229"])
@@ -59,6 +61,7 @@ def tx_based_analysis(tx_fin_name, version=0.15):
         plots_from_samples(x_attribute=attribute, samples=samples[attribute], xlabel=label, log_axis=log, save_fig=out,
                            version=str(version), y='tx')
 
+    # ToDo: Set proper titles
     for attribute, label, out, groups in (zip(x_attributes_pie, xlabels_pie, out_names_pie, pie_groups)):
         plot_pie_chart_from_samples(samples=samples[attribute], save_fig=out, labels=label,
                                     title="", version=version, groups=pie_groups, colors=["#165873", "#428C5C"])
@@ -90,12 +93,13 @@ def utxo_based_analysis(tx_fin_name, version=0.15):
         plots_from_samples(x_attribute=attribute, samples=samples[attribute], xlabel=label, log_axis=log, save_fig=out,
                            version=str(version), y='utxo')
 
+    # ToDo: Set proper titles
     for attribute, label, out, groups in (zip(x_attributes_pie, xlabels_pie, out_names_pie, pie_groups)):
         plot_pie_chart_from_samples(samples=samples[attribute], save_fig=out, labels=label,
                                     title="", version=version, groups=groups, colors=["#165873", "#428C5C",
                                                                                       "#4EA64B", "#ADD96C"])
     # Special case: non-standard
-    plot_non_std(samples[x_attribute_special], version)
+    non_std_outs_analysis(samples[x_attribute_special], version)
 
 
 def dust_analysis(utxo_fin_name, f_dust, version):
@@ -120,6 +124,7 @@ def comparative_data_analysis(tx_fin_name, utxo_fin_name, version):
     utxo_attributes = ['amount', 'tx_height']
 
     xlabels = ['Amount (Satoshi)', 'Height']
+    # ToDo: Complete legends
     out_names = ['tx_utxo_amount', 'tx_utxo_height']
     legends = ['', ['Tx.', 'UTXO']]
     legend_locations = [1, 2]
@@ -136,6 +141,48 @@ def comparative_data_analysis(tx_fin_name, utxo_fin_name, version):
     # ToDo: Set a proper 'y' value
 
 
+def utxo_based_analysis_with_filters(utxo_fin_name, version=0.15):
+    x_attribute = 'tx_height'
+    xlabel = 'Block height'
+    out_names = ['utxo_height_out_type', 'utxo_height_amount', 'segwit_upper_bound']
+
+    filters = [lambda x: x["out_type"] == 0,
+               lambda x: x["out_type"] == 1,
+               lambda x: x["out_type"] in [2, 3, 4, 5],
+               lambda x: x["out_type"] not in range(0, 6),
+               lambda x: x["amount"] < 10 ** 2,
+               lambda x: x["amount"] < 10 ** 4,
+               lambda x: x["amount"] < 10 ** 6,
+               lambda x: x["amount"] < 10 ** 8,
+               lambda x: x["out_type"] == 1]
+
+    legends = [['P2PKH', 'P2SH', 'P2PK', 'Other'], ['$<10^2$', '$<10^4$', '$<10^6$', '$<10^8$'], ['P2SH']]
+    comparative = [True, True, False]
+    legend_loc = 2
+    offset = 0
+
+    samples = get_filtered_samples(x_attribute, fin_name=utxo_fin_name, filtr=filters)
+
+    for out, flt, legend, comp in zip(out_names, filters, legends, comparative):
+        plots_from_samples(x_attribute=[x_attribute] * len(legend), samples=samples[offset:offset + len(legend)],
+                           xlabel=xlabel, save_fig=out, legend=legend, legend_loc=legend_loc, version=str(version),
+                           comparative=comp, y='utxo')
+
+
+def tx_based_analysis_with_filters(tx_fin_name, version=0.15):
+    x_attributes = 'height'
+    # ToDO: Complete the lacking labels
+    xlabels = ['']
+    out_names = ['tx_height_coinbase']
+    filters = [lambda x: x["coinbase"]]
+
+    samples = get_filtered_samples(x_attributes, fin_name=tx_fin_name, filtr=filters)
+
+    for attribute, label, out in zip(x_attributes, xlabels, out_names):
+        plots_from_samples(x_attribute=attribute, samples=samples, xlabel=label, save_fig=out, version=str(version),
+                           y='tx')
+
+
 def run_experiment(version, chainstate, count_p2sh, non_std_only):
     # The following analysis reads/writes from/to large data files. Some of the steps can be ignored if those files have
     # already been created (if more updated data is not requited). Otherwise lot of time will be put in re-parsing large
@@ -150,57 +197,38 @@ def run_experiment(version, chainstate, count_p2sh, non_std_only):
     f_utxos, f_parsed_txs, f_parsed_utxos, f_dust = set_out_names(version, count_p2sh, non_std_only)
 
     # Parse all the data in the chainstate.
+    print "Parsing the chainstate."
     parse_ldb(f_utxos, fin_name=chainstate, version=version)
 
     # Parses transactions and utxos from the dumped data.
+    print "Adding meta-data for transactions and UTXOs."
     transaction_dump(f_utxos, f_parsed_txs, version=version)
     utxo_dump(f_utxos, f_parsed_utxos, count_p2sh=count_p2sh, non_std_only=non_std_only, version=version)
 
     # Print basic stats from data
-    print "Running overview analysis"
+    print "Running overview analysis."
     overview_from_file(f_parsed_txs, f_parsed_utxos)
 
     # Generate plots from tx data (from f_parsed_txs)
-    print "Running transaction based analysis"
+    print "Running transaction based analysis."
     tx_based_analysis(f_parsed_txs)
 
     # Generate plots from utxo data (from f_parsed_utxos)
-    print "Running UTXO based analysis"
+    print "Running UTXO based analysis."
     utxo_based_analysis(f_parsed_utxos)
 
     # Aggregates dust and generates plots it.
-    print "Running dust analysis"
+    print "Running dust analysis."
     dust_analysis(f_parsed_utxos, f_dust, version)
 
     # Comparative data analysis (transactions and UTXOs)
-    print "Running comparative data analysis"
+    print "Running comparative data analysis."
     comparative_data_analysis(f_parsed_txs, f_parsed_utxos, version)
 
-    # ToDo Deal with analysis with filters
-    # # Generate plots with filters
-    # plots_from_file("height", version=version, fin_name=f_parsed_txs, filtr=lambda x: x["coinbase"],
-    #                 save_fig="tx_height_coinbase")
-    #
-    # plots_from_file(["tx_height"] * 4, y=["utxo"] * 4, xlabel="Tx. height", version=[version] * 4,
-    #                 fin_name=[f_parsed_utxos] * 4,
-    #                 filtr=[lambda x: x["out_type"] == 0,
-    #                        lambda x: x["out_type"] == 1,
-    #                        lambda x: x["out_type"] in [2, 3, 4, 5],
-    #                        lambda x: x["out_type"] not in range(0, 6)],
-    #                 legend=['P2PKH', 'P2SH', 'P2PK', 'Other'], legend_loc=2, save_fig="tx_height_outtype")
-    #
-    # plots_from_file(["amount"] * 4, y=["utxo"] * 4, xlabel="Height", version=[version] * 4,
-    #                 fin_name=[f_parsed_utxos] * 4,
-    #                 filtr=[lambda x: x["amount"] < 10 ** 2,
-    #                        lambda x: x["amount"] < 10 ** 4,
-    #                        lambda x: x["amount"] < 10 ** 6,
-    #                        lambda x: x["amount"] < 10 ** 8],
-    #                 legend=['$<10^2$', '$<10^4$', '$<10^6$', '$<10^8$'], legend_loc=2, save_fig="tx_height_amount", )
-    # SEGWIT
-    # plots_from_samples(x_attribute=x_attributes[0], samples=samples[x_attributes[0]], xlabel=xlabels[0],
-    #                    filtr=lambda x: x["out_type"] == 1, legend=['P2SH'], legend_loc=2,  version=str(version),
-    #                    save_fig='segwit', y='utxo')
-    #
+    # Generate plots with filters
+    print "Running analysis with filters."
+    utxo_based_analysis_with_filters(f_parsed_utxos, version)
+    tx_based_analysis_with_filters(f_parsed_txs, version)
 
 
 if __name__ == '__main__':

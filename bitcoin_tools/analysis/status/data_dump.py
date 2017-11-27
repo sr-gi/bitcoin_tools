@@ -20,16 +20,14 @@ def transaction_dump(fin_name, fout_name, version=0.15):
             data = ujson.loads(line[:-1])
 
             utxo = data['value']
-            imprt = sum([out["amount"] for out in utxo.get("outs")])
+            total_value = sum([out["amount"] for out in utxo.get("outs")])
             result = {"tx_id": data["key"],
                       "num_utxos": len(utxo.get("outs")),
-                      "total_value": imprt,
-                      "total_len": (len(data["key"]) + 2 + len(data["value"])) / 2,
+                      "total_value": total_value,
+                      "total_len": data["len"],
                       "height": utxo["height"],
                       "coinbase": utxo["coinbase"],
                       "version": utxo["version"]}
-
-            # Notice that 2 is added to the length of the key since the prefix was removed when parsing the chainstate
 
             fout.write(ujson.dumps(result) + '\n')
 
@@ -53,14 +51,11 @@ def transaction_dump(fin_name, fout_name, version=0.15):
             data = ujson.loads(line[:-1])
             utxo = data['value']
 
-            # Notice that 2 is added to the length of the key since the prefix was removed when parsing the
-            # chainstate
-
             # If the read line contains information of the same transaction we are analyzing we add it to our dictionary
             if utxo.get('tx_id') == tx.get('tx_id'):
                 tx['num_utxos'] += 1
                 tx['total_value'] += utxo.get('outs')[0].get('amount')
-                tx['total_len'] += (len(data["key"]) + len(data["value"])) / 2
+                tx['total_len'] += data['len']
 
             # Otherwise, we save the transaction data to the output file and start aggregating the next transaction data
             else:
@@ -72,8 +67,7 @@ def transaction_dump(fin_name, fout_name, version=0.15):
                 tx['tx_id'] = utxo.get('tx_id')
                 tx['num_utxos'] = 1
                 tx['total_value'] = utxo.get('outs')[0].get('amount')
-                # ToDo: Add +2 for prefix?
-                tx['total_len'] = (len(data["key"]) + len(data["value"])) / 2
+                tx['total_len'] = data['len']
                 tx['height'] = utxo["height"]
                 tx['coinbase'] = utxo["coinbase"]
                 tx['version'] = None
@@ -136,10 +130,7 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                 # encoded data anymore (coin) but of the entry identifier (outpoint), we add it manually.
                 if version >= 0.15:
                     result['index'] = utxo['index']
-                    result['register_len'] = (len(data["key"]) + 2 + len(data["value"])) / 2
-
-                    # Notice that 2 is added to the length of the key since the prefix was removed when parsing the
-                    # chainstate
+                    result['register_len'] = data['len']
 
                 # Updates the dictionary with the remaining data from out, and stores it in disk.
                 result.update(out)
