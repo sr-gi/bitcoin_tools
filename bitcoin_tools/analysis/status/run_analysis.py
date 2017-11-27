@@ -26,6 +26,7 @@ def non_std_outs_analysis(samples, version):
     out_name = "utxo_non_std_type"
 
     # ToDo: Set title
+    # ToDo: Properly rearrange labels (the are colluding)
     plot_pie_chart_from_samples(samples=samples, save_fig=out_name, labels=labels, version=version, groups=groups,
                                 title="",  colors=["#165873", "#428C5C", "#4EA64B", "#ADD96C", "#B1D781", "#FAD02F",
                                                    "#F69229"])
@@ -42,10 +43,11 @@ def tx_based_analysis(tx_fin_name, version=0.15):
 
     log_axis = [False, [False, 'x'], False, 'x', [False, 'x']]
 
-    x_attributes_pie = ['coinbase']
+    x_attr_pie = ['coinbase']
     xlabels_pie = [['Coinbase', 'No-coinbase']]
     out_names_pie = ['tx_coinbase']
     pie_groups = [[[1], [0]]]
+    pie_colors = [["#165873", "#428C5C"]]
 
     # Version has been dropped of in version 0.15, so there is no need of parsing Null data for 0.15 onwards.
     if version >= 0.15:
@@ -55,16 +57,16 @@ def tx_based_analysis(tx_fin_name, version=0.15):
         out_names.pop(i)
         log_axis.pop(i)
 
-    samples = get_samples(x_attributes + x_attributes_pie,  fin_name=tx_fin_name)
+    samples = get_samples(x_attributes + x_attr_pie,  fin_name=tx_fin_name)
 
     for attribute, label, log, out in zip(x_attributes, xlabels, log_axis, out_names):
         plots_from_samples(x_attribute=attribute, samples=samples[attribute], xlabel=label, log_axis=log, save_fig=out,
                            version=str(version), y='tx')
 
     # ToDo: Set proper titles
-    for attribute, label, out, groups in (zip(x_attributes_pie, xlabels_pie, out_names_pie, pie_groups)):
+    for attribute, label, out, groups, colors in (zip(x_attr_pie, xlabels_pie, out_names_pie, pie_groups, pie_colors)):
         plot_pie_chart_from_samples(samples=samples[attribute], save_fig=out, labels=label,
-                                    title="", version=version, groups=pie_groups, colors=["#165873", "#428C5C"])
+                                    title="", version=version, groups=groups, colors=colors)
 
 
 def utxo_based_analysis(tx_fin_name, version=0.15):
@@ -74,9 +76,10 @@ def utxo_based_analysis(tx_fin_name, version=0.15):
     xlabels = ['tx_height', 'amount', 'index', 'out_type', 'utxo_data_len', 'register_len']
 
     out_names = ["utxo_tx_height", "utxo_amount_logx", ["utxo_index", "utxo_index_logx"],
-                 ["utxo_out_type", "utxo_out_type_logx"], ["utxo_data_len", "utxo_data_len_logx"], 'utxo_register_len']
+                 ["utxo_out_type", "utxo_out_type_logx"], ["utxo_data_len", "utxo_data_len_logx"],
+                 ['utxo_register_len', 'utxo_register_len_logx']]
 
-    log_axis = [False, 'x', [False, 'x'], [False, 'x'], [False, 'x'], False]
+    log_axis = [False, 'x', [False, 'x'], [False, 'x'], [False, 'x'], [False, 'x']]
 
     x_attributes_pie = ['out_type', 'out_type']
     xlabels_pie = [['C-even', 'C-odd', 'U-even', 'U-odd'], ['P2PKH', 'P2PK', 'P2SH', 'Other']]
@@ -167,6 +170,7 @@ def utxo_based_analysis_with_filters(utxo_fin_name, version=0.15):
         plots_from_samples(x_attribute=[x_attribute] * len(legend), samples=samples[offset:offset + len(legend)],
                            xlabel=xlabel, save_fig=out, legend=legend, legend_loc=legend_loc, version=str(version),
                            comparative=comp, y='utxo')
+        offset += len(legend)
 
 
 def tx_based_analysis_with_filters(tx_fin_name, version=0.15):
