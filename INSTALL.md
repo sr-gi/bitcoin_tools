@@ -3,7 +3,7 @@
 Download / clone the repository and add it as a Python repository by:
 
 - Placing it under the Python's lib folder (by default under `/usr/lib/python2.7/` for Linux systems and 
-`/Library/Python/2.6/site-packages/` for OS X).
+`/Library/Python/2.6/site-packages/` for OS X). (e.g `mv bitcoin_tools/bitcoin_tools /usr/lib/python2.7/`)
 
 or
 

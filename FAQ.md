@@ -44,7 +44,7 @@ You can star the GitHub code.
 
 Well, I like beer, fell free to buy me one:
 
-BTC_ADDR_HERE
+1srgihPwqtNkY3MWDNu6sxgCFcmp5Ne8n
 
 ### Was this FAQ really necessary?
 
