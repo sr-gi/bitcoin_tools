@@ -160,21 +160,21 @@ def plot_dict_from_file(y="dust", fin_name=None, percentage=False, xlabel=None, 
 
     # Decides the type of chart to be plot.
     if y == "dust":
-        data_type = ["dust_utxos", "lm_utxos"]
+        data_type = ["dust_utxos", "np_utxos"]
         if not percentage:
             ylabel = "Number of UTXOs"
         else:
             ylabel = "Percentage of UTXOs"
             total = "total_utxos"
     elif y == "value":
-        data_type = ["dust_value", "lm_value"]
+        data_type = ["dust_value", "np_value"]
         if not percentage:
             ylabel = "Value (Satoshi)"
         else:
             ylabel = "Percentage of total value"
             total = "total_value"
     elif y == "data_len":
-        data_type = ["dust_data_len", "lm_data_len"]
+        data_type = ["dust_data_len", "np_data_len"]
         if not percentage:
             ylabel = "UTXOs' size (bytes)"
         else:

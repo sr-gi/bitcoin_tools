@@ -462,9 +462,9 @@ def parse_ldb(fout_name, fin_name='chainstate', decode=True, version=0.15):
     db.close()
 
 
-def accumulate_dust_lm(fin_name, fout_name="dust.json"):
+def aggregate_dust_np(fin_name, fout_name="dust.json"):
     """
-    Accumulates all the dust / lm of a given parsed utxo file (from utxo_dump function).
+    Aggregates all the dust / non-profitable (np) utxos of a given parsed utxo file (from utxo_dump function).
 
     :param fin_name: Input file name, from where data wil be loaded.
     :type fin_name: str
@@ -482,9 +482,9 @@ def accumulate_dust_lm(fin_name, fout_name="dust.json"):
     value_dust = deepcopy(dust)
     data_len_dust = deepcopy(dust)
 
-    lm = deepcopy(dust)
-    value_lm = deepcopy(dust)
-    data_len_lm = deepcopy(dust)
+    np = deepcopy(dust)
+    value_np = deepcopy(dust)
+    data_len_np = deepcopy(dust)
 
     total_utxo = 0
     total_value = 0
@@ -506,15 +506,15 @@ def accumulate_dust_lm(fin_name, fout_name="dust.json"):
             data_len_dust[rate] += data["utxo_data_len"]
 
         # Same with non-profitable outputs.
-        if 0 < data['loss_making'] < MAX_FEE_PER_BYTE:
-            if data['loss_making'] < MIN_FEE_PER_BYTE:
+        if 0 < data['non_profitable'] < MAX_FEE_PER_BYTE:
+            if data['non_profitable'] < MIN_FEE_PER_BYTE:
                 rate = MIN_FEE_PER_BYTE
-            elif MIN_FEE_PER_BYTE <= data['loss_making']:
-                rate = data['loss_making']
+            elif MIN_FEE_PER_BYTE <= data['non_profitable']:
+                rate = data['non_profitable']
 
-            lm[rate] += 1
-            value_lm[rate] += data["amount"]
-            data_len_lm[rate] += data["utxo_data_len"]
+            np[rate] += 1
+            value_np[rate] += data["amount"]
+            data_len_np[rate] += data["utxo_data_len"]
 
         # And we increase the total counters for each read utxo.
         total_utxo = total_utxo + 1
@@ -530,13 +530,13 @@ def accumulate_dust_lm(fin_name, fout_name="dust.json"):
         value_dust[fee_per_byte] += value_dust[fee_per_byte - FEE_STEP]
         data_len_dust[fee_per_byte] += data_len_dust[fee_per_byte - FEE_STEP]
 
-        lm[fee_per_byte] += lm[fee_per_byte - FEE_STEP]
-        value_lm[fee_per_byte] += value_lm[fee_per_byte - FEE_STEP]
-        data_len_lm[fee_per_byte] += data_len_lm[fee_per_byte - FEE_STEP]
+        np[fee_per_byte] += np[fee_per_byte - FEE_STEP]
+        value_np[fee_per_byte] += value_np[fee_per_byte - FEE_STEP]
+        data_len_np[fee_per_byte] += data_len_np[fee_per_byte - FEE_STEP]
 
     # Finally we create the output with the accumulated data and store it.
     data = {"dust_utxos": dust, "dust_value": value_dust, "dust_data_len": data_len_dust,
-            "lm_utxos": lm, "lm_value": value_lm, "lm_data_len": data_len_lm,
+            "np_utxos": np, "np_value": value_np, "np_data_len": data_len_np,
             "total_utxos": total_utxo, "total_value": total_value, "total_data_len": total_data_len}
 
     # Store dust calculation in a file.

@@ -103,14 +103,14 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                 # Calculates the dust threshold for every UTXO value and every fee per byte ratio between min and max.
                 min_size = get_min_input_size(out, utxo["height"], count_p2sh)
                 dust = 0
-                lm = 0
+                np = 0
 
                 if min_size > 0:
                     raw_dust = out["amount"] / float(3 * min_size)
-                    raw_lm = out["amount"] / float(min_size)
+                    raw_np = out["amount"] / float(min_size)
 
                     dust = roundup_rate(raw_dust, FEE_STEP)
-                    lm = roundup_rate(raw_lm, FEE_STEP)
+                    np = roundup_rate(raw_np, FEE_STEP)
 
                 # Adds multisig type info
                 if out["out_type"] in [0, 1, 2, 3, 4, 5]:
@@ -123,7 +123,7 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                           "tx_height": utxo["height"],
                           "utxo_data_len": len(out["data"]) / 2,
                           "dust": dust,
-                          "loss_making": lm,
+                          "non_profitable": np,
                           "non_std_type": non_std_type}
 
                 # Index added at the end when updated the result with the out, since the index is not part of the

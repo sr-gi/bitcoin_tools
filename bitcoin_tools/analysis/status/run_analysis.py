@@ -1,5 +1,5 @@
 from bitcoin_tools.analysis.status.data_dump import transaction_dump, utxo_dump
-from bitcoin_tools.analysis.status.utils import parse_ldb, accumulate_dust_lm, set_out_names, get_samples, \
+from bitcoin_tools.analysis.status.utils import parse_ldb, aggregate_dust_np, set_out_names, get_samples, \
     get_filtered_samples
 from bitcoin_tools.analysis.status.plots import plot_dict_from_file, plot_pie_chart_from_samples, overview_from_file, \
     plots_from_samples
@@ -108,7 +108,7 @@ def utxo_based_analysis(tx_fin_name, version=0.15):
 def dust_analysis(utxo_fin_name, f_dust, version):
     # Generate plots for dust analysis (including percentage scale).
     # First, the dust accumulation file is generated
-    accumulate_dust_lm(utxo_fin_name, fout_name=f_dust)
+    aggregate_dust_np(utxo_fin_name, fout_name=f_dust)
 
     ys = ["dust", "value", "data_len"]
     outs = ["dust_utxos", "dust_value", "dust_data_len"]
