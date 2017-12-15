@@ -2,10 +2,14 @@
 
 ### I just downloaded the code from GitHub, how can I make it work?
 
-First, you must install all the dependencies, both system and Python ones. Refer to the dependencies section of the
-README to check them (specially for system dependencies). Python dependencies can be installed by running `pip install -r requirements.txt`
+First, you must install all the dependencies, both system and Python ones. Refer to the [dependencies section](README.md#dependencies) of the
+README to check them.
 
-### I installed all the dependencies, but the code still doesn't work!
+### I've installed all the dependencies, but the code still doesn't work!
+
+Have you checked the [INSTALL.md](INSTALL.md) file? You may need to add bitcoin_tools as a library by placing it in the proper directory or including it in the `PYTHONPATH`
+
+### I've installed all the dependencies and I've done everything in the INSTALL.md file, why am I still not able to make it work?!
 
 Once all dependencies are installed you should create a configuration file using `sample_conf.py` as an example. The purpose
 of the configuration file is to define the paths of the directories that will be used for IO by the library, for example

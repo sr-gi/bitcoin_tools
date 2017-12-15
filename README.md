@@ -49,11 +49,11 @@ and `libleveldb-dev` must be installed:
 
 ### Installation
 
-Refer to INSTALL.md
+Refer to [INSTALL.md](INSTALL.md)
 
 ### Some trouble getting started with the repo?
 
-Refer to INSTALL.md and FAQ.md
+Refer to [INSTALL.md](INSTALL.md) and [FAQ.md](FAQ.md)
 
 ### Still not working?
 
