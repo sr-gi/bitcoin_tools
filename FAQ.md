@@ -9,7 +9,7 @@ README to check them.
 
 Have you checked the [INSTALL.md](INSTALL.md) file? You may need to add bitcoin_tools as a library by placing it in the proper directory or including it in the `PYTHONPATH`
 
-### I've installed all the dependencies and I've done everything in the INSTALL.md file, why am I still not able to make it work?!
+### I've installed all the dependencies and I've done everything in the INSTALL.md file, why I am still not able to make it work?!
 
 Once all dependencies are installed you should create a configuration file using `sample_conf.py` as an example. The purpose
 of the configuration file is to define the paths of the directories that will be used for IO by the library, for example
