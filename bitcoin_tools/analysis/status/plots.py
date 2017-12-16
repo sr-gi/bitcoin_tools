@@ -6,7 +6,7 @@ import numpy as np
 from bitcoin_tools.analysis.status.utils import get_samples
 
 
-def plots_from_samples(samples, x_attribute, y="tx", xlabel=None, log_axis=None, version=0.15, comparative=False,
+def plots_from_samples(samples, x_attribute, ylabel="Number of txs", xlabel=None, log_axis=None, version=0.15, comparative=False,
                        save_fig=False, legend=None, legend_loc=1, font_size=20):
     """
     Generates plots from utxo/tx samples extracted from utxo_dump.
@@ -42,14 +42,6 @@ def plots_from_samples(samples, x_attribute, y="tx", xlabel=None, log_axis=None,
     # In comparative analysis samples are passed as list of lists of samples.
     if not comparative:
         samples = [samples]
-
-    # ToDo: Check if there are lacking labels
-    if y == "tx":
-        ylabel = "Number of txs"
-    elif y == "utxo":
-        ylabel = "Number of UTXOs"
-    else:
-        raise ValueError('Unrecognized y value')
 
     title = ""
     if not xlabel:

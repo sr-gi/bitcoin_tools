@@ -62,12 +62,10 @@ def plot_distribution(xs, ys, title, xlabel, ylabel, log_axis=None, save_fig=Fal
     :param legend: list of strings with legend entries or None (if no legend is needed)
     :param legend_loc: integer, indicates the location of the legend (if present)
     :param font_size: integer, title, xlabel and ylabel font size
-    :param y_sup_lim:
-    :type y_sup_lim:
+    :param y_sup_lim: float, y axis superior limit (if None or not present, use default matplotlib value)
     :return: None
     :type: None
     """
-    # ToDO: Cris add doc for y_sup_lim
 
     plt.figure()
     ax = plt.subplot(111)
@@ -94,7 +92,6 @@ def plot_distribution(xs, ys, title, xlabel, ylabel, log_axis=None, save_fig=Fal
 
     # Include legend
     if legend:
-        # ToDo: Cris never used
         lgd = ax.legend(legend, loc=legend_loc)
 
     # Force y limit

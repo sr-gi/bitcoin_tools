@@ -25,7 +25,6 @@ def non_std_outs_analysis(samples, version):
 
     out_name = "utxo_non_std_type"
 
-    # ToDo: Set title
     # ToDo: Properly rearrange labels (the are colluding)
     plot_pie_chart_from_samples(samples=samples, save_fig=out_name, labels=labels, version=version, groups=groups,
                                 title="",  colors=["#165873", "#428C5C", "#4EA64B", "#ADD96C", "#B1D781", "#FAD02F",
@@ -35,8 +34,7 @@ def non_std_outs_analysis(samples, version):
 def tx_based_analysis(tx_fin_name, version=0.15):
     x_attributes = ['height', 'total_len', 'version', 'total_value', 'num_utxos']
 
-    # ToDO: Complete the lacking labels
-    xlabels = ['height', 'Total length (bytes)', 'version', 'total_value', 'Number of UTXOs per tx']
+    xlabels = ['Height', 'Total length (bytes)', 'Version', 'Total value', 'Number of UTXOs per tx']
 
     out_names = ["tx_height", ["tx_total_len", "tx_total_len_logx"], 'tx_version', "tx_total_value_logx",
                  ["tx_num_utxos", "tx_num_utxos_logx"]]
@@ -61,9 +59,8 @@ def tx_based_analysis(tx_fin_name, version=0.15):
 
     for attribute, label, log, out in zip(x_attributes, xlabels, log_axis, out_names):
         plots_from_samples(x_attribute=attribute, samples=samples[attribute], xlabel=label, log_axis=log, save_fig=out,
-                           version=str(version), y='tx')
+                           version=str(version), ylabel="Number of txs")
 
-    # ToDo: Set proper titles
     for attribute, label, out, groups, colors in (zip(x_attr_pie, xlabels_pie, out_names_pie, pie_groups, pie_colors)):
         plot_pie_chart_from_samples(samples=samples[attribute], save_fig=out, labels=label,
                                     title="", version=version, groups=groups, colors=colors)
@@ -72,8 +69,7 @@ def tx_based_analysis(tx_fin_name, version=0.15):
 def utxo_based_analysis(tx_fin_name, version=0.15):
     x_attributes = ['tx_height', 'amount', 'index', 'out_type', 'utxo_data_len', 'register_len']
 
-    # ToDO: Complete the lacking labels
-    xlabels = ['tx_height', 'amount', 'index', 'out_type', 'utxo_data_len', 'register_len']
+    xlabels = ['Tx. height', 'Amount', 'UTXO Index', 'Out type', 'UTXO data len.', 'Register len.']
 
     out_names = ["utxo_tx_height", "utxo_amount_logx", ["utxo_index", "utxo_index_logx"],
                  ["utxo_out_type", "utxo_out_type_logx"], ["utxo_data_len", "utxo_data_len_logx"],
@@ -94,9 +90,8 @@ def utxo_based_analysis(tx_fin_name, version=0.15):
 
     for attribute, label, log, out in zip(x_attributes, xlabels, log_axis, out_names):
         plots_from_samples(x_attribute=attribute, samples=samples[attribute], xlabel=label, log_axis=log, save_fig=out,
-                           version=str(version), y='utxo')
+                           version=str(version), ylabel="Number of UTXOs")
 
-    # ToDo: Set proper titles
     for attribute, label, out, groups in (zip(x_attributes_pie, xlabels_pie, out_names_pie, pie_groups)):
         plot_pie_chart_from_samples(samples=samples[attribute], save_fig=out, labels=label,
                                     title="", version=version, groups=groups, colors=["#165873", "#428C5C",
@@ -127,9 +122,8 @@ def comparative_data_analysis(tx_fin_name, utxo_fin_name, version):
     utxo_attributes = ['amount', 'tx_height']
 
     xlabels = ['Amount (Satoshi)', 'Height']
-    # ToDo: Complete legends
     out_names = ['tx_utxo_amount', 'tx_utxo_height']
-    legends = ['', ['Tx.', 'UTXO']]
+    legends = [['Tx.', 'UTXO'], ['Tx.', 'UTXO']]
     legend_locations = [1, 2]
 
     tx_samples = get_samples(tx_attributes, tx_fin_name)
@@ -139,9 +133,7 @@ def comparative_data_analysis(tx_fin_name, utxo_fin_name, version):
                                                                legends, legend_locations):
         plots_from_samples(x_attribute=[tx_attr, utxo_attr], xlabel=label, save_fig=out, version=str(version),
                            samples=[tx_samples[tx_attr], utxo_samples[utxo_attr]], legend=legend, legend_loc=leg_loc,
-                           y='tx', comparative=True)
-
-    # ToDo: Set a proper 'y' value
+                           y="Number of registers", comparative=True)
 
 
 def utxo_based_analysis_with_filters(utxo_fin_name, version=0.15):
@@ -169,14 +161,13 @@ def utxo_based_analysis_with_filters(utxo_fin_name, version=0.15):
     for out, flt, legend, comp in zip(out_names, filters, legends, comparative):
         plots_from_samples(x_attribute=[x_attribute] * len(legend), samples=samples[offset:offset + len(legend)],
                            xlabel=xlabel, save_fig=out, legend=legend, legend_loc=legend_loc, version=str(version),
-                           comparative=comp, y='utxo')
+                           comparative=comp, ylabel="Number of UTXOs")
         offset += len(legend)
 
 
 def tx_based_analysis_with_filters(tx_fin_name, version=0.15):
     x_attributes = 'height'
-    # ToDO: Complete the lacking labels
-    xlabels = ['']
+    xlabels = ['Height']
     out_names = ['tx_height_coinbase']
     filters = [lambda x: x["coinbase"]]
 
@@ -184,7 +175,7 @@ def tx_based_analysis_with_filters(tx_fin_name, version=0.15):
 
     for attribute, label, out in zip(x_attributes, xlabels, out_names):
         plots_from_samples(x_attribute=attribute, samples=samples, xlabel=label, save_fig=out, version=str(version),
-                           y='tx')
+                           y="Number of txs")
 
 
 def run_experiment(version, chainstate, count_p2sh, non_std_only):
