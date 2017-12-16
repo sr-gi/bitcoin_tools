@@ -6,8 +6,8 @@ import numpy as np
 from bitcoin_tools.analysis.status.utils import get_samples
 
 
-def plots_from_samples(samples, x_attribute, ylabel="Number of txs", xlabel=None, log_axis=None, version=0.15, comparative=False,
-                       save_fig=False, legend=None, legend_loc=1, font_size=20):
+def plots_from_samples(samples, x_attribute, ylabel="Number of txs", xlabel=None, log_axis=None, version=0.15,
+                       comparative=False, save_fig=False, legend=None, legend_loc=1, font_size=20):
     """
     Generates plots from utxo/tx samples extracted from utxo_dump.
 
@@ -15,8 +15,8 @@ def plots_from_samples(samples, x_attribute, ylabel="Number of txs", xlabel=None
     :type: list
     :param x_attribute: Attribute to plot (must be a key in the dictionary of the dumped data).
     :type x_attribute: str or list
-    :param y: Either "tx" or "utxo"
-    :type y: str or list
+    :param ylabel: Label for the y axis of the chart
+    :type ylabel: str or list
     :param xlabel: Label on the x axis
     :type xlabel: str
     :param log_axis: Determines which axis are plotted using (accepted values are False, "x", "y" or "xy").
@@ -24,6 +24,8 @@ def plots_from_samples(samples, x_attribute, ylabel="Number of txs", xlabel=None
     :type log_axis: str or list
     :param version: Bitcoin core version, used to decide the folder in which to store the data.
     :type version: str or list
+    :param comparative: Whether we are running a comparative analysis.
+    :type comparative: bool
     :param save_fig: Figure's filename or False (to show the interactive plot)
     :type save_fig: str or list
     :param legend: List of strings with legend entries or None (if no legend is needed)
@@ -210,6 +212,8 @@ def overview_from_file(tx_fin_name, utxo_fin_name, version=0.15):
     :type tx_fin_name: str
     :param utxo_fin_name: Parsed transactions input file from which data is loaded.
     :type utxo_fin_name: str
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
     :return: None
     :rtype: None
     """

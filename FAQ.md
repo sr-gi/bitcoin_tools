@@ -5,7 +5,7 @@
 First, you must install all the dependencies, both system and Python ones. Refer to the [dependencies section](README.md#dependencies) of the
 README to check them.
 
-### I've installed all the dependencies, but the code still doesn't work!
+### I've installed all the dependencies, but the code still doesn't work! What I'm doing wrong?
 
 Have you checked the [INSTALL.md](INSTALL.md) file? You may need to add bitcoin_tools as a library by placing it in the proper directory or including it in the `PYTHONPATH`
 

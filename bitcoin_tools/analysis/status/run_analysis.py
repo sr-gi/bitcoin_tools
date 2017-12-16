@@ -10,6 +10,17 @@ from sys import argv
 
 
 def non_std_outs_analysis(samples, version):
+    """
+    Perform the non standard out analysis for a given set of samples.
+
+    :param samples: List of samples that will form the chart.
+    :type samples: list
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
+    :return: None
+    :rtype: None
+    """
+
     # We can use get_unique_values() to obtain all values for the non_std_type attribute found in the analysed samples:
     # get_unique_values("non_std_type",  fin_name=f_parsed_utxos)
 
@@ -32,6 +43,17 @@ def non_std_outs_analysis(samples, version):
 
 
 def tx_based_analysis(tx_fin_name, version=0.15):
+    """
+    Performs a transaction based analysis from a given input file (resulting from a transaction dump of the chainstate)
+
+    :param tx_fin_name: Input file path which contains the chainstate transaction dump.
+    :type: str
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
+    :return: None
+    :rtype: None
+    """
+
     x_attributes = ['height', 'total_len', 'version', 'total_value', 'num_utxos']
 
     xlabels = ['Height', 'Total length (bytes)', 'Version', 'Total value', 'Number of UTXOs per tx']
@@ -66,7 +88,18 @@ def tx_based_analysis(tx_fin_name, version=0.15):
                                     title="", version=version, groups=groups, colors=colors)
 
 
-def utxo_based_analysis(tx_fin_name, version=0.15):
+def utxo_based_analysis(utxo_fin_name, version=0.15):
+    """
+    Performs a utxo based analysis from a given input file (resulting from a utxo dump of the chainstate)
+
+    :param utxo_fin_name: Input file path which contains the chainstate utxo dump.
+    :type: str
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
+    :return: None
+    :rtype: None
+    """
+
     x_attributes = ['tx_height', 'amount', 'index', 'out_type', 'utxo_data_len', 'register_len']
 
     xlabels = ['Tx. height', 'Amount', 'UTXO Index', 'Out type', 'UTXO data len.', 'Register len.']
@@ -86,7 +119,7 @@ def utxo_based_analysis(tx_fin_name, version=0.15):
 
     # Since the attributes for the pie chart are already included in the normal chart, we won't pass them to the
     # sampling function.
-    samples = get_samples(x_attributes + [x_attribute_special], fin_name=tx_fin_name)
+    samples = get_samples(x_attributes + [x_attribute_special], fin_name=utxo_fin_name)
 
     for attribute, label, log, out in zip(x_attributes, xlabels, log_axis, out_names):
         plots_from_samples(x_attribute=attribute, samples=samples[attribute], xlabel=label, log_axis=log, save_fig=out,
@@ -101,6 +134,19 @@ def utxo_based_analysis(tx_fin_name, version=0.15):
 
 
 def dust_analysis(utxo_fin_name, f_dust, version):
+    """
+    Performs a dust analysis by aggregating al the dust of a utxo dump file.
+
+    :param utxo_fin_name: Input file path which contains the chainstate utxo dump.
+    :type: str
+    :param f_dust: Output file name where the aggregated dust will be stored.
+    :type f_dust: str
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
+    :return: None
+    :rtype: None
+    """
+
     # Generate plots for dust analysis (including percentage scale).
     # First, the dust accumulation file is generated
     aggregate_dust_np(utxo_fin_name, fout_name=f_dust)
@@ -116,6 +162,18 @@ def dust_analysis(utxo_fin_name, f_dust, version):
 
 
 def comparative_data_analysis(tx_fin_name, utxo_fin_name, version):
+    """
+    Performs a comparative data analysis between a transaction dump data file and an utxo dump one.
+
+    :param tx_fin_name: Input file path which contains the chainstate transaction dump.
+    :type: str
+    :param utxo_fin_name: Input file path which contains the chainstate utxo dump.
+    :type: str
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
+    :return: None
+    :rtype: None
+    """
 
     # Generate plots with both transaction and utxo data (f_parsed_txs and f_parsed_utxos)
     tx_attributes = ['total_value', 'height']
@@ -133,10 +191,21 @@ def comparative_data_analysis(tx_fin_name, utxo_fin_name, version):
                                                                legends, legend_locations):
         plots_from_samples(x_attribute=[tx_attr, utxo_attr], xlabel=label, save_fig=out, version=str(version),
                            samples=[tx_samples[tx_attr], utxo_samples[utxo_attr]], legend=legend, legend_loc=leg_loc,
-                           y="Number of registers", comparative=True)
+                           ylabel="Number of registers", comparative=True)
 
 
 def utxo_based_analysis_with_filters(utxo_fin_name, version=0.15):
+    """
+    Performs an utxo data analysis using different filters, to obtain for examples the amount of SegWit outputs.
+
+    :param utxo_fin_name: Input file path which contains the chainstate utxo dump.
+    :type: str
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
+    :return: None
+    :rtype: None
+    """
+
     x_attribute = 'tx_height'
     xlabel = 'Block height'
     out_names = ['utxo_height_out_type', 'utxo_height_amount', 'segwit_upper_bound']
@@ -166,6 +235,18 @@ def utxo_based_analysis_with_filters(utxo_fin_name, version=0.15):
 
 
 def tx_based_analysis_with_filters(tx_fin_name, version=0.15):
+    """
+    Performs a transaction data analysis using different filters, to obtain for example the amount of coinbase
+    transactions.
+
+    :param tx_fin_name: Input file path which contains the chainstate transaction dump.
+    :type: str
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
+    :return: None
+    :rtype: None
+    """
+
     x_attributes = 'height'
     xlabels = ['Height']
     out_names = ['tx_height_coinbase']
@@ -175,10 +256,24 @@ def tx_based_analysis_with_filters(tx_fin_name, version=0.15):
 
     for attribute, label, out in zip(x_attributes, xlabels, out_names):
         plots_from_samples(x_attribute=attribute, samples=samples, xlabel=label, save_fig=out, version=str(version),
-                           y="Number of txs")
+                           ylabel="Number of txs")
 
 
 def run_experiment(version, chainstate, count_p2sh, non_std_only):
+    """
+    Runs the whole experiment. You may comment the parts of it you are not interested in to save time.
+
+     :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
+    :param chainstate: Chainstate path.
+    :type chainstate: str
+    :param count_p2sh: Whether P2SH outputs are included in the experiment or not.
+    :type count_p2sh: bool
+    :param non_std_only: Whether the experiment is performed only counting non standard outputs.
+    :type non_std_only:bool
+    :return:
+    """
+
     # The following analysis reads/writes from/to large data files. Some of the steps can be ignored if those files have
     # already been created (if more updated data is not requited). Otherwise lot of time will be put in re-parsing large
     # files.
