@@ -1,7 +1,5 @@
 # Bitcoin tools
 
-### Watch out! You are in the development branch, some parts of the code could be under development and therefore susceptible to change / non fully tested. 
-
 bitcoin_tools is a Python library created for teaching and researching purposes. It's main objective is twofold. First it 
 aims to ease the understanding of Bitcoin transaction creation, by using well-documented and easy to understand
 python code. Second, it aims to provide a tool able to create custom `transactions` / `scripts`. Either `scriptSig` and 
