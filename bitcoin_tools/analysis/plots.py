@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from bitcoin_tools import CFG
 
-label_size = 12
+label_size = 11
 mpl.rcParams['xtick.labelsize'] = label_size
 mpl.rcParams['ytick.labelsize'] = label_size
 mpl.rcParams['legend.numpoints'] = 1
