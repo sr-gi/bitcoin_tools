@@ -36,6 +36,8 @@ def non_std_outs_analysis(samples, version):
 
     out_name = "utxo_non_std_type"
 
+    # ToDo: Fix labels overlapping 
+
     plot_pie_chart_from_samples(samples=samples, save_fig=out_name, labels=labels, version=version, groups=groups,
                                 title="",  colors=["#165873", "#428C5C", "#4EA64B", "#ADD96C", "#B1D781", "#FAD02F",
                                                    "#F69229"], labels_out=True)
@@ -99,13 +101,19 @@ def utxo_based_analysis(utxo_fin_name, version=0.15):
     :rtype: None
     """
 
-    x_attributes = ['tx_height', 'amount', 'index', 'out_type', 'utxo_data_len', 'register_len']
+    x_attributes = ['tx_height', 'amount', 'index', 'out_type', 'utxo_data_len']
 
-    xlabels = ['Tx. height', 'Amount', 'UTXO Index', 'Out type', 'UTXO data len.', 'Register len.']
+    xlabels = ['Tx. height', 'Amount', 'UTXO Index', 'Out type', 'UTXO data len.']
 
     out_names = ["utxo_tx_height", "utxo_amount_logx", ["utxo_index", "utxo_index_logx"],
-                 ["utxo_out_type", "utxo_out_type_logx"], ["utxo_data_len", "utxo_data_len_logx"],
-                 ['utxo_register_len', 'utxo_register_len_logx']]
+                 ["utxo_out_type", "utxo_out_type_logx"], ["utxo_data_len", "utxo_data_len_logx"]]
+
+    # Getting register length in case of 0.15 onwards. For previous versions this chart is printed in the tx based
+    # analysis, since data is already aggregated.
+    if version >= 0.15:
+        x_attributes += ['register_len']
+        xlabels += ['Register len.']
+        out_names += ['utxo_register_len', 'utxo_register_len_logx']
 
     log_axis = [False, 'x', [False, 'x'], [False, 'x'], [False, 'x'], [False, 'x']]
 
@@ -296,15 +304,15 @@ def run_experiment(version, chainstate, count_p2sh, non_std_only):
 
     # Print basic stats from data
     print "Running overview analysis."
-    overview_from_file(f_parsed_txs, f_parsed_utxos)
+    overview_from_file(f_parsed_txs, f_parsed_utxos, version)
 
     # Generate plots from tx data (from f_parsed_txs)
     print "Running transaction based analysis."
-    tx_based_analysis(f_parsed_txs)
+    tx_based_analysis(f_parsed_txs, version)
 
     # Generate plots from utxo data (from f_parsed_utxos)
     print "Running UTXO based analysis."
-    utxo_based_analysis(f_parsed_utxos)
+    utxo_based_analysis(f_parsed_utxos, version)
 
     # Aggregates dust and generates plots it.
     print "Running dust analysis."

@@ -762,7 +762,7 @@ def deobfuscate_value(obfuscation_key, value):
 
     # In some cases, the obtained value could be 1 byte smaller than the original, since the leading 0 is dropped off
     # when the formatting.
-    if len(r) is l_value-1:
+    if len(r) == l_value-1:
         r = r.zfill(l_value)
 
     assert len(value) == len(r)
