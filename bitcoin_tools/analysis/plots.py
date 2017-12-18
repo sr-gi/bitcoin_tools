@@ -107,7 +107,7 @@ def plot_distribution(xs, ys, title, xlabel, ylabel, log_axis=None, save_fig=Fal
         plt.show()
 
 
-def plot_pie(values, labels, title, colors, save_fig=False, font_size=20):
+def plot_pie(values, labels, title, colors, save_fig=False, font_size=20, labels_out=False):
     """
     Plots a set of values in a pie chart with matplotlib.
 
@@ -126,8 +126,17 @@ def plot_pie(values, labels, title, colors, save_fig=False, font_size=20):
     plt.figure()
     ax = plt.subplot(111)
 
-    ax.pie(values, labels=labels, colors=colors,
-           autopct='%1.1f%%', startangle=90, labeldistance=1.1, wedgeprops={'linewidth': 0})
+    if labels_out:
+        # Plots percentages and labels as legend (in a separate box)
+        ax.pie(values, colors=colors,
+                                autopct='%1.1f%%', startangle=90, pctdistance=1.3, wedgeprops={'linewidth': 0})
+        s = float(np.sum(values))
+        perc = [v/s*100 for v in values]
+        plt.legend(loc="best", labels=['%s, %1.1f %%' % (l, s) for l, s in zip(labels, perc)], fontsize="x-small")
+    else:
+        # Plot percentages in the pie and labels around the pie
+        ax.pie(values, labels=labels, colors=colors,
+               autopct='%1.1f%%', startangle=90, labeldistance=1.1, wedgeprops={'linewidth': 0})
 
     # Equal aspect ratio ensures that pie is drawn as a circle
     ax.axis('equal')

@@ -69,7 +69,7 @@ def plots_from_samples(samples, x_attribute, ylabel="Number of txs", xlabel=None
 
 
 def plot_pie_chart_from_samples(samples, title="", labels=None, groups=None, colors=None, version=0.15, save_fig=False,
-                                font_size=20):
+                                font_size=20, labels_out=False):
     """
     Generates pie charts from UTXO/tx data extracted from utxo_dump.
 
@@ -114,7 +114,7 @@ def plot_pie_chart_from_samples(samples, title="", labels=None, groups=None, col
         current_sum = sum(values)
         values.append(len(samples) - current_sum)
 
-    plot_pie(values, labels, title, colors, save_fig=save_fig, font_size=font_size)
+    plot_pie(values, labels, title, colors, save_fig=save_fig, font_size=font_size, labels_out=labels_out)
 
 
 def plot_dict_from_file(y="dust", fin_name=None, percentage=False, xlabel=None, log_axis=None,

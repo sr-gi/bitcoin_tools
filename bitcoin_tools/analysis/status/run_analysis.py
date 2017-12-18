@@ -36,10 +36,9 @@ def non_std_outs_analysis(samples, version):
 
     out_name = "utxo_non_std_type"
 
-    # ToDo: Properly rearrange labels (the are colluding)
     plot_pie_chart_from_samples(samples=samples, save_fig=out_name, labels=labels, version=version, groups=groups,
                                 title="",  colors=["#165873", "#428C5C", "#4EA64B", "#ADD96C", "#B1D781", "#FAD02F",
-                                                   "#F69229"])
+                                                   "#F69229"], labels_out=True)
 
 
 def tx_based_analysis(tx_fin_name, version=0.15):
