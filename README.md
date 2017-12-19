@@ -37,7 +37,7 @@ Fell free to open an issue.
 ### Examples
 
 Down below you can find some examples of how to use some of the library functions. More examples can be found in 
-`examples/`
+[`examples/`](examples/)
 
 #### Key management and Bitcoin address generation
 ```python

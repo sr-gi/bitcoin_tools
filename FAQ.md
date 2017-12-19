@@ -29,7 +29,7 @@ Have you checked that you are in the proper `git` branch? Sometimes the function
 different branches. Some parts of the code could have been moved or renamed. Run `git branch` and `git checkout branch_name`
 if you are not in the one you are supposed to be!
 
-### I want to use your library to create some fancy app for "insert the purpose here", can you do it for me?
+### I want to use your library to create some fancy app for \*\*insert the purpose here\*\*, can you do it for me?
 
 Nope! I'm more than happy to help you with any kind of trouble you face when using the library, as well as to fix any
 bug you may find. However, don't ask me to develop your application for you!
