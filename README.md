@@ -16,34 +16,11 @@ bitcoin_tools allows you to:
 * Transaction analysis from hex encoded transactions.
 
 Additionally, bitcoin_tools contains ``STATUS`` an
-**ST**atistical **A**nalysis **T**ool for **U**txo **S**et under `analysis/status`
+**ST**atistical **A**nalysis **T**ool for **U**txo **S**et under [`analysis/status`](bitcoin_tools/analysis/status)
 
 ### Dependencies
 
-The library has the abovementioned dependencies (which can be satisfied by using `pip install -r requirements.txt`):
-
-##### Key management and address creation
-
-`ecdsa 
-base58 `
-
-##### Keys export (WIF)
-`qrcode
-Pillow`
-
-##### Script creation
-`python-bitcoinlib`
-
-##### Data analysis
-`plyvel
-matplotlib
-numpy
-ujson`
-
-Note that some additional system packages may also be needed. For instance, for Debian/Ubuntu based systems, `python-tk` 
-and `libleveldb-dev` must be installed:
-
-`sudo apt-get install python-tk libleveldb-dev`
+Refer to [DEPENCENCIES.md](DEPENDENCIES.md)
 
 ### Installation
 
@@ -51,7 +28,7 @@ Refer to [INSTALL.md](INSTALL.md)
 
 ### Some trouble getting started with the repo?
 
-Refer to [INSTALL.md](INSTALL.md) and [FAQ.md](FAQ.md)
+Refer to [FAQ.md](FAQ.md)
 
 ### Still not working?
 

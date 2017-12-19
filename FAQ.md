@@ -2,8 +2,7 @@
 
 ### I just downloaded the code from GitHub, how can I make it work?
 
-First, you must install all the dependencies, both system and Python ones. Refer to the [dependencies section](README.md#dependencies) of the
-README to check them.
+First, you must install all the dependencies, both system and Python ones. Refer to the [dependencies section](DEPENDENCIES.md) to check them.
 
 ### I've installed all the dependencies, but the code still doesn't work! What I'm doing wrong?
 
