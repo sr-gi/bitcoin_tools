@@ -16,14 +16,14 @@ from json import load
 # - Then the fees will be set.
 # - Once all the data is defined, we will be ready to build the transaction. We can use the input/output constructor to
 # do so.
-# - Finally, we should sign the transaction using all m-out of-n required private keys. Notice that the order of the in
-# which the keys are provided must match with the order in which the public keys where defined in the previous tx output
+# - Finally, we should sign the transaction using all m-out of-n required private keys. Notice that the order in which
+# the keys are provided must match with the order in which the public keys where defined in the previous tx output
 # script.
 # - Finally we wil serialize the transaction and display it to check that all worked!
 # ---------------------------------------------------------------------------------------------------------------------
 
 # Loads the UTXO data from a json file. You can create your own file based on the provided example with UTXOs from keys
-# own. It won't work if you don't update it.
+# you own. It won't work if you don't update it.
 utxo = load(open('example_utxos/P2MS_utxo.json', 'r'))
 
 # Get the previous transaction id and index, as well as the source bitcoin address.

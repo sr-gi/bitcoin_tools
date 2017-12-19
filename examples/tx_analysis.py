@@ -5,13 +5,13 @@ from bitcoin_tools.core.transaction import TX
 #################################################
 
 # ---------------------------------------------------------------------------------------------------------------------
-# The following piece of code parses a serialized transaction (hex encoded) transaction and displays all the information
-#  related to it.
+# The following piece of code parses a serialized transaction (hex encoded) and displays all the information related
+# to it.
 # - Leftmost displayed transaction shows data as should be interpreted (human-readable), while rightmost
 # (surrounded by parenthesis) shows it as it is in the serialize transaction (can be used to identify it inside the
 # transaction)
-# - You should change the hex_tx for the one you'd like to deserialize. Serialized transaction can be obtain though
-# block explorers such as blockchyper or blockr.io, or by building a transaction using some of the library tools.
+# - You should change the hex_tx for the one you'd like to deserialize. Serialized transaction can be obtain from block
+# explorers such as blockcypher.com or blockchain.info, or by building a transaction using some of the library tools.
 # ---------------------------------------------------------------------------------------------------------------------
 
 # First a transaction object is created (through the deserialize constructor) by deserializing the hex transaction we

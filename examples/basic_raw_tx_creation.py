@@ -24,7 +24,7 @@ sk, pk = load_keys(btc_addr)
 # - You should change prev_tx_id, prev_out_index and value for the ones who match with an unspent transaction output
 # from your recently generated address.
 # - Choose a fee big enough to pay for the transaction inclusion into a block. You can use https://bitcoinfees.21.co/ to
-# figure out the current fee-per-byte ratio.
+# figure out the current fee-per-byte rate.
 # - Choose the transaction destination address.
 # - Build the transaction using the basic constructor.
 # - Sign and broadcast the transaction.
