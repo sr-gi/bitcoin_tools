@@ -122,11 +122,13 @@ utxo_dump(f_utxos, f_parsed_utxos, version=version)
 # Data is stored in f_utxos and f_parsed_utxos files respectively
 ```
 
-### Did you find the tool useful?
+### Support
 
-Show some love, star the repository. Or buy us a beer, if you think it's worth it, we love beer!
+If you find this repository useful, show us some love, give us a star!
 
-1srgihPwqtNkY3MWDNu6sxgCFcmp5Ne8n
+Small Bitcoin donations to the following address are also wellcome:
+
+[1srgihPwqtNkY3MWDNu6sxgCFcmp5Ne8n](https://blockchain.info/address/1srgihPwqtNkY3MWDNu6sxgCFcmp5Ne8n)
 
 ### Disclaimer
 
