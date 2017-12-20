@@ -126,7 +126,7 @@ utxo_dump(f_utxos, f_parsed_utxos, version=version)
 
 If you find this repository useful, show us some love, give us a star!
 
-Small Bitcoin donations to the following address are also wellcome:
+Small Bitcoin donations to the following address are also welcome:
 
 [1srgihPwqtNkY3MWDNu6sxgCFcmp5Ne8n](https://blockchain.info/address/1srgihPwqtNkY3MWDNu6sxgCFcmp5Ne8n)
 
