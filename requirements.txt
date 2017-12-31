@@ -7,4 +7,3 @@ plyvel
 matplotlib
 numpy
 ujson
-secp256k1
