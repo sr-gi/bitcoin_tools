@@ -1,11 +1,18 @@
 import plyvel
 from binascii import hexlify, unhexlify
+import secp256k1
 import ujson
 from math import ceil
 from copy import deepcopy
 from bitcoin_tools.analysis.status import *
 from bitcoin_tools.utils import change_endianness
 from bitcoin_tools.core.script import OutputScript
+
+OP_DUP = chr(0x76)
+OP_HASH160 = chr(0xa9)
+OP_EQUALVERIFY = chr(0x88)
+OP_CHECKSIG = chr(0xac)
+OP_EQUAL = chr(0x87)
 
 
 def txout_compress(n):
@@ -248,13 +255,14 @@ def decode_utxo(coin, outpoint, version=0.15):
 
         # And the remaining data corresponds to the script.
         script = coin[offset:]
+        decompressed_script = decompress_script(out_type,script)
 
         # Assert that the script hash the expected length
         assert len(script) == data_size
 
         # And to conclude, the output can be encoded. We will store it in a list for backward compatibility with the
         # previous decoder
-        out = [{'amount': amount, 'out_type': out_type, 'data': script}]
+        out = [{'amount': amount, 'out_type': out_type, 'data': script, 'script': decompressed_script}]
 
     # Even though there is just one output, we will identify it as outputs for backward compatibility with the previous
     # decoder.
@@ -377,6 +385,48 @@ def decode_utxo_v08_v014(utxo):
 
     return {'version': version, 'coinbase': coinbase, 'outs': outs, 'height': height}
 
+def decompress_script(script_type,script_bytes):
+    """ Takes CScript as stored in leveldb and returns it in uncompressed form
+    (de)compression scheme is defined in bitcoin/src/compressor.cpp
+
+    :param script_type: first byte of script data (out_type in decode_utxo)
+    :type script_type: int
+    :param script_bytes: raw script bytes hexlified (data in decode_utxo)
+    :type script_bytes: str
+    :return: the decompressed CScript
+    :rtype: str
+    """
+
+    data = unhexlify(script_bytes)
+    if script_type == 0:
+        assert len(data) == 20
+        data = OP_DUP + OP_HASH160 + chr(20) + data + \
+            OP_EQUALVERIFY + OP_CHECKSIG
+
+    elif script_type == 1:
+        assert len(data) == 20
+        data = OP_HASH160 + chr(20) + data + OP_EQUAL
+
+    elif script_type == 2 or script_type == 3:
+        data = data[1:]
+        assert len(data) == 32
+        data = chr(33) + script_type + data + OP_CHECKSIG
+
+    elif script_type == 4 or script_type == 5:
+        data = data[1:]
+        assert len(data) == 32
+
+        comp_pubkey = chr(script_type - 2) + data
+        pubkey = secp256k1.PublicKey(
+            comp_pubkey, raw=True).serialize(compressed=False)
+
+        data = chr(65) + pubkey + OP_CHECKSIG
+
+    else:
+        assert len(data) == script_type - 6
+        data = hexlify(data)
+
+    return hexlify(data)
 
 def display_decoded_utxo(decoded_utxo):
     """ Displays the information extracted from a decoded UTXO from the chainstate.
@@ -942,4 +992,3 @@ def get_unique_values(x_attribute, fin_name):
     samples = get_samples(x_attribute, fin_name=fin_name)
 
     return list(set(samples))
-
