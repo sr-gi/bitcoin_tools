@@ -378,6 +378,37 @@ def decode_utxo_v08_v014(utxo):
     return {'version': version, 'coinbase': coinbase, 'outs': outs, 'height': height}
 
 
+def decompress_script(script_type,script_bytes):
+    """ Takes CScript as stored in leveldb and returns it in uncompressed form
+    (de)compression scheme is defined in bitcoin/src/compressor.cpp
+
+    :param script_type: first byte of script data (out_type in decode_utxo)
+    :type script_type: int
+    :param script_bytes: raw script bytes hexlified (data in decode_utxo)
+    :type script_bytes: str
+    :return: the decompressed CScript
+    :rtype: str
+    """
+
+    if script_type == 0:
+        script = OutputScript.P2PKH(script_bytes)
+
+    elif script_type == 1:
+        script = OutputScript.P2SH(script_bytes)
+
+    elif script_type == 2 or script_type == 3:
+        script = OutputScript.P2PK(script_bytes)
+
+    elif script_type == 4 or script_type == 5:
+        pfx = chr(int(script_bytes[:2], 16) - 2)
+        script = OutputScript.P2PK(hexlify(pfx) + script_bytes[2:])
+
+    else:
+        assert len(script_bytes) == script_type - (NSPECIALSCRIPTS * 2)
+        script = OutputScript.from_hex(data)
+
+    return script
+
 def display_decoded_utxo(decoded_utxo):
     """ Displays the information extracted from a decoded UTXO from the chainstate.
 
@@ -942,4 +973,3 @@ def get_unique_values(x_attribute, fin_name):
     samples = get_samples(x_attribute, fin_name=fin_name)
 
     return list(set(samples))
-
