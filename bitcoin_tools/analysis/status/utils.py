@@ -378,36 +378,45 @@ def decode_utxo_v08_v014(utxo):
     return {'version': version, 'coinbase': coinbase, 'outs': outs, 'height': height}
 
 
-def decompress_script(script_type,script_bytes):
+def decompress_script(compressed_script, script_type):
     """ Takes CScript as stored in leveldb and returns it in uncompressed form
     (de)compression scheme is defined in bitcoin/src/compressor.cpp
 
+    :param compressed_script: raw script bytes hexlified (data in decode_utxo)
+    :type compressed_script: str
     :param script_type: first byte of script data (out_type in decode_utxo)
     :type script_type: int
-    :param script_bytes: raw script bytes hexlified (data in decode_utxo)
-    :type script_bytes: str
     :return: the decompressed CScript
     :rtype: str
     """
 
     if script_type == 0:
-        script = OutputScript.P2PKH(script_bytes)
+        if len(compressed_script) != 40:
+            raise Exception("Compressed script has wrong size")
+        script = OutputScript.P2PKH(compressed_script)
 
     elif script_type == 1:
-        script = OutputScript.P2SH(script_bytes)
+        if len(compressed_script) != 40:
+            raise Exception("Compressed script has wrong size")
+        script = OutputScript.P2SH(compressed_script)
 
-    elif script_type == 2 or script_type == 3:
-        script = OutputScript.P2PK(script_bytes)
+    elif script_type in [2, 3]:
+        if len(compressed_script) != 66:
+            raise Exception("Compressed script has wrong size")
+        script = OutputScript.P2PK(compressed_script)
 
-    elif script_type == 4 or script_type == 5:
-        pfx = chr(int(script_bytes[:2], 16) - 2)
-        script = OutputScript.P2PK(hexlify(pfx) + script_bytes[2:])
+    elif script_type in [4, 5]:
+        # pfx = chr(int(script_bytes[:2], 16) - 2)
+        # script = OutputScript.P2PK(hexlify(pfx) + script_bytes[2:])
+        # ToDO: Create P2PK script using decompressed PK (decompress_pk needs to be implemented).
+        pass
 
     else:
-        assert len(script_bytes) == script_type - (NSPECIALSCRIPTS * 2)
-        script = OutputScript.from_hex(data)
+        assert len(compressed_script) == script_type - (NSPECIALSCRIPTS * 2)
+        script = OutputScript.from_hex(compressed_script)
 
-    return script
+    return script.serialize()
+
 
 def display_decoded_utxo(decoded_utxo):
     """ Displays the information extracted from a decoded UTXO from the chainstate.
