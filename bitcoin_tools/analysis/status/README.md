@@ -11,7 +11,7 @@ STATUS reads from a LevelDB folder (usually located under `.bitcoin/chainstate`)
 
 ### Directly decoded data
 
-This analysis provides, for every parsed `utxo`, the decoding of the stored data, that is: `transaction id` and `index` that uniquely identifies the `utxo`, the `value` of the output in Satoshi, the `block height` in which the transaction was included, whether the output is `coinbase` or not, the `scriptPubKey` that locks the output and the `script type`, and depending on the database version, the `transaction version`.
+This analysis provides, for every parsed `utxo`, the decoding of the stored data, that is: `transaction id` and `index` that uniquely identifies the `utxo`, the `value` of the output in Satoshi, the `block height` in which the transaction was included, whether the output is `coinbase` or not, the `scriptPubKey` that locks the output, the `script type`, and depending on the database version, the `transaction version`.
 
 ### Additional metadata
 
@@ -25,8 +25,8 @@ STATUS allows you to run analysis against non-standard `utxos` only by running t
 
 Transaction based analysis aggregates data from different `utxo` that were created by the same `transaction`, providing the following information about it:
 
-The `number of unspent outputs`, the `total value` and the `total length` of those outputs as represented in the `utxo set`, the `block height` in which the transaction was created, whether the transaction is `coinbase` or not and again, the `transaction version` (depending on the databse version).
+The `number of unspent outputs`, the `total value` and the `total length` of those outputs as represented in the `utxo set`, the `block height` in which the transaction was created, whether the transaction is `coinbase` or not and again, the `transaction version` (depending on the database version).
 
 ## Statistical analysis
 
-With the raw generated data, and using `numpy` and `matplotlib` Python's libraries, STATUS allows you to run several statistical analyses, such as general data overview (containing the total number of `transactions` and `utxos`, and the average, median, and standard deviation of `utxo` per transaction, size per transactions, and size per `utxos`), and different plots for all the parsed data, including the `dust` and `non-profitable utxos`. 
+With th generated raw data, and using `numpy` and `matplotlib` Python's libraries, STATUS allows you to run several statistical analyses, such as general data overview (containing the total number of `transactions` and `utxos`, and the average, median, and standard deviation of `utxo` per transaction, size per transactions, and size per `utxos`), and different plots for all the parsed data, including the `dust` and `non-profitable utxos`. 
