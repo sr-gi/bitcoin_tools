@@ -32,7 +32,7 @@ Refer to [FAQ.md](FAQ.md)
 
 ### Still not working?
 
-Fell free to open an issue.
+Feel free to open an issue.
 
 ### Examples
 
