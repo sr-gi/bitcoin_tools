@@ -543,6 +543,7 @@ def aggregate_dust_np(fin_name, fout_name="dust.json"):
 
             dust[rate] += 1
             value_dust[rate] += data["amount"]
+            # CHANGED
             data_len_dust[rate] += data["utxo_data_len"]
 
         # Same with non-profitable outputs.

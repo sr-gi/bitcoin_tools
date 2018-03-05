@@ -117,7 +117,7 @@ def plot_pie_chart_from_samples(samples, title="", labels=None, groups=None, col
     plot_pie(values, labels, title, colors, save_fig=save_fig, font_size=font_size, labels_out=labels_out)
 
 
-def plot_dict_from_file(y="dust", fin_name=None, percentage=False, xlabel=None, log_axis=None,
+def plot_dict_from_file(y="dust", disp_np=True, fin_name=None, percentage=False, xlabel=None, log_axis=None,
                         version=0.15, save_fig=False, legend=None, legend_loc=1, font_size=20):
     """
     Loads data from a given file (stored in a dictionary) and plots it in a chart. dust.json is a perfect example of
@@ -125,8 +125,10 @@ def plot_dict_from_file(y="dust", fin_name=None, percentage=False, xlabel=None, 
 
     :param y: Either "tx" or "utxo"
     :type y: str
+    disp_np: Whether to display non_profitable in the same chart as dust or not.
+    :type disp_np: bool
     :param fin_name: Name of the file containing the data to be plotted.
-    :type fin_name: str
+    :type fin_name: str or list
     :param percentage: Whether the data is plot as percentage or not.
     :type percentage: bool
     :param xlabel: Label on the x axis
@@ -148,27 +150,39 @@ def plot_dict_from_file(y="dust", fin_name=None, percentage=False, xlabel=None, 
     :rtype: None
     """
 
-    fin = open(CFG.data_path + fin_name, 'r')
-    data = loads(fin.read())
-    fin.close()
+    if not isinstance(fin_name, list):
+        fin_name = [fin_name]
+
+    data = []
+
+    for f in fin_name:
+        fin = open(CFG.data_path + f, 'r')
+        data.append(loads(fin.read()))
+        fin.close()
 
     # Decides the type of chart to be plot.
     if y == "dust":
-        data_type = ["dust_utxos", "np_utxos"]
+        data_type = ["dust_utxos"]
+        if disp_np:
+            data_type.append("np_utxos")
         if not percentage:
             ylabel = "Number of UTXOs"
         else:
             ylabel = "Percentage of UTXOs"
             total = "total_utxos"
     elif y == "value":
-        data_type = ["dust_value", "np_value"]
+        data_type = ["dust_value"]
+        if disp_np:
+            data_type.append("np_value")
         if not percentage:
             ylabel = "Value (Satoshi)"
         else:
             ylabel = "Percentage of total value"
             total = "total_value"
     elif y == "data_len":
-        data_type = ["dust_data_len", "np_data_len"]
+        data_type = ["dust_data_len"]
+        if disp_np:
+            data_type.append("np_data_len")
         if not percentage:
             ylabel = "UTXOs' size (bytes)"
         else:
@@ -184,8 +198,9 @@ def plot_dict_from_file(y="dust", fin_name=None, percentage=False, xlabel=None, 
     ys = []
     # Sort the data
     for i in data_type:
-        xs.append(sorted(data[i].keys(), key=int))
-        ys.append(sorted(data[i].values(), key=int))
+        for d in data:
+            xs.append(sorted(d[i].keys(), key=int))
+            ys.append(sorted(d[i].values(), key=int))
 
     title = ""
     if not xlabel:
@@ -194,11 +209,13 @@ def plot_dict_from_file(y="dust", fin_name=None, percentage=False, xlabel=None, 
     # If percentage is set, a chart with y axis as a percentage (dividing every single y value by the
     # corresponding total value) is created.
     if percentage:
+        # ToDo: Check this!!
         for i in range(len(ys)):
+            d = data[i] if len(data) > 1 else data[0]
             if isinstance(ys[i], list):
-                ys[i] = [j / float(data[total]) * 100 for j in ys[i]]
+                    ys[i] = [j / float(d[total]) * 100 for j in ys[i]]
             elif isinstance(ys[i], int):
-                ys[i] = ys[i] / float(data[total]) * 100
+                    ys[i] = ys[i] / float(data[i][total]) * 100
 
     # And finally plots the chart.
     plot_distribution(xs, ys, title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
