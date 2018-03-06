@@ -1,6 +1,7 @@
 from bitcoin_tools import CFG
 from bitcoin_tools.analysis.status import FEE_STEP
-from bitcoin_tools.analysis.status.utils import check_multisig, get_min_input_size, roundup_rate, check_multisig_type
+from bitcoin_tools.analysis.status.utils import check_multisig, get_min_input_size, roundup_rate, check_multisig_type, \
+    get_serialized_size
 import ujson
 from subprocess import call
 from os import remove
@@ -106,7 +107,22 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                 np = 0
 
                 if min_size > 0:
-                    raw_dust = out["amount"] / float(3 * min_size)
+                    # https://github.com/bitcoin/bitcoin/blob/5961b23898ee7c0af2626c46d5d70e80136578d3/src/policy/policy.cpp#L20-L33
+
+                    # A UTXO is considered dust if the fees that should be payed to spend it are greater or equal to
+                    # 1/3 of its value for Bitcoin Core up to version 0.14.
+                    if version < 0.15:
+                        raw_dust = out["amount"] / float(3 * min_size)
+                    else:
+                        # For 0.15 onwards an estimation of the length of the transaction that will include the UTXO is
+                        # computed.
+                        out_size = get_serialized_size(out)
+                        # prev_tx_id (32 bytes) + prev_out_index (4 bytes) + scripSig_len (1 byte) + (PUSH sig + 72-byte
+                        # sig) (73 bytes) + (PUSH pk + compressed pk) (34 bytes) + nSequence (4 bytes)
+                        in_size = 32 + 4 + 1 + 73 + 34 + 4
+
+                        raw_dust = out_size + in_size
+
                     raw_np = out["amount"] / float(min_size)
 
                     dust = roundup_rate(raw_dust, FEE_STEP)

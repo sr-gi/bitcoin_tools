@@ -4,7 +4,7 @@ import ujson
 from math import ceil
 from copy import deepcopy
 from bitcoin_tools.analysis.status import *
-from bitcoin_tools.utils import change_endianness
+from bitcoin_tools.utils import change_endianness, encode_varint
 from bitcoin_tools.core.script import OutputScript
 
 
@@ -983,3 +983,39 @@ def get_unique_values(x_attribute, fin_name):
     samples = get_samples(x_attribute, fin_name=fin_name)
 
     return list(set(samples))
+
+
+def get_serialized_size(utxo):
+    """
+    Computes the uncompressed serialized size of an UTXO.
+
+    :param utxo: unspent output to compute the size
+    :type utxo: dict
+    :return: size in bytes
+    :rtype int
+    """
+
+    if utxo.get("out_type") is 0:
+        # P2PKH: OP_DUP (1 byte) + OP_HASH160 (1 byte) + PUSH (1 byte) + HASH160 (20 bytes) + OP_EQUALVERIFY (1 byte) +
+        # OP_CHECKSIG (1 byte) = 25 bytes
+        out_size = 25
+    elif utxo.get("out_type") is 1:
+        # P2SH: OP_HASH160 (1 byte) + PUSH (1 byte) + HAS160 (20 bytes) + OP_EQUAL (1 byte) = 23 bytes
+        out_size = 23
+    elif utxo.get("out_type") in [2, 3]:
+        # P2PK compressed: PUSH (1 byte) + compressed_pk (33 bytes) + OP_CHECKSIG (1 byte) = 35 bytes
+        out_size = 35
+    elif utxo.get("out_type") in [4, 5]:
+        # P2PK uncompressed: PUSH (1 byte) + uncompressed_pk (65 bytes) + OP_CHECKSIG (1 byte) = 67 bytes
+        out_size = 67
+    else:
+        # Any other type will have the full script stored in the utxo
+        out_size = len(utxo.get("data")) / 2
+
+    # Add the number of bytes corresponding to the scriptPubKey length
+    out_size += len(encode_varint(out_size)) / 2
+
+    # Add 8 bytes for bitcoin value
+    out_size += 8
+
+    return out_size
