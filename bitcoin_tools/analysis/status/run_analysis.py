@@ -156,7 +156,7 @@ def dust_analysis(utxo_fin_name, f_dust, version):
 
     # Generate plots for dust analysis (including percentage scale).
     # First, the dust accumulation file is generated
-    # aggregate_dust_np(utxo_fin_name, fout_name=f_dust)
+    aggregate_dust_np(utxo_fin_name, fout_name=f_dust)
 
     ys = ["dust", "value", "data_len"]
     outs = ["dust_utxos", "dust_value", "dust_data_len"]
@@ -168,19 +168,21 @@ def dust_analysis(utxo_fin_name, f_dust, version):
                             save_fig="perc_"+out)
 
 
-def compare_dust(f_dust, version, legend=False):
+def compare_dust(version):
     """
     Compares dust of two given dust files.
 
-    :param f_dust: File names.
-    :type f_dust: list
     :param version: Bitcoin core version, used to decide the folder in which to store the data.
     :type version: float
-    :param legend: List of strings with legend entries or None (if no legend is needed)
-    :type legend: str list
     :return: None
     :rtype: None
     """
+
+    # Get dust files from different dates to compare (Change / Add the ones you'll need)
+    f_dust = [str(version)+'/dust_Nov17.json', str(version)+'/dust_Jan18.json', str(version)+'/dust_Early_Feb18.json',
+               str(version) + '/dust_Late_Feb18.json']
+    legend = ["Nov '17", "Jan '18", "Early Feb '18", "Late Feb '18"]
+
     ys = ["dust", "value", "data_len"]
     outs = ["cmp_dust_utxos", "cmp_dust_value", "cmp_dust_data_len"]
 
@@ -340,12 +342,7 @@ def run_experiment(version, chainstate, count_p2sh, non_std_only):
     # Aggregates dust and generates plots it.
     print "Running dust analysis."
     dust_analysis(f_parsed_utxos, f_dust, version)
-
-    # Get dust files from different dates to compare
-    f_dust = [str(version)+'/dust_Nov17.json', str(version)+'/dust_Jan18.json', str(version)+'/dust_Early_Feb18.json',
-               str(version) + '/dust_Late_Feb18.json']
-    legend = ["Nov '17", "Jan '18", "Early Feb '18", "Late Feb '18"]
-    compare_dust(f_dust, version, legend=legend)
+    compare_dust(version)
 
     # Comparative data analysis (transactions and UTXOs)
     print "Running comparative data analysis."
