@@ -128,10 +128,10 @@ def encode_varint(value):
         if value < pow(2, 16):
             size = 2
             prefix = 253  # 0xFD
-        elif value < pow(2, 64):
+        elif value < pow(2, 32):
             size = 4
             prefix = 254  # 0xFE
-        elif value < pow(2, 128):
+        elif value < pow(2, 64):
             size = 8
             prefix = 255  # 0xFF
         else:
