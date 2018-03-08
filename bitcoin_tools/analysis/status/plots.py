@@ -235,8 +235,9 @@ def overview_from_file(tx_fin_name, utxo_fin_name, version=0.15):
     :rtype: None
     """
 
-    samples = get_samples(['num_utxos', 'total_len'], fin_name=tx_fin_name)
+    samples = get_samples(['num_utxos', 'total_len', 'height'], fin_name=tx_fin_name)
 
+    print "\t Max height: ", str(max(samples['height']))
     print "\t Num. of tx: ", str(len(samples['num_utxos']))
     print "\t Num. of UTXOs: ", str(sum(samples['num_utxos']))
     print "\t Avg. num. of UTXOs per tx: ", str(np.mean(samples['num_utxos']))
