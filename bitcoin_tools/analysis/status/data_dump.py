@@ -5,7 +5,7 @@ from bitcoin_tools.analysis.status.utils import check_multisig, get_min_input_si
 import ujson
 from subprocess import call
 from os import remove
-
+from collections import OrderedDict
 
 def transaction_dump(fin_name, fout_name, version=0.15):
     # Transaction dump
@@ -78,7 +78,7 @@ def transaction_dump(fin_name, fout_name, version=0.15):
         remove(CFG.data_path + str(version) + '/sorted_decoded_utxos.json')
 
 
-def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=False):
+def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=False, ordered_dict=False):
     # UTXO dump
 
     # Input file
@@ -135,12 +135,24 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                     non_std_type = check_multisig_type(out["data"])
 
                 # Builds the output dictionary
-                result = {"tx_id": tx_id,
-                          "tx_height": utxo["height"],
-                          "utxo_data_len": len(out["data"]) / 2,
-                          "dust": dust,
-                          "non_profitable": np,
-                          "non_std_type": non_std_type}
+                if ordered_dict:
+                    # Slower, but ensures that the order of keys is preserved (useful for ordering purposes)
+                    result = OrderedDict()
+                    result["key"] = data["key"]
+                    result["tx_id"] = tx_id
+                    result["tx_height"] = utxo["height"]
+                    result["utxo_data_len"] = len(out["data"]) / 2
+                    result["dust"] = dust
+                    result["non_profitable"] = np
+                    result["non_std_type"] = non_std_type
+
+                else:
+                    result = {"tx_id": tx_id,
+                              "tx_height": utxo["height"],
+                              "utxo_data_len": len(out["data"]) / 2,
+                              "dust": dust,
+                              "non_profitable": np,
+                              "non_std_type": non_std_type}
 
                 # Index added at the end when updated the result with the out, since the index is not part of the
                 # encoded data anymore (coin) but of the entry identifier (outpoint), we add it manually.
