@@ -121,7 +121,7 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                         # sig) (73 bytes) + (PUSH pk + compressed pk) (34 bytes) + nSequence (4 bytes)
                         in_size = 32 + 4 + 1 + 73 + 34 + 4
 
-                        raw_dust = out_size + in_size
+                        raw_dust = out["amount"] / (out_size + in_size)
 
                     raw_np = out["amount"] / float(min_size)
 
