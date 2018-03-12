@@ -237,23 +237,28 @@ class OutputScript(Script):
         return script
 
     @classmethod
-    def P2PKH(cls, btc_addr, network='test'):
-        """ Pay-to-PubKeyHash template 'constructor'. Builds a P2PKH OutputScript from a given Bitcoin address and network.
+    def P2PKH(cls, data, network='test', hash160=False):
+        """ Pay-to-PubKeyHash template 'constructor'. Builds a P2PKH OutputScript from a given Bitcoin address / hash160
+        of a Bitcoin address and network.
 
-        :param btc_addr: Bitcoin address to which the transaction output will be locked to.
-        :type btc_addr: hex str
+        :param data: Bitcoin address or hash160 of a Bitcoin address to which the transaction output will be locked to.
+        :type data: hex str
         :param network: Bitcoin network (either mainnet or testnet)
         :type network: hex str
+        :param hash160: If set, the given data is the hash160 of a Bitcoin address, otherwise, it is a Bitcoin address.
+        :type hash160: bool
         :return: A P2PKH ScriptPubKey built using the given bitcoin address and network.
         :rtype: hex str
         """
 
         if network in ['testnet', 'test', 'mainnet', 'main']:
             script = cls()
-            if check_address(btc_addr, network):
-                script.type = "P2PKH"
-                script.content = script.serialize("OP_DUP OP_HASH160 <" + btc_addr_to_hash_160(btc_addr)
-                                                  + "> OP_EQUALVERIFY OP_CHECKSIG")
+            if not hash160 and check_address(data, network):
+                h160 = btc_addr_to_hash_160(data)
+            else:
+                h160 = data
+            script.type = "P2PKH"
+            script.content = script.serialize("OP_DUP OP_HASH160 <" + h160 + "> OP_EQUALVERIFY OP_CHECKSIG")
 
             return script
         else:
