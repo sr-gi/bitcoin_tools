@@ -6,6 +6,7 @@ from copy import deepcopy
 from bitcoin_tools.analysis.status import *
 from bitcoin_tools.utils import change_endianness, encode_varint
 from bitcoin_tools.core.script import OutputScript
+from bitcoin_tools.core.keys import get_uncompressed_pk
 
 
 def txout_compress(n):
@@ -406,16 +407,16 @@ def decompress_script(compressed_script, script_type):
         script = OutputScript.P2PK(compressed_script)
 
     elif script_type in [4, 5]:
-        # pfx = chr(int(script_bytes[:2], 16) - 2)
-        # script = OutputScript.P2PK(hexlify(pfx) + script_bytes[2:])
-        # ToDO: Create P2PK script using decompressed PK (decompress_pk needs to be implemented).
-        pass
+        if len(compressed_script) != 66:
+            raise Exception("Compressed script has wrong size")
+        prefix = format(script_type - 2, '02')
+        script = OutputScript.P2PK(get_uncompressed_pk(prefix + compressed_script[2:]))
 
     else:
         assert len(compressed_script) == script_type - (NSPECIALSCRIPTS * 2)
         script = OutputScript.from_hex(compressed_script)
 
-    return script.serialize()
+    return script.content
 
 
 def display_decoded_utxo(decoded_utxo):
@@ -543,7 +544,6 @@ def aggregate_dust_np(fin_name, fout_name="dust.json"):
 
             dust[rate] += 1
             value_dust[rate] += data["amount"]
-            # CHANGED
             data_len_dust[rate] += data["utxo_data_len"]
 
         # Same with non-profitable outputs.
@@ -627,7 +627,7 @@ def check_multisig_type(script):
         op_multisig = OutputScript.deserialize(script).split()[-1]
 
         if op_multisig == "OP_CHECKMULTISIG" and script[2:4] in ["21", "41"]:
-            return "multisig-"+ str(m) + "-" + str(n)
+            return "multisig-" + str(m) + "-" + str(n)
 
     return False
 
@@ -831,10 +831,6 @@ def roundup_rate(fee_rate, fee_step=FEE_STEP):
         rate = int(fee_rate + fee_step)
     else:
         rate = int(ceil(fee_rate / float(10))) * 10
-
-    # # If the rounded up value is
-    # if rate >= MAX_FEE_PER_BYTE:
-    #     rate = 0
 
     return rate
 
