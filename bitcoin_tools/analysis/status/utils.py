@@ -991,7 +991,7 @@ def get_serialized_size(utxo):
     :rtype int
     """
 
-    # Decompresse the UTXO script
+    # Decompress the UTXO script
     out_script = decompress_script(utxo.get('data'), utxo.get('out_type'))
     out_size = len(out_script) / 2
 
