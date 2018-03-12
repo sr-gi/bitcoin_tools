@@ -379,7 +379,7 @@ def decode_utxo_v08_v014(utxo):
     return {'version': version, 'coinbase': coinbase, 'outs': outs, 'height': height}
 
 
-def decompress_script(compressed_script, script_type):
+def decompress_script(compressed_script, script_type, network='main'):
     """ Takes CScript as stored in leveldb and returns it in uncompressed form
     (de)compression scheme is defined in bitcoin/src/compressor.cpp
 
@@ -394,7 +394,7 @@ def decompress_script(compressed_script, script_type):
     if script_type == 0:
         if len(compressed_script) != 40:
             raise Exception("Compressed script has wrong size")
-        script = OutputScript.P2PKH(compressed_script)
+        script = OutputScript.P2PKH(compressed_script, hash160=True)
 
     elif script_type == 1:
         if len(compressed_script) != 40:
@@ -413,7 +413,7 @@ def decompress_script(compressed_script, script_type):
         script = OutputScript.P2PK(get_uncompressed_pk(prefix + compressed_script[2:]))
 
     else:
-        assert len(compressed_script) == script_type - (NSPECIALSCRIPTS * 2)
+        assert len(compressed_script) / 2 == script_type - NSPECIALSCRIPTS
         script = OutputScript.from_hex(compressed_script)
 
     return script.content
@@ -991,6 +991,30 @@ def get_serialized_size(utxo):
     :rtype int
     """
 
+    # Decompresse the UTXO script
+    out_script = decompress_script(utxo.get('data'), utxo.get('out_type'))
+    out_size = len(out_script) / 2
+
+    # Add the number of bytes corresponding to the scriptPubKey length
+    out_size += len(encode_varint(out_size)) / 2
+
+    # Add 8 bytes for bitcoin value
+    out_size += 8
+
+    return out_size
+
+
+def get_serialized_size_fast(utxo):
+    """
+    Computes the uncompressed serialized size of an UTXO. The sizes are harcoded in this version since they only depend
+    on the script type. Should be faster than get_serialized_size.
+
+    :param utxo: unspent output to compute the size
+    :type utxo: dict
+    :return: size in bytes
+    :rtype int
+    """
+
     if utxo.get("out_type") is 0:
         # P2PKH: OP_DUP (1 byte) + OP_HASH160 (1 byte) + PUSH (1 byte) + HASH160 (20 bytes) + OP_EQUALVERIFY (1 byte) +
         # OP_CHECKSIG (1 byte) = 25 bytes
@@ -1015,3 +1039,4 @@ def get_serialized_size(utxo):
     out_size += 8
 
     return out_size
+
