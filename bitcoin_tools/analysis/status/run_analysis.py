@@ -260,7 +260,7 @@ def utxo_based_analysis_with_filters(utxo_fin_name, version=0.15):
     samples = get_filtered_samples(x_attribute, fin_name=utxo_fin_name, filtr=filters)
 
     for out, flt, legend, comp in zip(out_names, filters, legends, comparative):
-        plots_from_samples(x_attribute=[x_attribute] * len(legend), samples=samples[offset:offset + len(legend)],
+        plots_from_samples(x_attribute=[x_attribute], samples=samples[offset:offset + len(legend)],
                            xlabel=xlabel, save_fig=out, legend=legend, legend_loc=legend_loc, version=str(version),
                            comparative=comp, ylabel="Number of UTXOs")
         offset += len(legend)
