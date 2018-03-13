@@ -6,6 +6,7 @@ from copy import deepcopy
 from bitcoin_tools.analysis.status import *
 from bitcoin_tools.utils import change_endianness, encode_varint
 from bitcoin_tools.core.script import OutputScript
+from bitcoin_tools.core.keys import get_uncompressed_pk
 
 
 def txout_compress(n):
@@ -378,7 +379,7 @@ def decode_utxo_v08_v014(utxo):
     return {'version': version, 'coinbase': coinbase, 'outs': outs, 'height': height}
 
 
-def decompress_script(compressed_script, script_type):
+def decompress_script(compressed_script, script_type, network='main'):
     """ Takes CScript as stored in leveldb and returns it in uncompressed form
     (de)compression scheme is defined in bitcoin/src/compressor.cpp
 
@@ -393,7 +394,7 @@ def decompress_script(compressed_script, script_type):
     if script_type == 0:
         if len(compressed_script) != 40:
             raise Exception("Compressed script has wrong size")
-        script = OutputScript.P2PKH(compressed_script)
+        script = OutputScript.P2PKH(compressed_script, hash160=True)
 
     elif script_type == 1:
         if len(compressed_script) != 40:
@@ -406,16 +407,16 @@ def decompress_script(compressed_script, script_type):
         script = OutputScript.P2PK(compressed_script)
 
     elif script_type in [4, 5]:
-        # pfx = chr(int(script_bytes[:2], 16) - 2)
-        # script = OutputScript.P2PK(hexlify(pfx) + script_bytes[2:])
-        # ToDO: Create P2PK script using decompressed PK (decompress_pk needs to be implemented).
-        pass
+        if len(compressed_script) != 66:
+            raise Exception("Compressed script has wrong size")
+        prefix = format(script_type - 2, '02')
+        script = OutputScript.P2PK(get_uncompressed_pk(prefix + compressed_script[2:]))
 
     else:
-        assert len(compressed_script) == script_type - (NSPECIALSCRIPTS * 2)
+        assert len(compressed_script) / 2 == script_type - NSPECIALSCRIPTS
         script = OutputScript.from_hex(compressed_script)
 
-    return script.serialize()
+    return script.content
 
 
 def display_decoded_utxo(decoded_utxo):
@@ -543,7 +544,6 @@ def aggregate_dust_np(fin_name, fout_name="dust.json"):
 
             dust[rate] += 1
             value_dust[rate] += data["amount"]
-            # CHANGED
             data_len_dust[rate] += data["utxo_data_len"]
 
         # Same with non-profitable outputs.
@@ -627,7 +627,7 @@ def check_multisig_type(script):
         op_multisig = OutputScript.deserialize(script).split()[-1]
 
         if op_multisig == "OP_CHECKMULTISIG" and script[2:4] in ["21", "41"]:
-            return "multisig-"+ str(m) + "-" + str(n)
+            return "multisig-" + str(m) + "-" + str(n)
 
     return False
 
@@ -832,10 +832,6 @@ def roundup_rate(fee_rate, fee_step=FEE_STEP):
     else:
         rate = int(ceil(fee_rate / float(10))) * 10
 
-    # # If the rounded up value is
-    # if rate >= MAX_FEE_PER_BYTE:
-    #     rate = 0
-
     return rate
 
 
@@ -995,6 +991,30 @@ def get_serialized_size(utxo):
     :rtype int
     """
 
+    # Decompress the UTXO script
+    out_script = decompress_script(utxo.get('data'), utxo.get('out_type'))
+    out_size = len(out_script) / 2
+
+    # Add the number of bytes corresponding to the scriptPubKey length
+    out_size += len(encode_varint(out_size)) / 2
+
+    # Add 8 bytes for bitcoin value
+    out_size += 8
+
+    return out_size
+
+
+def get_serialized_size_fast(utxo):
+    """
+    Computes the uncompressed serialized size of an UTXO. The sizes are harcoded in this version since they only depend
+    on the script type. Should be faster than get_serialized_size.
+
+    :param utxo: unspent output to compute the size
+    :type utxo: dict
+    :return: size in bytes
+    :rtype int
+    """
+
     if utxo.get("out_type") is 0:
         # P2PKH: OP_DUP (1 byte) + OP_HASH160 (1 byte) + PUSH (1 byte) + HASH160 (20 bytes) + OP_EQUALVERIFY (1 byte) +
         # OP_CHECKSIG (1 byte) = 25 bytes
@@ -1019,3 +1039,4 @@ def get_serialized_size(utxo):
     out_size += 8
 
     return out_size
+
