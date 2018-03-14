@@ -1,12 +1,46 @@
+from bitcoin_tools.analysis.plots import get_cdf
 from bitcoin_tools.analysis.status.data_dump import transaction_dump, utxo_dump
-from bitcoin_tools.analysis.status.utils import parse_ldb, aggregate_dust_np, set_out_names, get_samples, \
-    get_filtered_samples
-from bitcoin_tools.analysis.status.plots import plot_dict_from_file, plot_pie_chart_from_samples, overview_from_file, \
-    plots_from_samples
+from bitcoin_tools.analysis.status.utils import parse_ldb, aggregate_dust_np
+from data_processing import get_samples, get_filtered_samples
+from bitcoin_tools.analysis.status.plots import plot_pie_chart_from_samples, overview_from_file, plots_from_samples
 from bitcoin_tools import CFG
 from os import mkdir, path
 from getopt import getopt
 from sys import argv
+from ujson import load
+
+
+def set_out_names(version, count_p2sh, non_std_only):
+    """
+    Set the name of the input / output files from the experiment depending on the given flags.
+    :param version: Bitcoin Core client version. Determines the prefix of the transaction entries.
+    :param version: float
+    :param count_p2sh: Whether P2SH should be taken into account.
+    :type count_p2sh: bool
+    :param non_std_only: Whether the experiment will be run only considering non standard outputs.
+    :type non_std_only: bool
+    :return: Four string representing the names of the utxo, parsed_txs, parsed_utxos and dust file names.
+    :rtype: str, str, str, str
+    """
+
+    f_utxos = str(version) + "/decoded_utxos.json"
+    f_parsed_txs = str(version) + "/parsed_txs.json"
+    # In case of the parsed files we consider the parameters
+    f_parsed_utxos = str(version) + "/parsed_utxos"
+    f_dust = str(version) + "/dust"
+
+    if non_std_only:
+        f_parsed_utxos += "_nstd"
+        f_dust += "_nstd"
+
+    if count_p2sh:
+        f_parsed_utxos += "_wp2sh"
+        f_dust += "_wp2sh"
+
+    f_parsed_utxos += ".json"
+    f_dust += ".json"
+
+    return f_utxos, f_parsed_txs, f_parsed_utxos, f_dust
 
 
 def non_std_outs_analysis(samples, version):
@@ -64,7 +98,7 @@ def tx_based_analysis(tx_fin_name, version=0.15):
 
     log_axis = [False, [False, 'x'], False, 'x', [False, 'x']]
 
-    x_attr_pie = ['coinbase']
+    x_attr_pie = 'coinbase'
     xlabels_pie = [['Coinbase', 'No-coinbase']]
     out_names_pie = ['tx_coinbase']
     pie_groups = [[[1], [0]]]
@@ -78,15 +112,17 @@ def tx_based_analysis(tx_fin_name, version=0.15):
         out_names.pop(i)
         log_axis.pop(i)
 
-    samples = get_samples(x_attributes + x_attr_pie,  fin_name=tx_fin_name)
+    samples = get_samples(x_attributes + [x_attr_pie],  fin_name=tx_fin_name)
+    samples_pie = samples.pop(x_attr_pie)
 
     for attribute, label, log, out in zip(x_attributes, xlabels, log_axis, out_names):
-        plots_from_samples(x_attribute=attribute, samples=samples[attribute], xlabel=label, log_axis=log, save_fig=out,
-                           version=str(version), ylabel="Number of txs")
+        xs, ys = get_cdf(samples[attribute], normalize=True)
+        plots_from_samples(xs=xs, ys=ys, xlabel=label, log_axis=log, save_fig=out, version=str(version),
+                           ylabel="Number of txs")
 
-    for attribute, label, out, groups, colors in (zip(x_attr_pie, xlabels_pie, out_names_pie, pie_groups, pie_colors)):
-        plot_pie_chart_from_samples(samples=samples[attribute], save_fig=out, labels=label,
-                                    title="", version=version, groups=groups, colors=colors)
+    for label, out, groups, colors in (zip(xlabels_pie, out_names_pie, pie_groups, pie_colors)):
+        plot_pie_chart_from_samples(samples=samples_pie, save_fig=out, labels=label, title="", version=version,
+                                    groups=groups, colors=colors)
 
 
 def utxo_based_analysis(utxo_fin_name, version=0.15):
@@ -103,7 +139,7 @@ def utxo_based_analysis(utxo_fin_name, version=0.15):
 
     x_attributes = ['tx_height', 'amount', 'index', 'out_type', 'utxo_data_len']
 
-    xlabels = ['Tx. height', 'Amount', 'UTXO Index', 'Out type', 'UTXO data len.']
+    xlabels = ['Tx. height', 'Amount', 'UTXO index', 'Out type', 'UTXO data length']
 
     out_names = ["utxo_tx_height", "utxo_amount_logx", ["utxo_index", "utxo_index_logx"],
                  ["utxo_out_type", "utxo_out_type_logx"], ["utxo_data_len", "utxo_data_len_logx"]]
@@ -112,7 +148,7 @@ def utxo_based_analysis(utxo_fin_name, version=0.15):
     # analysis, since data is already aggregated.
     if version >= 0.15:
         x_attributes += ['register_len']
-        xlabels += ['Register len.']
+        xlabels += ['Register length']
         out_names += ['utxo_register_len', 'utxo_register_len_logx']
 
     log_axis = [False, 'x', [False, 'x'], [False, 'x'], [False, 'x'], [False, 'x']]
@@ -127,17 +163,18 @@ def utxo_based_analysis(utxo_fin_name, version=0.15):
     # Since the attributes for the pie chart are already included in the normal chart, we won't pass them to the
     # sampling function.
     samples = get_samples(x_attributes + [x_attribute_special], fin_name=utxo_fin_name)
+    samples_special = samples.pop(x_attribute_special)
 
     for attribute, label, log, out in zip(x_attributes, xlabels, log_axis, out_names):
-        plots_from_samples(x_attribute=attribute, samples=samples[attribute], xlabel=label, log_axis=log, save_fig=out,
-                           version=str(version), ylabel="Number of UTXOs")
+        xs, ys = get_cdf(samples[attribute], normalize=True)
+        plots_from_samples(xs=xs, ys=ys, xlabel=label, log_axis=log, save_fig=out, version=str(version),
+                           ylabel="Number of UTXOs")
 
     for attribute, label, out, groups in (zip(x_attributes_pie, xlabels_pie, out_names_pie, pie_groups)):
-        plot_pie_chart_from_samples(samples=samples[attribute], save_fig=out, labels=label,
-                                    title="", version=version, groups=groups, colors=["#165873", "#428C5C",
-                                                                                      "#4EA64B", "#ADD96C"])
+        plot_pie_chart_from_samples(samples=samples[attribute], save_fig=out, labels=label, title="", version=version,
+                                    groups=groups, colors=["#165873", "#428C5C", "#4EA64B", "#ADD96C"])
     # Special case: non-standard
-    non_std_outs_analysis(samples[x_attribute_special], version)
+    non_std_outs_analysis(samples_special, version)
 
 
 def dust_analysis(utxo_fin_name, f_dust, version):
@@ -156,16 +193,31 @@ def dust_analysis(utxo_fin_name, f_dust, version):
 
     # Generate plots for dust analysis (including percentage scale).
     # First, the dust accumulation file is generated
-    aggregate_dust_np(utxo_fin_name, fout_name=f_dust)
+    data = aggregate_dust_np(utxo_fin_name, fout_name=f_dust)
 
-    ys = ["dust", "value", "data_len"]
+    # # Or we can load it from a dust file if we have already created it
+    # data = load(open(CFG.data_path + f_dust))
+
+    dict_labels = [["dust_utxos", "np_utxos"], ["dust_value", "np_value"], ["dust_data_len", "np_data_len"]]
     outs = ["dust_utxos", "dust_value", "dust_data_len"]
+    totals = ['total_utxos', 'total_value', 'total_data_len']
+    legend = ["Dust", "Non-profitable"]
 
-    # Plot the aggregated data (with and without percentage axis).
-    for y, out in zip(ys, outs):
-        plot_dict_from_file(y, fin_name=f_dust, version=version, save_fig=out)
-        plot_dict_from_file(y, fin_name=f_dust, percentage=True, version=version,
-                            save_fig="perc_"+out)
+    for labels, out, total in zip(dict_labels, outs, totals):
+        xs = [sorted(data[l].keys(), key=int) for l in labels]
+        ys = [sorted(data[l].values(), key=int) for l in labels]
+
+        plots_from_samples(xs=xs, ys=ys, save_fig=out, legend=legend,
+                           xlabel='Fee rate(sat/byte)', ylabel="Number of UTXOs", version=str(version))
+
+        # Get values in percentage
+        ys_perc = []
+        for y_samples in ys:
+            y_perc = [y / float(data[total]) * 100 for y in y_samples]
+            ys_perc.append(y_perc)
+
+        plots_from_samples(xs=xs, ys=ys_perc, save_fig='perc_' + out, legend=legend,
+                           xlabel='Fee rate(sat/byte)', ylabel="Number of UTXOs", version=str(version))
 
 
 def compare_dust(version):
@@ -179,18 +231,40 @@ def compare_dust(version):
     """
 
     # Get dust files from different dates to compare (Change / Add the ones you'll need)
-    f_dust = [str(version)+'/dust_Nov17.json', str(version)+'/dust_Jan18.json', str(version)+'/dust_Early_Feb18.json',
-               str(version) + '/dust_Late_Feb18.json']
-    legend = ["Nov '17", "Jan '18", "Early Feb '18", "Late Feb '18"]
-
-    ys = ["dust", "value", "data_len"]
+    f_dust = [str(version)+'/dust_wp2sh_' + str(i) + 'K.json' for i in range(100, 550, 50)]
+    legend = [str(i) + 'K' for i in range(100, 550, 50)]
     outs = ["cmp_dust_utxos", "cmp_dust_value", "cmp_dust_data_len"]
+    totals = ['total_utxos', 'total_value', 'total_data_len']
 
-    for y, out in zip(ys, outs):
-        plot_dict_from_file(y, fin_name=f_dust, disp_np=False, version=version, legend=legend, legend_loc=4,
-                            save_fig=out)
-        plot_dict_from_file(y, fin_name=f_dust, disp_np=False, percentage=True, legend=legend, legend_loc=4,
-                            version=version, save_fig="perc_"+out)
+    utxos = []
+    value = []
+    length = []
+
+    for f in f_dust:
+        data = load(open(CFG.data_path + f))
+        utxos.append(data['np_utxos'])
+        value.append(data['np_value'])
+        length.append(data['np_data_len'])
+
+    xs_utxos, ys_utxos = [sorted(u.keys(), key=int) for u in utxos], [sorted(u.values(), key=int) for u in utxos]
+    xs_value, ys_value = [sorted(v.keys(), key=int) for v in value], [sorted(v.values(), key=int) for v in value]
+    xs_length, ys_length = [sorted(l.keys(), key=int) for l in length], [sorted(l.values(), key=int) for l in length]
+
+    x_samples = [xs_utxos, xs_value, xs_length]
+    y_samples = [ys_utxos, ys_value, ys_length]
+
+    for xs, ys, out, total in zip(x_samples, y_samples, outs, totals):
+        plots_from_samples(xs=xs, ys=ys, save_fig=out, legend=legend, xlabel='Fee rate(sat/byte)',
+                           ylabel="Number of UTXOs", version=str(version))
+
+        # Get values in percentage
+        ys_perc = []
+        for y_samples in ys:
+            y_perc = [y / float(data[total]) * 100 for y in y_samples]
+            ys_perc.append(y_perc)
+
+        plots_from_samples(xs=xs, ys=ys_perc, save_fig='perc_' + out, legend=legend,
+                           xlabel='Fee rate(sat/byte)', ylabel="Number of UTXOs", version=str(version))
 
 
 def comparative_data_analysis(tx_fin_name, utxo_fin_name, version):
@@ -221,9 +295,11 @@ def comparative_data_analysis(tx_fin_name, utxo_fin_name, version):
 
     for tx_attr, utxo_attr, label, out, legend, leg_loc in zip(tx_attributes, utxo_attributes, xlabels, out_names,
                                                                legends, legend_locations):
-        plots_from_samples(x_attribute=[tx_attr, utxo_attr], xlabel=label, save_fig=out, version=str(version),
-                           samples=[tx_samples[tx_attr], utxo_samples[utxo_attr]], legend=legend, legend_loc=leg_loc,
-                           ylabel="Number of registers", comparative=True)
+        xs_txs, ys_txs = get_cdf(tx_samples[tx_attr], normalize=True)
+        xs_utxos, ys_utxos = get_cdf(utxo_samples[utxo_attr], normalize=True)
+
+        plots_from_samples(xs=[xs_txs, xs_utxos], ys=[ys_txs, ys_utxos], xlabel=label, save_fig=out,
+                           version=str(version), legend=legend, legend_loc=leg_loc, ylabel="Number of registers")
 
 
 def utxo_based_analysis_with_filters(utxo_fin_name, version=0.15):
@@ -255,15 +331,20 @@ def utxo_based_analysis_with_filters(utxo_fin_name, version=0.15):
     legends = [['P2PKH', 'P2SH', 'P2PK', 'Other'], ['$<10^2$', '$<10^4$', '$<10^6$', '$<10^8$'], ['P2SH']]
     comparative = [True, True, False]
     legend_loc = 2
-    offset = 0
 
     samples = get_filtered_samples(x_attribute, fin_name=utxo_fin_name, filtr=filters)
 
     for out, flt, legend, comp in zip(out_names, filters, legends, comparative):
-        plots_from_samples(x_attribute=[x_attribute], samples=samples[offset:offset + len(legend)],
-                           xlabel=xlabel, save_fig=out, legend=legend, legend_loc=legend_loc, version=str(version),
-                           comparative=comp, ylabel="Number of UTXOs")
-        offset += len(legend)
+        xs = []
+        ys = []
+        for _ in range(len(legend)):
+            x, y = get_cdf(samples.pop(0), normalize=True)
+            xs.append(x)
+            ys.append(y)
+
+        plots_from_samples(xs=xs, ys=ys, xlabel=xlabel,
+                           save_fig=out, legend=legend, legend_loc=legend_loc, version=str(version),
+                           ylabel="Number of UTXOs")
 
 
 def tx_based_analysis_with_filters(tx_fin_name, version=0.15):
@@ -285,10 +366,10 @@ def tx_based_analysis_with_filters(tx_fin_name, version=0.15):
     filters = [lambda x: x["coinbase"]]
 
     samples = get_filtered_samples(x_attributes, fin_name=tx_fin_name, filtr=filters)
+    xs, ys = get_cdf(samples, normalize=True)
 
-    for attribute, label, out in zip(x_attributes, xlabels, out_names):
-        plots_from_samples(x_attribute=attribute, samples=samples, xlabel=label, save_fig=out, version=str(version),
-                           ylabel="Number of txs")
+    for label, out in zip(xlabels, out_names):
+        plots_from_samples(xs=xs, ys=ys, xlabel=label, save_fig=out, version=str(version), ylabel="Number of txs")
 
 
 def run_experiment(version, chainstate, count_p2sh, non_std_only):
@@ -343,6 +424,7 @@ def run_experiment(version, chainstate, count_p2sh, non_std_only):
     print "Running dust analysis."
     dust_analysis(f_parsed_utxos, f_dust, version)
     compare_dust(version)
+    exit(0)
 
     # Comparative data analysis (transactions and UTXOs)
     print "Running comparative data analysis."
@@ -367,7 +449,7 @@ if __name__ == '__main__':
         count_p2sh = True
 
     # Set version and chainstate dir name
-    version = 0.15
+    version = 0.16
 
     # When using snapshots of the chainstate, we store it as 'chainstate/version
     # chainstate = 'chainstate/' + str(version)

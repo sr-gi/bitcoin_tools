@@ -1,20 +1,18 @@
-from bitcoin_tools import CFG
-from bitcoin_tools.analysis.plots import plot_distribution, get_cdf, plot_pie
-from json import loads
+from bitcoin_tools.analysis.plots import plot_distribution, plot_pie
 from collections import Counter
 import numpy as np
-from bitcoin_tools.analysis.status.utils import get_samples
+from bitcoin_tools.analysis.status.data_processing import get_samples
 
 
-def plots_from_samples(samples, x_attribute, ylabel="Number of txs", xlabel=None, log_axis=None, version=0.15,
-                       comparative=False, save_fig=False, legend=None, legend_loc=1, font_size=20):
+def plots_from_samples(xs, ys, ylabel="Number of txs", xlabel=None, log_axis=None, version=0.15, save_fig=False,
+                       legend=None, legend_loc=1, font_size=20):
     """
     Generates plots from utxo/tx samples extracted from utxo_dump.
 
-    :param samples: Samples to be printed (from get_samples)
-    :type: list
-    :param x_attribute: Attribute to plot (must be a key in the dictionary of the dumped data).
-    :type x_attribute: str or list
+    :param xs: X-axis samples to be printed (from get_samples)
+    :type xs: list
+    :param ys: Y-axis samples to be printed (from get_samples)
+    :type ys: list
     :param ylabel: Label for the y axis of the chart
     :type ylabel: str or list
     :param xlabel: Label on the x axis
@@ -24,8 +22,6 @@ def plots_from_samples(samples, x_attribute, ylabel="Number of txs", xlabel=None
     :type log_axis: str or list
     :param version: Bitcoin core version, used to decide the folder in which to store the data.
     :type version: str or list
-    :param comparative: Whether we are running a comparative analysis.
-    :type comparative: bool
     :param save_fig: Figure's filename or False (to show the interactive plot)
     :type save_fig: str or list
     :param legend: List of strings with legend entries or None (if no legend is needed)
@@ -38,23 +34,7 @@ def plots_from_samples(samples, x_attribute, ylabel="Number of txs", xlabel=None
     :rtype: None
     """
 
-    if not (isinstance(x_attribute, list) or isinstance(x_attribute, np.ndarray)):
-        x_attribute = [x_attribute]
-
-    # In comparative analysis samples are passed as list of lists of samples.
-    if not comparative:
-        samples = [samples]
-
     title = ""
-    if not xlabel:
-        xlabel = x_attribute
-
-    xs, ys = [], []
-    for i in range(len(x_attribute)):
-        for s in samples:
-            [xc, yc] = get_cdf(s, normalize=True)
-            xs.append(xc)
-            ys.append(yc)
 
     if isinstance(log_axis, list) and isinstance(save_fig, list):
         # If both the normal axis and the logx axis charts want to be displayed, we can take advantage of the same
@@ -115,110 +95,6 @@ def plot_pie_chart_from_samples(samples, title="", labels=None, groups=None, col
         values.append(len(samples) - current_sum)
 
     plot_pie(values, labels, title, colors, save_fig=save_fig, font_size=font_size, labels_out=labels_out)
-
-
-def plot_dict_from_file(y="dust", disp_np=True, fin_name=None, percentage=False, xlabel=None, log_axis=None,
-                        version=0.15, save_fig=False, legend=None, legend_loc=1, font_size=20):
-    """
-    Loads data from a given file (stored in a dictionary) and plots it in a chart. dust.json is a perfect example of
-    the loaded format.
-
-    :param y: Either "tx" or "utxo"
-    :type y: str
-    disp_np: Whether to display non_profitable in the same chart as dust or not.
-    :type disp_np: bool
-    :param fin_name: Name of the file containing the data to be plotted.
-    :type fin_name: str or list
-    :param percentage: Whether the data is plot as percentage or not.
-    :type percentage: bool
-    :param xlabel: Label on the x axis
-    :type xlabel: str
-    :param log_axis: Determines which axis are plotted using (accepted values are False, "x", "y" or "xy").
-    logarithmic scale
-    :type log_axis: str
-    :param version: Bitcoin core version, used to decide the folder in which to store the data.
-    :type version: float
-    :param save_fig: Figure's filename or False (to show the interactive plot)
-    :type save_fig: str
-    :param legend: List of strings with legend entries or None (if no legend is needed)
-    :type legend: str list
-    :param legend_loc: Indicates the location of the legend (if present)
-    :type legend_loc: int
-    :param font_size: Title, xlabel and ylabel font size
-    :type font_size: int
-    :return: None
-    :rtype: None
-    """
-
-    if not isinstance(fin_name, list):
-        fin_name = [fin_name]
-
-    data = []
-
-    for f in fin_name:
-        fin = open(CFG.data_path + f, 'r')
-        data.append(loads(fin.read()))
-        fin.close()
-
-    # Decides the type of chart to be plot.
-    if y == "dust":
-        data_type = ["dust_utxos"]
-        if disp_np:
-            data_type.append("np_utxos")
-        if not percentage:
-            ylabel = "Number of UTXOs"
-        else:
-            ylabel = "Percentage of UTXOs"
-            total = "total_utxos"
-    elif y == "value":
-        data_type = ["dust_value"]
-        if disp_np:
-            data_type.append("np_value")
-        if not percentage:
-            ylabel = "Value (Satoshi)"
-        else:
-            ylabel = "Percentage of total value"
-            total = "total_value"
-    elif y == "data_len":
-        data_type = ["dust_data_len"]
-        if disp_np:
-            data_type.append("np_data_len")
-        if not percentage:
-            ylabel = "UTXOs' size (bytes)"
-        else:
-            ylabel = "Percentage of total UTXOs' size"
-            total = "total_data_len"
-    else:
-        raise ValueError('Unrecognized y value')
-
-    # Adds the folder in which the data will be stored
-    save_fig = str(version) + '/' + save_fig
-
-    xs = []
-    ys = []
-    # Sort the data
-    for i in data_type:
-        for d in data:
-            xs.append(sorted(d[i].keys(), key=int))
-            ys.append(sorted(d[i].values(), key=int))
-
-    title = ""
-    if not xlabel:
-        xlabel = "fee_per_byte"
-
-    # If percentage is set, a chart with y axis as a percentage (dividing every single y value by the
-    # corresponding total value) is created.
-    if percentage:
-        # ToDo: Check this!!
-        for i in range(len(ys)):
-            d = data[i] if len(data) > 1 else data[0]
-            if isinstance(ys[i], list):
-                    ys[i] = [j / float(d[total]) * 100 for j in ys[i]]
-            elif isinstance(ys[i], int):
-                    ys[i] = ys[i] / float(data[i][total]) * 100
-
-    # And finally plots the chart.
-    plot_distribution(xs, ys, title, xlabel, ylabel, log_axis, save_fig, legend, legend_loc, font_size)
 
 
 def overview_from_file(tx_fin_name, utxo_fin_name, version=0.15):
