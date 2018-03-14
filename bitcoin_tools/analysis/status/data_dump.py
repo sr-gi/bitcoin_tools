@@ -1,11 +1,12 @@
 from bitcoin_tools import CFG
 from bitcoin_tools.analysis.status import FEE_STEP
 from bitcoin_tools.analysis.status.utils import check_multisig, get_min_input_size, roundup_rate, check_multisig_type, \
-    get_serialized_size
+    get_serialized_size_fast
 import ujson
 from subprocess import call
 from os import remove
 from collections import OrderedDict
+
 
 def transaction_dump(fin_name, fout_name, version=0.15):
     # Transaction dump
@@ -116,7 +117,7 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                     else:
                         # For 0.15 onwards an estimation of the length of the transaction that will include the UTXO is
                         # computed.
-                        out_size = get_serialized_size(out)
+                        out_size = get_serialized_size_fast(out)
                         # prev_tx_id (32 bytes) + prev_out_index (4 bytes) + scripSig_len (1 byte) + (PUSH sig + 72-byte
                         # sig) (73 bytes) + (PUSH pk + compressed pk) (34 bytes) + nSequence (4 bytes)
                         in_size = 32 + 4 + 1 + 73 + 34 + 4
