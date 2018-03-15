@@ -35,7 +35,7 @@ def set_out_names(version, count_p2sh, non_std_only):
 
     if count_p2sh:
         f_parsed_utxos += "_wp2sh"
-        f_dust += "_wp2sh"
+        f_dust += "_wp2sh_bu"
 
     f_parsed_utxos += ".json"
     f_dust += ".json"
@@ -424,7 +424,6 @@ def run_experiment(version, chainstate, count_p2sh, non_std_only):
     print "Running dust analysis."
     dust_analysis(f_parsed_utxos, f_dust, version)
     compare_dust(version)
-    exit(0)
 
     # Comparative data analysis (transactions and UTXOs)
     print "Running comparative data analysis."
