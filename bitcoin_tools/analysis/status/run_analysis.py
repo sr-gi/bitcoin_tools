@@ -198,10 +198,12 @@ def dust_analysis(utxo_fin_name, f_dust, version):
     # # Or we can load it from a dust file if we have already created it
     # data = load(open(CFG.data_path + f_dust))
 
-    dict_labels = [["dust_utxos", "np_utxos"], ["dust_value", "np_value"], ["dust_data_len", "np_data_len"]]
+    dict_labels = [["dust_utxos", "np_utxos", "npest_utxos"],
+                   ["dust_value", "np_value", "npest_value"],
+                   ["dust_data_len", "np_data_len", "npest_data_len"]]
     outs = ["dust_utxos", "dust_value", "dust_data_len"]
     totals = ['total_utxos', 'total_value', 'total_data_len']
-    legend = ["Dust", "Non-profitable"]
+    legend = ["Dust", "Non-profitable min.", "Non-profitable est."]
 
     for labels, out, total in zip(dict_labels, outs, totals):
         xs = [sorted(data[l].keys(), key=int) for l in labels]

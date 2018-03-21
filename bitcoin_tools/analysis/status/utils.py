@@ -528,6 +528,10 @@ def aggregate_dust_np(fin_name, fout_name="dust.json"):
     value_np = deepcopy(dust)
     data_len_np = deepcopy(dust)
 
+    npest  = deepcopy(dust)
+    value_npest = deepcopy(dust)
+    data_len_npest  = deepcopy(dust)
+
     total_utxo = 0
     total_value = 0
     total_data_len = 0
@@ -558,6 +562,17 @@ def aggregate_dust_np(fin_name, fout_name="dust.json"):
             value_np[rate] += data["amount"]
             data_len_np[rate] += data["utxo_data_len"]
 
+        # Same with estimated non-profitable outputs.
+        if 0 < data['non_profitable_est'] < MAX_FEE_PER_BYTE:
+            if data['non_profitable_est'] < MIN_FEE_PER_BYTE:
+                rate = MIN_FEE_PER_BYTE
+            elif MIN_FEE_PER_BYTE <= data['non_profitable_est']:
+                rate = data['non_profitable_est']
+
+            npest[rate] += 1
+            value_npest[rate] += data["amount"]
+            data_len_npest[rate] += data["utxo_data_len"]
+
         # And we increase the total counters for each read utxo.
         total_utxo = total_utxo + 1
         total_value += data["amount"]
@@ -576,9 +591,14 @@ def aggregate_dust_np(fin_name, fout_name="dust.json"):
         value_np[fee_per_byte] += value_np[fee_per_byte - FEE_STEP]
         data_len_np[fee_per_byte] += data_len_np[fee_per_byte - FEE_STEP]
 
+        npest[fee_per_byte] += npest[fee_per_byte - FEE_STEP]
+        value_npest[fee_per_byte] += value_npest[fee_per_byte - FEE_STEP]
+        data_len_npest[fee_per_byte] += data_len_npest[fee_per_byte - FEE_STEP]
+
     # Finally we create the output with the accumulated data and store it.
     data = {"dust_utxos": dust, "dust_value": value_dust, "dust_data_len": data_len_dust,
             "np_utxos": np, "np_value": value_np, "np_data_len": data_len_np,
+            "npest_utxos": npest, "npest_value": value_npest, "npest_data_len": data_len_npest,
             "total_utxos": total_utxo, "total_value": total_value, "total_data_len": total_data_len}
 
     # Store dust calculation in a file.
