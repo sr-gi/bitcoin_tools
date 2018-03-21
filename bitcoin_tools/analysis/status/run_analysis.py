@@ -203,14 +203,15 @@ def dust_analysis(utxo_fin_name, f_dust, version):
                    ["dust_data_len", "np_data_len", "npest_data_len"]]
     outs = ["dust_utxos", "dust_value", "dust_data_len"]
     totals = ['total_utxos', 'total_value', 'total_data_len']
+    ylabels = ["Number of UTXOs", "UTXOs Amount (satoshis)", "UTXOs Sizes (bytes)"]
     legend = ["Dust", "Non-profitable min.", "Non-profitable est."]
 
-    for labels, out, total in zip(dict_labels, outs, totals):
+    for labels, out, total, ylabel in zip(dict_labels, outs, totals, ylabels):
         xs = [sorted(data[l].keys(), key=int) for l in labels]
         ys = [sorted(data[l].values(), key=int) for l in labels]
 
         plots_from_samples(xs=xs, ys=ys, save_fig=out, legend=legend,
-                           xlabel='Fee rate(sat/byte)', ylabel="Number of UTXOs", version=str(version))
+                           xlabel='Fee rate (sat./byte)', ylabel=ylabel, version=str(version))
 
         # Get values in percentage
         ys_perc = []
@@ -219,7 +220,7 @@ def dust_analysis(utxo_fin_name, f_dust, version):
             ys_perc.append(y_perc)
 
         plots_from_samples(xs=xs, ys=ys_perc, save_fig='perc_' + out, legend=legend,
-                           xlabel='Fee rate(sat/byte)', ylabel="Number of UTXOs", version=str(version))
+                           xlabel='Fee rate (sat./byte)', ylabel=ylabel, version=str(version))
 
 
 def compare_dust(version):
