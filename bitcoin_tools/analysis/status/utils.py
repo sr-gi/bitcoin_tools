@@ -783,11 +783,7 @@ def get_est_input_size(out, height, p2pkh_pksize, p2sh_scriptsize, nonstd_script
 
     if out_type is 0:
         # P2PKH
-        if str(height) in p2pkh_pksize.keys():
-            scriptSig = 73 + p2pkh_pksize[str(height)] # PUSH sig (1 byte) + sig (71 bytes) + PUSH pk (1 byte) + PK estimation
-        else:
-            scriptSig = 73 + 33 # TODO: remove whenever we update the file!
-
+        scriptSig = 73 + p2pkh_pksize[str(height)] # PUSH sig (1 byte) + sig (71 bytes) + PUSH pk (1 byte) + PK estimation
         scriptSig_len = 1
     elif out_type is 1:
         # P2SH
