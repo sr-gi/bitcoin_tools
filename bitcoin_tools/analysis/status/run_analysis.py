@@ -63,10 +63,10 @@ def non_std_outs_analysis(samples, version):
     # and 3-3, and put the rest into "Other".
 
     groups = [[u'multisig-1-3'], [u'multisig-1-2'], [u'multisig-1-1'], [u'multisig-3-3'], [u'multisig-2-2'],
-              [u'multisig-2-3'], [False, u'multisig-OP_NOTIF-OP_NOTIF',
+              [u'multisig-2-3'], ["P2WSH"], ["P2WPKH"], [False, u'multisig-OP_NOTIF-OP_NOTIF',
                                   u'multisig-<2153484f55544f555420544f2023424954434f494e2d41535345545320202020202020202'
                                   u'0202020202020202020202020202020202020202020202020202020>-1']]
-    labels = ['M. 1-3', 'M. 1-2', 'M. 1-1', 'M. 3-3', 'M. 2-2', 'M. 2-3', 'Other']
+    labels = ['M. 1-3', 'M. 1-2', 'M. 1-1', 'M. 3-3', 'M. 2-2', 'M. 2-3', "P2WSH", "P2WPKH", 'Other']
 
     out_name = "utxo_non_std_type"
 
@@ -74,7 +74,7 @@ def non_std_outs_analysis(samples, version):
 
     plot_pie_chart_from_samples(samples=samples, save_fig=out_name, labels=labels, version=version, groups=groups,
                                 title="",  colors=["#165873", "#428C5C", "#4EA64B", "#ADD96C", "#B1D781", "#FAD02F",
-                                                   "#F69229"], labels_out=True)
+                                                   "#A69229", "#B69229", "#F69229"], labels_out=True)
 
 
 def tx_based_analysis(tx_fin_name, version=0.15):

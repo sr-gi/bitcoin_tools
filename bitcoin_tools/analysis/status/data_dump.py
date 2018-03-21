@@ -1,7 +1,7 @@
 from bitcoin_tools import CFG
 from bitcoin_tools.analysis.status import FEE_STEP
 from bitcoin_tools.analysis.status.utils import check_multisig, get_min_input_size, roundup_rate, check_multisig_type, \
-    get_serialized_size_fast, get_est_input_size, load_estimation_data
+    get_serialized_size_fast, get_est_input_size, load_estimation_data, check_native_segwit
 import ujson
 from subprocess import call
 from os import remove
@@ -137,7 +137,14 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                 if out["out_type"] in [0, 1, 2, 3, 4, 5]:
                     non_std_type = "std"
                 else:
-                    non_std_type = check_multisig_type(out["data"])
+                    multisig = check_multisig_type(out["data"])
+                    segwit = check_native_segwit(out["data"])
+                    if multisig:
+                        non_std_type = multisig
+                    elif segwit[0]:
+                        non_std_type = segwit[1]
+                    else:
+                        non_std_type = False
 
                 # Builds the output dictionary
                 if ordered_dict:

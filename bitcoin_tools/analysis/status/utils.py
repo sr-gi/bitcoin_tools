@@ -650,6 +650,25 @@ def check_opreturn(script):
     return int(script[:2], 16) == op_return_opcode
 
 
+def check_native_segwit(script):
+    """
+    Checks wether a given output script is a native SegWit type.
+
+    :param script: The script to be checked.
+    :type script: str
+    :return: tuple, (True, segwit type) if the script is a native SegWit, (False, None) otherwise
+    :rtype: tuple, first element boolean
+    """
+
+    if len(script) == 22*2 and script[:4] == "0014":
+        return (True, "P2WPKH")
+
+    if len(script) == 34*2 and script[:4] == "0020":
+        return (True, "P2WSH")
+
+    return (False, None)
+
+
 def get_min_input_size(out, height, count_p2sh=False):
     """
     Computes the minimum size an input created by a given output type (parsed from the chainstate) will have.
@@ -715,12 +734,16 @@ def get_min_input_size(out, height, count_p2sh=False):
         scriptSig = 72  # PUSH sig (1 byte) + sig (71 bytes)
         scriptSig_len = 1
     else:
+        segwit = check_native_segwit(script)
         # P2MS
         if check_multisig(script):
             # Multisig can be 15-15 at most.
             req_sigs = int(script[:2], 16) - 80  # OP_1 is hex 81
             scriptSig = 1 + (req_sigs * 72)  # OP_0 (1 byte) + 72 bytes per sig (PUSH sig (1 byte) + sig (71 bytes))
             scriptSig_len = int(ceil(scriptSig / float(256)))
+        elif segwit[0] and segwit[1] == "P2WPKH":
+            scriptSig = 27 # PUSH sig (1 byte) + sig (71 bytes) + PUSH pk (1 byte) + pk (33 bytes) (106 / 4 = 27)
+            scriptSig_len = 1
         else:
             # All other types (non-standard outs)
             scriptSig = -fixed_size - 1  # Those scripts are marked with length -1 and skipped in dust calculation.
@@ -796,12 +819,16 @@ def get_est_input_size(out, height, p2pkh_pksize, p2sh_scriptsize, nonstd_script
         scriptSig = 72  # PUSH sig (1 byte) + sig (71 bytes)
         scriptSig_len = 1
     else:
+        segwit = check_native_segwit(script)
         # P2MS
         if check_multisig(script):
             # Multisig can be 15-15 at most.
             req_sigs = int(script[:2], 16) - 80  # OP_1 is hex 81
             scriptSig = 1 + (req_sigs * 72)  # OP_0 (1 byte) + 72 bytes per sig (PUSH sig (1 byte) + sig (71 bytes))
             scriptSig_len = int(ceil(scriptSig / float(256)))
+        elif segwit[0] and segwit[1] == "P2WPKH":
+            scriptSig = 27 # PUSH sig (1 byte) + sig (71 bytes) + PUSH pk (1 byte) + pk (33 bytes) (106 / 4 = 27)
+            scriptSig_len = 1
         else:
             # All other types (non-standard outs)
             scriptSig = nonstd_scriptsize
