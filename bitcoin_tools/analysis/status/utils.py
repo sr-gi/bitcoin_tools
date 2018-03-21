@@ -1,6 +1,7 @@
 import plyvel
 from binascii import hexlify, unhexlify
 import ujson
+import json
 from math import ceil
 from copy import deepcopy
 from bitcoin_tools.analysis.status import *
@@ -730,6 +731,91 @@ def get_min_input_size(out, height, count_p2sh=False):
     return fixed_size + var_size
 
 
+def load_estimation_data():
+
+    # TODO: optimization: should we use ujson? (gives an error, I think it is related to NaNs)
+
+    with open(CFG.estimated_data_dir + "p2pkh_pubkey_avg_size_height_output.json") as f:
+        p2pkh_pksize = json.load(f)
+
+    with open(CFG.estimated_data_dir + "p2sh.json") as f:
+        p2sh_scriptsize = json.load(f)
+
+    with open(CFG.estimated_data_dir + "nonstd.json") as f:
+        nonstd_scriptsize = json.load(f)
+
+    return p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize
+
+
+def get_est_input_size(out, height, p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize):
+    """
+    Computes the estimated size an input created by a given output type (parsed from the chainstate) will have.
+    The size is computed in two parts, a fixed size that is non type dependant, and a variable size which
+    depends on the output type.
+
+    :param out: Output to be analyzed.
+    :type out: dict
+    :param height: Block height where the utxo was created. Used to set P2PKH min_size.
+    :type height: int
+    :param count_p2sh: Whether P2SH should be taken into account.
+    :type count_p2sh: bool
+    :return: The minimum input size of the given output type.
+    :rtype: int
+    """
+
+    out_type = out["out_type"]
+    script = out["data"]
+
+    # Fixed size
+    prev_tx_id = 32
+    prev_out_index = 4
+    nSequence = 4
+
+    fixed_size = prev_tx_id + prev_out_index + nSequence
+
+    # Variable size (depending on scripSig):
+    # Public key size can be either 33 or 65 bytes, depending on whether the key is compressed or uncompressed. We will
+    # use data from the blockchain to estimate it depending on block height.
+    #
+    # Signatures size is contained between 71-73 bytes depending on the size of the S and R components of the signature.
+    # Since we are looking for the minimum size, we will consider all signatures to be 71-byte long in order to define
+    # a lower bound.
+
+    if out_type is 0:
+        # P2PKH
+        if str(height) in p2pkh_pksize.keys():
+            scriptSig = 73 + p2pkh_pksize[str(height)] # PUSH sig (1 byte) + sig (71 bytes) + PUSH pk (1 byte) + PK estimation
+        else:
+            scriptSig = 73 + 33 # TODO: remove whenever we update the file!
+
+        scriptSig_len = 1
+    elif out_type is 1:
+        # P2SH
+        scriptSig = p2sh_scriptsize
+        scriptSig_len = int(ceil(scriptSig / float(256)))
+    elif out_type in [2, 3, 4, 5]:
+        # P2PK
+        # P2PK requires a signature and a push OP_CODE to push the signature into the stack. The format of the public
+        # key (compressed or uncompressed) does not affect the length of the signature.
+        scriptSig = 72  # PUSH sig (1 byte) + sig (71 bytes)
+        scriptSig_len = 1
+    else:
+        # P2MS
+        if check_multisig(script):
+            # Multisig can be 15-15 at most.
+            req_sigs = int(script[:2], 16) - 80  # OP_1 is hex 81
+            scriptSig = 1 + (req_sigs * 72)  # OP_0 (1 byte) + 72 bytes per sig (PUSH sig (1 byte) + sig (71 bytes))
+            scriptSig_len = int(ceil(scriptSig / float(256)))
+        else:
+            # All other types (non-standard outs)
+            scriptSig = nonstd_scriptsize
+            scriptSig_len = int(ceil(scriptSig / float(256)))
+
+    var_size = scriptSig_len + scriptSig
+
+    return fixed_size + var_size
+
+
 def get_utxo(tx_id, index, fin_name='chainstate', version=0.15):
     """
     Gets a UTXO from the chainstate identified by a given transaction id and index.
@@ -907,4 +993,7 @@ def get_serialized_size_fast(utxo):
     out_size += 8
 
     return out_size
+
+
+
 

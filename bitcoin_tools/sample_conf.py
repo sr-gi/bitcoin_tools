@@ -8,3 +8,4 @@ bitcoin_tools_dir = None  # Bitcoin_tools data dir. (NOT GIT CODE) (usually home
 address_vault = None  # Address vault (where keys are stored) (e.g: bitcoin_tools_dir + "bitcoin_addresses/").
 data_path = None  # # Data storage path (for IO) (e.g: bitcoin_tools_dir + "data/").
 figs_path = None  # Generated figures storage path (e.g: bitcoin_tools_dir + "figs/").
+estimated_data_dir = None # Data for non-profitability with estimations

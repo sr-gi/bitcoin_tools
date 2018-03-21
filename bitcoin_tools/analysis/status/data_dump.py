@@ -1,7 +1,7 @@
 from bitcoin_tools import CFG
 from bitcoin_tools.analysis.status import FEE_STEP
 from bitcoin_tools.analysis.status.utils import check_multisig, get_min_input_size, roundup_rate, check_multisig_type, \
-    get_serialized_size_fast
+    get_serialized_size_fast, get_est_input_size, load_estimation_data
 import ujson
 from subprocess import call
 from os import remove
@@ -90,6 +90,8 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
     # Standard UTXO types
     std_types = [0, 1, 2, 3, 4, 5]
 
+    p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize = load_estimation_data()
+
     for line in fin:
         data = ujson.loads(line[:-1])
         utxo = data['value']
@@ -125,9 +127,11 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                         raw_dust = out["amount"] / (out_size + in_size)
 
                     raw_np = out["amount"] / float(min_size)
+                    raw_np_est = out["amount"] / float(get_est_input_size(out, utxo["height"], p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize))
 
                     dust = roundup_rate(raw_dust, FEE_STEP)
                     np = roundup_rate(raw_np, FEE_STEP)
+                    np_est = roundup_rate(raw_np_est, FEE_STEP)
 
                 # Adds multisig type info
                 if out["out_type"] in [0, 1, 2, 3, 4, 5]:
@@ -145,6 +149,7 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                     result["utxo_data_len"] = len(out["data"]) / 2
                     result["dust"] = dust
                     result["non_profitable"] = np
+                    result["non_profitable_est"] = np_est
                     result["non_std_type"] = non_std_type
 
                 else:
@@ -153,6 +158,7 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                               "utxo_data_len": len(out["data"]) / 2,
                               "dust": dust,
                               "non_profitable": np,
+                              "non_profitable_est": np_est,
                               "non_std_type": non_std_type}
 
                 # Index added at the end when updated the result with the out, since the index is not part of the
