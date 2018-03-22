@@ -106,32 +106,28 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
 
                 # Calculates the dust threshold for every UTXO value and every fee per byte ratio between min and max.
                 min_size = get_min_input_size(out, utxo["height"], count_p2sh)
-                dust = 0
-                np = 0
 
-                if min_size > 0:
-                    # https://github.com/bitcoin/bitcoin/blob/5961b23898ee7c0af2626c46d5d70e80136578d3/src/policy/policy.cpp#L20-L33
+                # https://github.com/bitcoin/bitcoin/blob/5961b23898ee7c0af2626c46d5d70e80136578d3/src/policy/policy.cpp#L20-L33
+                # A UTXO is considered dust if the fees that should be payed to spend it are greater or equal to
+                # 1/3 of its value for Bitcoin Core up to version 0.14.
+                if version < 0.15:
+                    raw_dust = out["amount"] / float(3 * min_size)
+                else:
+                    # For 0.15 onwards an estimation of the length of the transaction that will include the UTXO is
+                    # computed.
+                    out_size = get_serialized_size_fast(out)
+                    # prev_tx_id (32 bytes) + prev_out_index (4 bytes) + scripSig_len (1 byte) + (PUSH sig + 72-byte
+                    # sig) (73 bytes) + (PUSH pk + compressed pk) (34 bytes) + nSequence (4 bytes)
+                    in_size = 32 + 4 + 1 + 73 + 34 + 4
+                    raw_dust = out["amount"] / (out_size + in_size)
 
-                    # A UTXO is considered dust if the fees that should be payed to spend it are greater or equal to
-                    # 1/3 of its value for Bitcoin Core up to version 0.14.
-                    if version < 0.15:
-                        raw_dust = out["amount"] / float(3 * min_size)
-                    else:
-                        # For 0.15 onwards an estimation of the length of the transaction that will include the UTXO is
-                        # computed.
-                        out_size = get_serialized_size_fast(out)
-                        # prev_tx_id (32 bytes) + prev_out_index (4 bytes) + scripSig_len (1 byte) + (PUSH sig + 72-byte
-                        # sig) (73 bytes) + (PUSH pk + compressed pk) (34 bytes) + nSequence (4 bytes)
-                        in_size = 32 + 4 + 1 + 73 + 34 + 4
+                raw_np = out["amount"] / float(min_size)
+                raw_np_est = out["amount"] / float(get_est_input_size(out, utxo["height"], p2pkh_pksize,
+                                                                      p2sh_scriptsize, nonstd_scriptsize))
 
-                        raw_dust = out["amount"] / (out_size + in_size)
-
-                    raw_np = out["amount"] / float(min_size)
-                    raw_np_est = out["amount"] / float(get_est_input_size(out, utxo["height"], p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize))
-
-                    dust = roundup_rate(raw_dust, FEE_STEP)
-                    np = roundup_rate(raw_np, FEE_STEP)
-                    np_est = roundup_rate(raw_np_est, FEE_STEP)
+                dust = roundup_rate(raw_dust, FEE_STEP)
+                np = roundup_rate(raw_np, FEE_STEP)
+                np_est = roundup_rate(raw_np_est, FEE_STEP)
 
                 # Adds multisig type info
                 if out["out_type"] in [0, 1, 2, 3, 4, 5]:

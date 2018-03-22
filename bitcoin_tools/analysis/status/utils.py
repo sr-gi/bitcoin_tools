@@ -520,7 +520,7 @@ def aggregate_dust_np(fin_name, fout_name="dust.json"):
     # Input file
     fin = open(CFG.data_path + fin_name, 'r')
 
-    dust = {fee_per_byte: 0 for fee_per_byte in range(MIN_FEE_PER_BYTE, MAX_FEE_PER_BYTE, FEE_STEP)}
+    dust = {fee_per_byte: 0 for fee_per_byte in range(MIN_FEE_PER_BYTE, MAX_FEE_PER_BYTE+FEE_STEP, FEE_STEP)}
     value_dust = deepcopy(dust)
     data_len_dust = deepcopy(dust)
 
@@ -528,9 +528,9 @@ def aggregate_dust_np(fin_name, fout_name="dust.json"):
     value_np = deepcopy(dust)
     data_len_np = deepcopy(dust)
 
-    npest  = deepcopy(dust)
+    npest = deepcopy(dust)
     value_npest = deepcopy(dust)
-    data_len_npest  = deepcopy(dust)
+    data_len_npest = deepcopy(dust)
 
     total_utxo = 0
     total_value = 0
@@ -541,34 +541,22 @@ def aggregate_dust_np(fin_name, fout_name="dust.json"):
 
         # If the UTXO is dust for the checked range, we increment the dust count, dust value and dust length for the
         # given threshold.
-        if 0 < data['dust'] < MAX_FEE_PER_BYTE:
-            if data['dust'] < MIN_FEE_PER_BYTE:
-                rate = MIN_FEE_PER_BYTE
-            elif MIN_FEE_PER_BYTE <= data['dust']:
-                rate = data['dust']
-
+        if MIN_FEE_PER_BYTE <= data['dust'] <= MAX_FEE_PER_BYTE:
+            rate = data['dust']
             dust[rate] += 1
             value_dust[rate] += data["amount"]
             data_len_dust[rate] += data["utxo_data_len"]
 
         # Same with non-profitable outputs.
-        if 0 < data['non_profitable'] < MAX_FEE_PER_BYTE:
-            if data['non_profitable'] < MIN_FEE_PER_BYTE:
-                rate = MIN_FEE_PER_BYTE
-            elif MIN_FEE_PER_BYTE <= data['non_profitable']:
-                rate = data['non_profitable']
-
+        if MIN_FEE_PER_BYTE <= data['non_profitable'] <= MAX_FEE_PER_BYTE:
+            rate = data['non_profitable']
             np[rate] += 1
             value_np[rate] += data["amount"]
             data_len_np[rate] += data["utxo_data_len"]
 
         # Same with estimated non-profitable outputs.
-        if 0 < data['non_profitable_est'] < MAX_FEE_PER_BYTE:
-            if data['non_profitable_est'] < MIN_FEE_PER_BYTE:
-                rate = MIN_FEE_PER_BYTE
-            elif MIN_FEE_PER_BYTE <= data['non_profitable_est']:
-                rate = data['non_profitable_est']
-
+        if MIN_FEE_PER_BYTE <= data['non_profitable_est'] <= MAX_FEE_PER_BYTE:
+            rate = data['non_profitable_est']
             npest[rate] += 1
             value_npest[rate] += data["amount"]
             data_len_npest[rate] += data["utxo_data_len"]
@@ -765,9 +753,9 @@ def get_min_input_size(out, height, count_p2sh=False):
             scriptSig = 27 # PUSH sig (1 byte) + sig (71 bytes) + PUSH pk (1 byte) + pk (33 bytes) (106 / 4 = 27)
             scriptSig_len = 1
         else:
-            # All other types (non-standard outs)
-            scriptSig = -fixed_size - 1  # Those scripts are marked with length -1 and skipped in dust calculation.
-            scriptSig_len = 0
+            # All other types (non-standard outs) are counted just as the fixed size + 1 byte of the scripSig_len
+            scriptSig = 0
+            scriptSig_len = 1
 
     var_size = scriptSig_len + scriptSig
 
@@ -961,7 +949,7 @@ def roundup_rate(fee_rate, fee_step=FEE_STEP):
     if (fee_rate % fee_step) == 0.0:
         rate = int(fee_rate + fee_step)
     else:
-        rate = int(ceil(fee_rate / float(10))) * 10
+        rate = int(ceil(fee_rate / float(fee_step))) * fee_step
 
     return rate
 
