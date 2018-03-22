@@ -35,7 +35,7 @@ def set_out_names(version, count_p2sh, non_std_only):
 
     if count_p2sh:
         f_parsed_utxos += "_wp2sh"
-        f_dust += "_wp2sh_bu"
+        f_dust += "_wp2sh"
 
     f_parsed_utxos += ".json"
     f_dust += ".json"
@@ -210,16 +210,16 @@ def dust_analysis(utxo_fin_name, f_dust, version):
         xs = [sorted(data[l].keys(), key=int) for l in labels]
         ys = [sorted(data[l].values(), key=int) for l in labels]
 
-        plots_from_samples(xs=xs, ys=ys, save_fig=out, legend=legend,
+        plots_from_samples(xs=xs, ys=ys, save_fig=out, legend=legend, legend_loc=4,
                            xlabel='Fee rate (sat./byte)', ylabel=ylabel, version=str(version))
 
         # Get values in percentage
         ys_perc = []
         for y_samples in ys:
-            y_perc = [y / float(data[total]) * 100 for y in y_samples]
+            y_perc = [y / float(data[total]) for y in y_samples]
             ys_perc.append(y_perc)
 
-        plots_from_samples(xs=xs, ys=ys_perc, save_fig='perc_' + out, legend=legend,
+        plots_from_samples(xs=xs, ys=ys_perc, save_fig='perc_' + out, legend=legend, legend_loc=4,
                            xlabel='Fee rate (sat./byte)', ylabel=ylabel, version=str(version))
 
 
@@ -263,7 +263,7 @@ def compare_dust(version):
         # Get values in percentage
         ys_perc = []
         for y_samples in ys:
-            y_perc = [y / float(data[total]) * 100 for y in y_samples]
+            y_perc = [y / float(data[total]) for y in y_samples]
             ys_perc.append(y_perc)
 
         plots_from_samples(xs=xs, ys=ys_perc, save_fig='perc_' + out, legend=legend,
