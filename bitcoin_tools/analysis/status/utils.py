@@ -504,6 +504,34 @@ def parse_ldb(fout_name, fin_name='chainstate', decode=True, version=0.15):
     db.close()
 
 
+def get_chainstate_lastblock(fin_name='chainstate'):
+    """
+    Gets the block hash of the last block a given chainstate folder is updated to.
+    :param fin_name: chaisntate folder name
+    :type fin_name: str
+    :return: The block hash (Big Endian)
+    :rtype: str
+    """
+
+    # Open the chainstate
+    db = plyvel.DB(CFG.btc_core_path + "/" + fin_name, compression=None)
+
+    # Load obfuscation key (if it exists)
+    o_key = db.get((unhexlify("0e00") + "obfuscate_key"))
+
+    # Get the key itself (the leading byte indicates only its size)
+    if o_key is not None:
+        o_key = hexlify(o_key)[2:]
+
+    # Get the obfuscated block hash
+    o_height = db.get(b'B')
+
+    # Deobfuscate the height
+    height = deobfuscate_value(o_key, hexlify(o_height))
+
+    return change_endianness(height)
+
+
 def aggregate_dust_np(fin_name, fout_name="dust.json"):
     """
     Aggregates all the dust / non-profitable (np) utxos of a given parsed utxo file (from utxo_dump function).
