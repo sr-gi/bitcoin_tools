@@ -204,6 +204,23 @@ def check_signature(signature):
         return True
 
 
+def check_script(script):
+    """ Checks if a given string is a script (hash160) (or at least if it is formatted as if it is).
+
+    :param script: Script to be checked.
+    :type script: hex str
+    :return: True if the signatures matches the format, raise exception otherwise.
+    :rtype: bool
+    """
+
+    if not isinstance(script, str):
+        raise Exception("Wrong script format.")
+    elif len(script)/2 != 20:
+        raise Exception("Wrong signature length " + str(len(script)/2))
+    else:
+        return True
+
+
 def is_public_key(pk):
     """ Encapsulates check_public_key function as a True/False option.
 
@@ -244,6 +261,20 @@ def is_signature(signature):
 
     try:
         return check_signature(signature)
+    except:
+        return False
+
+
+def is_script(script):
+    """ Encapsulates check_script function as a True/False option.
+
+    :param script: Script to be checked.
+    :type script: hex str
+    :return: True if script is a script, false otherwise.
+    """
+
+    try:
+        return check_script(script)
     except:
         return False
 

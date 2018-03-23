@@ -17,18 +17,18 @@ WIF = 128
 TESTNET_WIF = 239
 
 
-def hash_160(pk):
-    """ Calculates the RIPEMD-160 hash of a given elliptic curve key.
+def hash_160(data):
+    """ Calculates the RIPEMD-160 hash of a given string.
 
-    :param pk: elliptic curve public key (in hexadecimal format).
-    :type pk: hex str
+    :param data: Data to be hashed. Normally used with ECDSA public keys.
+    :type data: hex str
     :return: The RIPEMD-160 hash.
     :rtype: bytes
     """
 
-    # Calculate the RIPEMD-160 hash of the given public key.
+    # Calculate the RIPEMD-160 hash of the given data.
     md = new('ripemd160')
-    h = sha256(unhexlify(pk)).digest()
+    h = sha256(unhexlify(data)).digest()
     md.update(h)
     h160 = md.digest()
 
