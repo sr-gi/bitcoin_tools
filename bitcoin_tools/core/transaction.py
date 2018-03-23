@@ -138,7 +138,9 @@ class TX:
         number of public keys needed to redeem the transaction.
         e.g: output = [n, pk0, pk1, ...] or output = [[n_0, pk0_0, pk0_1, ...], [n_1, pk1_0, pk1_1, ...], ...]
 
-        P2SH -> ToDo.
+        P2SH -> script hash (hash160 str hex) or list of hash 160s.
+        e.g: output = da1745e9b549bd0bfa1a569971c77eba30cd5a4b or output = [da1745e9b549bd0bfa1a569971c77eba30cd5a4b,
+        ...]
 
         :param prev_tx_id: Previous transaction id.
         :type prev_tx_id: either str or list of str
