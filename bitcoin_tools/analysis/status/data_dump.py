@@ -119,11 +119,14 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                     # prev_tx_id (32 bytes) + prev_out_index (4 bytes) + scripSig_len (1 byte) + (PUSH sig + 72-byte
                     # sig) (73 bytes) + (PUSH pk + compressed pk) (34 bytes) + nSequence (4 bytes)
                     in_size = 32 + 4 + 1 + 73 + 34 + 4
-                    raw_dust = out["amount"] / (out_size + in_size)
+                    raw_dust = out["amount"] / float(out_size + in_size)
 
                 raw_np = out["amount"] / float(min_size)
                 raw_np_est = out["amount"] / float(get_est_input_size(out, utxo["height"], p2pkh_pksize,
                                                                       p2sh_scriptsize, nonstd_scriptsize))
+
+                if out["amount"] != 0 and raw_dust == 0:
+                    print 'dust', out["amount"], raw_dust
 
                 dust = roundup_rate(raw_dust, FEE_STEP)
                 np = roundup_rate(raw_np, FEE_STEP)

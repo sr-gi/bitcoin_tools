@@ -974,9 +974,9 @@ def roundup_rate(fee_rate, fee_step=FEE_STEP):
 
     # If the value to be rounded is already multiple of the fee step, we just add another step. Otherwise the value
     # is rounded up.
-    if fee_rate is 0:
+    if fee_rate == 0:
         rate = fee_rate
-    elif (fee_rate % fee_step) == 0.0:
+    elif (fee_rate % fee_step) == 0:
         rate = int(fee_rate + fee_step)
     else:
         rate = int(ceil(fee_rate / float(fee_step))) * fee_step
