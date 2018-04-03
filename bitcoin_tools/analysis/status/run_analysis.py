@@ -337,7 +337,7 @@ def utxo_based_analysis_with_filters(utxo_fin_name, version=0.15):
 
     samples = get_filtered_samples(x_attribute, fin_name=utxo_fin_name, filtr=filters)
 
-    for out, flt, legend, comp in zip(out_names, filters, legends, comparative):
+    for out, legend, comp in zip(out_names, legends, comparative):
         xs = []
         ys = []
         for _ in range(len(legend)):
