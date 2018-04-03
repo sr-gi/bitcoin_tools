@@ -324,7 +324,11 @@ def utxo_based_analysis_with_filters(utxo_fin_name, version=0.15):
     filters = [lambda x: x["out_type"] == 0,
                lambda x: x["out_type"] == 1,
                lambda x: x["out_type"] in [2, 3, 4, 5],
-               lambda x: x["out_type"] not in range(0, 6),
+               #lambda x: x["out_type"] not in range(0, 6),
+               lambda x: x["non_std_type"] == "P2WPKH",
+               lambda x: x["non_std_type"] == "P2WSH",
+               lambda x: "multisig-" in x["non_std_type"],
+               lambda x: x["non_std_type"] == False,
                lambda x: x["amount"] < 10 ** 2,
                lambda x: x["amount"] < 10 ** 4,
                lambda x: x["amount"] < 10 ** 6,
@@ -332,7 +336,7 @@ def utxo_based_analysis_with_filters(utxo_fin_name, version=0.15):
                lambda x: x["out_type"] == 1,
                lambda x: x["amount"] == 1]
 
-    legends = [['P2PKH', 'P2SH', 'P2PK', 'Other'], ['$<10^2$', '$<10^4$', '$<10^6$', '$<10^8$'], ['P2SH'], ['Amount = 1']]
+    legends = [['P2PKH', 'P2SH', 'P2PK', 'P2WPKH', 'P2WSH', 'Multisig', 'Other'], ['$<10^2$', '$<10^4$', '$<10^6$', '$<10^8$'], ['P2SH'], ['Amount = 1']]
     comparative = [True, True, False, False]
     legend_loc = 2
 
