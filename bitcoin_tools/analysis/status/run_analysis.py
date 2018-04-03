@@ -319,7 +319,7 @@ def utxo_based_analysis_with_filters(utxo_fin_name, version=0.15):
 
     x_attribute = 'tx_height'
     xlabel = 'Block height'
-    out_names = ['utxo_height_out_type', 'utxo_height_amount', 'segwit_upper_bound']
+    out_names = ['utxo_height_out_type', 'utxo_height_amount', 'segwit_upper_bound', 'utxo_height_1_satoshi']
 
     filters = [lambda x: x["out_type"] == 0,
                lambda x: x["out_type"] == 1,
@@ -329,10 +329,11 @@ def utxo_based_analysis_with_filters(utxo_fin_name, version=0.15):
                lambda x: x["amount"] < 10 ** 4,
                lambda x: x["amount"] < 10 ** 6,
                lambda x: x["amount"] < 10 ** 8,
-               lambda x: x["out_type"] == 1]
+               lambda x: x["out_type"] == 1,
+               lambda x: x["amount"] == 1]
 
-    legends = [['P2PKH', 'P2SH', 'P2PK', 'Other'], ['$<10^2$', '$<10^4$', '$<10^6$', '$<10^8$'], ['P2SH']]
-    comparative = [True, True, False]
+    legends = [['P2PKH', 'P2SH', 'P2PK', 'Other'], ['$<10^2$', '$<10^4$', '$<10^6$', '$<10^8$'], ['P2SH'], ['Amount = 1']]
+    comparative = [True, True, False, False]
     legend_loc = 2
 
     samples = get_filtered_samples(x_attribute, fin_name=utxo_fin_name, filtr=filters)
