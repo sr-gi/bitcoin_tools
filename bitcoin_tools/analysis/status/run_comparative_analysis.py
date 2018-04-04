@@ -55,7 +55,7 @@ def compare_dust(dust_files, legend, version):
                            xlabel='Fee rate(sat/byte)', ylabel="Number of UTXOs", version=str(version))
 
 
-def compare_attribute(fin_names, x_attribute, xlabel='', legend='', out_name, version):
+def compare_attribute(fin_names, x_attribute, out_name, version, xlabel='', legend=''):
     """
     Performs a comparative analysis between different files and a fixed attribute. Useful to compare the evolution
     of a parameter throughout different snapshots.
@@ -64,14 +64,14 @@ def compare_attribute(fin_names, x_attribute, xlabel='', legend='', out_name, ve
     :type fin_names: list str
     :param x_attribute: Attribute to be compared.
     :type x_attribute: str
-    :param xlabel: Label of the x axis of the resulting chart.
-    :type xlabel: str
-    :param legend: Legend to be included in the chart.
-    :type legend: str
     :param out_name: Name of the generated chart.
     :type out_name: str
     :param version: Bitcoin core version, used to decide the folder in which to store the data.
     :type version: float
+    :param xlabel: Label of the x axis of the resulting chart.
+    :type xlabel: str
+    :param legend: Legend to be included in the chart.
+    :type legend: str
     :return: None
     :rtyp: None
     """
