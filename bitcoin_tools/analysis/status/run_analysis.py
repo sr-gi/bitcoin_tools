@@ -327,7 +327,7 @@ def utxo_based_analysis_with_filters(utxo_fin_name, version=0.15):
                #lambda x: x["out_type"] not in range(0, 6),
                lambda x: x["non_std_type"] == "P2WPKH",
                lambda x: x["non_std_type"] == "P2WSH",
-               lambda x: "multisig-" in x["non_std_type"],
+               lambda x: x["non_std_type"] != False and "multisig" in x["non_std_type"],
                lambda x: x["non_std_type"] == False,
                lambda x: x["amount"] < 10 ** 2,
                lambda x: x["amount"] < 10 ** 4,
