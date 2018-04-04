@@ -532,7 +532,7 @@ def get_chainstate_lastblock(fin_name='chainstate'):
     return change_endianness(height)
 
 
-def aggregate_dust_np(fin_name, fout_name="dust.json"):
+def aggregate_dust_np(fin_name, fout_name="dust.json", fltr=None):
     """
     Aggregates all the dust / non-profitable (np) utxos of a given parsed utxo file (from utxo_dump function).
 
@@ -567,27 +567,30 @@ def aggregate_dust_np(fin_name, fout_name="dust.json"):
     for line in fin:
         data = ujson.loads(line[:-1])
 
-        # If the UTXO is dust for the checked range, we increment the dust count, dust value and dust length for the
-        # given threshold.
-        if MIN_FEE_PER_BYTE <= data['dust'] <= MAX_FEE_PER_BYTE:
-            rate = data['dust']
-            dust[rate] += 1
-            value_dust[rate] += data["amount"]
-            data_len_dust[rate] += data["utxo_data_len"]
+        # Apply filter if it is set, otherwise all samples are analyzed (sample is only skipped if there is a filter
+        # and the data does not match the condition)
+        if not fltr or (fltr and fltr(data)):
+            # If the UTXO is dust for the checked range, we increment the dust count, dust value and dust length for the
+            # given threshold.
+            if MIN_FEE_PER_BYTE <= data['dust'] <= MAX_FEE_PER_BYTE:
+                rate = data['dust']
+                dust[rate] += 1
+                value_dust[rate] += data["amount"]
+                data_len_dust[rate] += data["utxo_data_len"]
 
-        # Same with non-profitable outputs.
-        if MIN_FEE_PER_BYTE <= data['non_profitable'] <= MAX_FEE_PER_BYTE:
-            rate = data['non_profitable']
-            np[rate] += 1
-            value_np[rate] += data["amount"]
-            data_len_np[rate] += data["utxo_data_len"]
+            # Same with non-profitable outputs.
+            if MIN_FEE_PER_BYTE <= data['non_profitable'] <= MAX_FEE_PER_BYTE:
+                rate = data['non_profitable']
+                np[rate] += 1
+                value_np[rate] += data["amount"]
+                data_len_np[rate] += data["utxo_data_len"]
 
-        # Same with estimated non-profitable outputs.
-        if MIN_FEE_PER_BYTE <= data['non_profitable_est'] <= MAX_FEE_PER_BYTE:
-            rate = data['non_profitable_est']
-            npest[rate] += 1
-            value_npest[rate] += data["amount"]
-            data_len_npest[rate] += data["utxo_data_len"]
+            # Same with estimated non-profitable outputs.
+            if MIN_FEE_PER_BYTE <= data['non_profitable_est'] <= MAX_FEE_PER_BYTE:
+                rate = data['non_profitable_est']
+                npest[rate] += 1
+                value_npest[rate] += data["amount"]
+                data_len_npest[rate] += data["utxo_data_len"]
 
         # And we increase the total counters for each read utxo.
         total_utxo = total_utxo + 1
