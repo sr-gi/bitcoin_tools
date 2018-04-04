@@ -1,113 +1,173 @@
-from bitcoin_tools.analysis.status.data_dump import transaction_dump, utxo_dump
-from bitcoin_tools.analysis.status.utils import parse_ldb, set_out_names, get_samples
-
+from bitcoin_tools.analysis.plots import get_cdf
+from data_processing import get_samples
 from bitcoin_tools.analysis.status.plots import plots_from_samples
-
 from bitcoin_tools import CFG
-from os import mkdir, path
+from ujson import load
+from getopt import getopt
+from sys import argv
 
 
-def run_comparative_analysis_14_15():
+def compare_dust(dust_files, legend, version):
+    """
+    Compares dust of two given dust files.
 
-    # Generate plots from tx and utxo data
+    :param dust_files: List of dust file names
+    :type dust_files: list of str
+    :param legend: Legend for the charts
+    :type legend: list of str
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
+    :return: None
+    :rtype: None
+    """
 
-    version_str = "0.14-0.15"
+    outs = ["cmp_dust_utxos", "cmp_dust_value", "cmp_dust_data_len"]
+    totals = ['total_utxos', 'total_value', 'total_data_len']
 
-    # 0.14
-    v = 0.14
-    tx_fin_name_14 = str(v) + "/parsed_txs.json"
-    utxo_fin_name_14  = str(v) + "/parsed_utxos_wp2sh.json"
-    tx_attributes_14 = ['total_len']
-    utxo_attributes_14 = ['utxo_data_len']
+    utxos = []
+    value = []
+    length = []
 
-    tx_samples_14 = get_samples(tx_attributes_14, tx_fin_name_14)
-    utxo_samples_14 = get_samples(utxo_attributes_14, utxo_fin_name_14)
+    for f in dust_files:
+        data = load(open(CFG.data_path + f))
+        utxos.append(data['np_utxos'])
+        value.append(data['np_value'])
+        length.append(data['np_data_len'])
 
-    # 0.15
-    v = 0.15
-    tx_fin_name_15 = str(v) + "/parsed_txs.json"
-    utxo_fin_name_15  = str(v) + "/parsed_utxos_wp2sh.json"
-    tx_attributes_15 = ['total_len']
-    utxo_attributes_15 = ['register_len', 'utxo_data_len']
+    xs_utxos, ys_utxos = [sorted(u.keys(), key=int) for u in utxos], [sorted(u.values(), key=int) for u in utxos]
+    xs_value, ys_value = [sorted(v.keys(), key=int) for v in value], [sorted(v.values(), key=int) for v in value]
+    xs_length, ys_length = [sorted(l.keys(), key=int) for l in length], [sorted(l.values(), key=int) for l in length]
 
-    tx_samples_15 = get_samples(tx_attributes_15, tx_fin_name_15)
-    utxo_samples_15 = get_samples(utxo_attributes_15, utxo_fin_name_15)
+    x_samples = [xs_utxos, xs_value, xs_length]
+    y_samples = [ys_utxos, ys_value, ys_length]
 
-    # TODO: why is x_attribute used?
+    for xs, ys, out, total in zip(x_samples, y_samples, outs, totals):
+        plots_from_samples(xs=xs, ys=ys, save_fig=out, legend=legend, xlabel='Fee rate(sat/byte)',
+                           ylabel="Number of UTXOs", version=str(version))
 
-    # Compare transaction storage space:
-    # - register length of v0.14 (tx -> total_len)
-    # - sum of register lengths of utxos from that tx in v0.15 (tx -> total_len)
-    plots_from_samples(samples=[tx_samples_14['total_len'], tx_samples_15['total_len']],
-                       x_attribute=['total_len'], xlabel="Transaction len. (bytes)", log_axis="x",
-                       version=version_str, comparative=True,
-                       save_fig="tx_total_len_logx_0.14-0.15", legend = ["v0.14", "v0.15"])
+        # Get values in percentage
+        ys_perc = []
+        for y_samples in ys:
+            y_perc = [y / float(data[total]) for y in y_samples]
+            ys_perc.append(y_perc)
 
-
-    # Compare register lenghts of v0.14 (tx) vs v0.15 (utxo)
-    # - transation total_len of v0.14
-    # - utxo register_len of v0.15
-    # x_attribute=['total_len', 'register_len']
-    plots_from_samples(samples=[tx_samples_14['total_len'], utxo_samples_15['register_len']],
-                       x_attribute=['aa'], xlabel="Register size (in bytes)", log_axis="x",
-                       version=version_str, comparative=True,
-                       save_fig="register_len_logx_0.14-0.15", legend=["v0.14", "v0.15"])
-
-
-    # Compare utxo data storage space:
-    # - utxo_data_len of v0.15
-    # - utxo_data_len of v0.14 # TODO: check what have we stored exactly here! Does this make sense?
-    plots_from_samples(samples=[utxo_samples_14['utxo_data_len'], utxo_samples_15['utxo_data_len']],
-                       x_attribute=['aa'], xlabel="UTXO data len (in bytes)", log_axis="x",
-                       version=version_str, comparative=True,
-                       save_fig="utxo_data_len_logx_0.14-0.15", legend=["v0.14", "v0.15"])
+        plots_from_samples(xs=xs, ys=ys_perc, save_fig='perc_' + out, legend=legend,
+                           xlabel='Fee rate(sat/byte)', ylabel="Number of UTXOs", version=str(version))
 
 
+def compare_attribute(fin_names, x_attribute, xlabel='', legend='', out_name, version):
+    """
+    Performs a comparative analysis between different files and a fixed attribute. Useful to compare the evolution
+    of a parameter throughout different snapshots.
 
-def create_comparative_analysis_files(versions, count_p2sh, non_std_only):
-    # The following analysis reads/writes from/to large data files. Some of the steps can be ignored if those files have
-    # already been created (if more updated data is not requited). Otherwise lot of time will be put in re-parsing large
-    # files.
+    :param fin_names: List of file names to load data from.
+    :type fin_names: list str
+    :param x_attribute: Attribute to be compared.
+    :type x_attribute: str
+    :param xlabel: Label of the x axis of the resulting chart.
+    :type xlabel: str
+    :param legend: Legend to be included in the chart.
+    :type legend: str
+    :param out_name: Name of the generated chart.
+    :type out_name: str
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
+    :return: None
+    :rtyp: None
+    """
 
-    # Set version and chainstate dir name
-    str_version = "-".join([str(v) for v in versions])
+    samples = [get_samples(x_attribute, fin) for fin in fin_names]
 
-    fins = dict()
-    for v in versions:
-        # When using snapshots of the chainstate, we store it as 'chainstate/version
-        chainstate = 'chainstate/' + str(v)
+    xs = []
+    ys = []
+    for _ in range(len(samples)):
+        x, y = get_cdf(samples.pop(0).values(), normalize=True)
+        xs.append(x)
+        ys.append(y)
 
-        # When not using a snapshot, we directly use the chainstate under btc_core_dir
-        # chainstate = 'chainstate'
+    plots_from_samples(xs=xs, ys=ys, xlabel=xlabel, save_fig=out_name, version=str(version), legend=legend,
+                       log_axis='x', ylabel="Number of UTXOs", legend_loc=2)
 
-        # Check if the directory for data exists, create it otherwise.
-        if not path.isdir(CFG.data_path + str(v)):
-            mkdir(CFG.data_path + str(v))
 
-        # Set the name of the output data files
-        f_utxos, f_parsed_txs, f_parsed_utxos, f_dust = set_out_names(v, count_p2sh, non_std_only)
+def comparative_data_analysis(tx_fin_name, utxo_fin_name, version):
+    """
+    Performs a comparative data analysis between a transaction dump data file and an utxo dump one.
 
-        fins[str(v)] = [f_parsed_txs, f_parsed_utxos]
-        # Parse all the data in the chainstate.
-        parse_ldb(f_utxos, fin_name=chainstate, version=v)
+    :param tx_fin_name: Input file path which contains the chainstate transaction dump.
+    :type: str
+    :param utxo_fin_name: Input file path which contains the chainstate utxo dump.
+    :type: str
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
+    :return: None
+    :rtype: None
+    """
 
-        # Parses transactions and utxos from the dumped data.
-        transaction_dump(f_utxos, f_parsed_txs, version=v)
-        utxo_dump(f_utxos, f_parsed_utxos, version=v)
+    # Generate plots with both transaction and utxo data (f_parsed_txs and f_parsed_utxos)
+    tx_attributes = ['total_value', 'height']
+    utxo_attributes = ['amount', 'tx_height']
 
-    # Check if the directory for figures exist, create it otherwise.
-    if not path.isdir(CFG.figs_path + str_version):
-        mkdir(CFG.figs_path + str_version)
+    xlabels = ['Amount (Satoshi)', 'Height']
+    out_names = ['tx_utxo_amount', 'tx_utxo_height']
+    legends = [['Tx.', 'UTXO'], ['Tx.', 'UTXO']]
+    legend_locations = [1, 2]
+
+    tx_samples = get_samples(tx_attributes, tx_fin_name)
+    utxo_samples = get_samples(utxo_attributes, utxo_fin_name)
+
+    for tx_attr, utxo_attr, label, out, legend, leg_loc in zip(tx_attributes, utxo_attributes, xlabels, out_names,
+                                                               legends, legend_locations):
+        xs_txs, ys_txs = get_cdf(tx_samples[tx_attr], normalize=True)
+        xs_utxos, ys_utxos = get_cdf(utxo_samples[utxo_attr], normalize=True)
+
+        plots_from_samples(xs=[xs_txs, xs_utxos], ys=[ys_txs, ys_utxos], xlabel=label, save_fig=out,
+                           version=str(version), legend=legend, legend_loc=leg_loc, ylabel="Number of registers")
+
+
+def run_experiment(version, f_dust, f_parsed_utxos, f_parsed_txs):
+    """
+    Runs the whole experiment. You may comment the parts of it you are not interested in to save time.
+
+     :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
+    :return:
+    """
+
+    print "Running comparative data analysis."
+    # Comparative dust analysis between different snapshots
+
+    print "Comparing dust from different snapshots."
+    # Get dust files from different dates to compare (Change / Add the ones you'll need)
+    dust_files = [str(version) + '/height-' + str(i) + 'K/' + f_dust + '.json' for i in range(100, 550, 50)]
+    legend = [str(i) + 'K' for i in range(100, 550, 50)]
+    compare_dust(dust_files=dust_files, legend=legend, version=version)
+
+    # Comparative analysis between different snapshots
+    # Get parsed_utxos files from different dates to compare (Change / Add the ones you'll need)
+    fin_names = [str(version) + '/height-' + str(i) + 'K/' + f_parsed_utxos + '.json' for i in range(100, 550, 50)]
+    legend = [str(i) + 'K' for i in range(100, 550, 50)]
+
+    # UTXO amount comparison
+    print "Comparing UTXO amount from different snapshots."
+    compare_attribute(fin_names=fin_names, x_attribute='amount', xlabel='Amount (Satoshi)', legend=legend,
+                      out_name='cmp_utxo_amount', version=version)
+
+    # UTXO size comparison
+    print "Comparing UTXO size from different snapshots."
+    compare_attribute(fin_names=fin_names, x_attribute='register_len', xlabel='Size (bytes)', legend=legend,
+                      out_name='cmp_utxo_size', version=version)
+
+    # Comparative data analysis (transactions and UTXOs)
+    comparative_data_analysis(f_parsed_txs, f_parsed_utxos, version)
 
 
 if __name__ == '__main__':
-    # Params
-    non_std_only = False
-    count_p2sh = True
 
-    # Set version
-    versions = [0.14, 0.15]
+    f_dust = 'dust_wp2sh'
+    f_parsed_utxos = 'parsed_utxos_wp2sh'
+    f_parsed_txs = 'parsed_txs'
 
-    create_comparative_analysis_files(versions, count_p2sh, non_std_only)
+    # Set version and chainstate dir name
+    version = 0.15
 
-    run_comparative_analysis_14_15()
+    run_experiment(version, f_dust, f_parsed_utxos, f_parsed_txs)
