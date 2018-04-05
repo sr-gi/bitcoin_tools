@@ -245,15 +245,18 @@ def utxo_based_analysis_with_filters(utxo_fin_name, version=0.15):
                lambda x: x["non_std_type"] == "P2WSH",
                lambda x: x["non_std_type"] != False and "multisig" in x["non_std_type"],
                lambda x: x["non_std_type"] == False,
-               lambda x: x["amount"] < 10 ** 2,
-               lambda x: x["amount"] < 10 ** 4,
-               lambda x: x["amount"] < 10 ** 6,
-               lambda x: x["amount"] < 10 ** 8,
+               lambda x: x["amount"] == 1,
+               lambda x: x["amount"] > 1 and x["amount"] <= 10**1,
+               lambda x: x["amount"] > 10 and x["amount"] <= 10**2,
+               lambda x: x["amount"] > 10**2 and x["amount"] <= 10**4,
+               lambda x: x["amount"] > 10**4 and x["amount"] <= 10**6,
+               lambda x: x["amount"] > 10**6 and x["amount"] <= 10**8,
+               lambda x: x["amount"] > 10**8,
                lambda x: x["out_type"] == 1,
                lambda x: x["amount"] == 1]
 
-    legends = [['P2PKH', 'P2SH', 'P2PK', 'P2WPKH', 'P2WSH', 'Multisig', 'Other'], ['$<10^2$', '$<10^4$', '$<10^6$',
-                                                                                   '$<10^8$'], ['P2SH'], ['Amount = 1']]
+    legends = [['P2PKH', 'P2SH', 'P2PK', 'P2WPKH', 'P2WSH', 'Multisig', 'Other'], ['$=1$','$1 < x \leq 10$','$10 < x \leq 10^2$', '$10^2 < x \leq 10^4$'
+, '$10^4 < x \leq 10^6$', '$10^6 < x \leq 10^8$', '$10^8 < x$'], ['P2SH'], ['Amount = 1']]
     comparative = [True, True, False, False]
     legend_loc = 2
 
