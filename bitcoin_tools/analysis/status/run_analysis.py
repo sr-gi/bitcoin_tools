@@ -69,8 +69,6 @@ def non_std_outs_analysis(samples, version):
 
     out_name = "utxo_non_std_type"
 
-    # ToDo: Fix labels overlapping 
-
     plot_pie_chart_from_samples(samples=samples, save_fig=out_name, labels=labels, version=version, groups=groups,
                                 title="",  colors=["#165873", "#428C5C", "#4EA64B", "#ADD96C", "#B1D781", "#FAD02F",
                                                    "#A69229", "#B69229", "#F69229"], labels_out=True)
@@ -121,7 +119,7 @@ def tx_based_analysis(tx_fin_name, version=0.15):
 
     for label, out, groups, colors in (zip(xlabels_pie, out_names_pie, pie_groups, pie_colors)):
         plot_pie_chart_from_samples(samples=samples_pie, save_fig=out, labels=label, title="", version=version,
-                                    groups=groups, colors=colors)
+                                    groups=groups, colors=colors, labels_out=True)
 
 
 def utxo_based_analysis(utxo_fin_name, version=0.15):
@@ -171,7 +169,7 @@ def utxo_based_analysis(utxo_fin_name, version=0.15):
 
     for attribute, label, out, groups in (zip(x_attributes_pie, xlabels_pie, out_names_pie, pie_groups)):
         plot_pie_chart_from_samples(samples=samples[attribute], save_fig=out, labels=label, title="", version=version,
-                                    groups=groups, colors=["#165873", "#428C5C", "#4EA64B", "#ADD96C"])
+                                    groups=groups, colors=["#165873", "#428C5C", "#4EA64B", "#ADD96C"], labels_out=True)
     # Special case: non-standard
     non_std_outs_analysis(samples_special, version)
 
