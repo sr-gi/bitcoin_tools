@@ -166,6 +166,12 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                               "non_profitable": np,
                               "non_profitable_est": np_est,
                               "non_std_type": non_std_type}
+                              # Data used to explain dust figures (describes the size taken into account by each metric
+                              # when computing dust/unprofitability). 
+                              #"dust_size": out_size + in_size,
+                              #"min_size": min_size,
+                              #"est_size": get_est_input_size(out, utxo["height"], p2pkh_pksize,
+                              #                                        p2sh_scriptsize, nonstd_scriptsize)}
 
                 # Index added at the end when updated the result with the out, since the index is not part of the
                 # encoded data anymore (coin) but of the entry identifier (outpoint), we add it manually.
