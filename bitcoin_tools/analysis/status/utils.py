@@ -708,7 +708,7 @@ def check_native_segwit(script):
     return (False, None)
 
 
-def get_min_input_size(out, height, count_p2sh=False):
+def get_min_input_size(out, height, count_p2sh=False, coin = "bitcoin"):
     """
     Computes the minimum size an input created by a given output type (parsed from the chainstate) will have.
     The size is computed in two parts, a fixed size that is non type dependant, and a variable size which
@@ -744,8 +744,14 @@ def get_min_input_size(out, height, count_p2sh=False):
 
     if out_type is 0:
         # P2PKH
-        # Bitcoin core starts using compressed pk in version (0.6.0, 30/03/12, around block height 173480)
-        if height < 173480:
+        if coin in ["bitcoin", "bitcoincash"]:
+            # Bitcoin core starts using compressed pk in version (0.6.0, 30/03/12, around block height 173480)
+            height_limit = 173480
+        else:
+            # v0.6.0 (march 2012) is block 110K for litecoin
+            height_limit = 110000
+
+        if height < height_limit:
             # uncompressed keys
             scriptSig = 138  # PUSH sig (1 byte) + sig (71 bytes) + PUSH pk (1 byte) + uncompressed pk (65 bytes)
         else:
@@ -1059,5 +1065,22 @@ def get_serialized_size_fast(utxo):
     return out_size
 
 
+def get_coin_from_file_name(fname):
+    """
+    Identifies the coin under analysis from the data dump file name.
 
+    :param fname: file name
+    :return: str, coin name
+    """
+
+    if "litecoin" in fname:
+        return "litecoin"
+
+    if "cash" in fname:
+        return "bitcoincash"
+
+    if "bitcoin" in fname:
+        return "bitcoin"
+
+    return None
 

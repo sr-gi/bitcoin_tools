@@ -1,7 +1,7 @@
 from bitcoin_tools import CFG
 from bitcoin_tools.analysis.status import FEE_STEP
 from bitcoin_tools.analysis.status.utils import check_multisig, get_min_input_size, roundup_rate, check_multisig_type, \
-    get_serialized_size_fast, get_est_input_size, load_estimation_data, check_native_segwit
+    get_serialized_size_fast, get_est_input_size, load_estimation_data, check_native_segwit, get_coin_from_file_name
 import ujson
 from subprocess import call
 from os import remove
@@ -105,7 +105,8 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                                     and not check_multisig(out['data'])):
 
                 # Calculates the dust threshold for every UTXO value and every fee per byte ratio between min and max.
-                min_size = get_min_input_size(out, utxo["height"], count_p2sh)
+                coin = get_coin_from_file_name(fin_name)
+                min_size = get_min_input_size(out, utxo["height"], count_p2sh, coin)
 
                 # https://github.com/bitcoin/bitcoin/blob/5961b23898ee7c0af2626c46d5d70e80136578d3/src/policy/policy.cpp#L20-L33
                 # A UTXO is considered dust if the fees that should be payed to spend it are greater or equal to
