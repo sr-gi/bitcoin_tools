@@ -846,12 +846,11 @@ def get_est_input_size(out, height, p2pkh_pksize, p2sh_scriptsize, nonstd_script
     # use data from the blockchain to estimate it depending on block height.
     #
     # Signatures size is contained between 71-73 bytes depending on the size of the S and R components of the signature.
-    # Since we are looking for the minimum size, we will consider all signatures to be 71-byte long in order to define
-    # a lower bound.
+    # Since the most common size is 72, we will consider all signatures to be 72-byte long.
 
     if out_type is 0:
         # P2PKH
-        scriptSig = 73 + p2pkh_pksize[str(height)] # PUSH sig (1 byte) + sig (71 bytes) + PUSH pk (1 byte) + PK estimation
+        scriptSig = 74 + p2pkh_pksize[str(height)] # PUSH sig (1 byte) + sig (72 bytes) + PUSH pk (1 byte) + PK estimation
         scriptSig_len = 1
     elif out_type is 1:
         # P2SH
@@ -861,7 +860,7 @@ def get_est_input_size(out, height, p2pkh_pksize, p2sh_scriptsize, nonstd_script
         # P2PK
         # P2PK requires a signature and a push OP_CODE to push the signature into the stack. The format of the public
         # key (compressed or uncompressed) does not affect the length of the signature.
-        scriptSig = 72  # PUSH sig (1 byte) + sig (71 bytes)
+        scriptSig = 73  # PUSH sig (1 byte) + sig (72 bytes)
         scriptSig_len = 1
     else:
         segwit = check_native_segwit(script)
@@ -869,10 +868,10 @@ def get_est_input_size(out, height, p2pkh_pksize, p2sh_scriptsize, nonstd_script
         if check_multisig(script):
             # Multisig can be 15-15 at most.
             req_sigs = int(script[:2], 16) - 80  # OP_1 is hex 81
-            scriptSig = 1 + (req_sigs * 72)  # OP_0 (1 byte) + 72 bytes per sig (PUSH sig (1 byte) + sig (71 bytes))
+            scriptSig = 1 + (req_sigs * 73)  # OP_0 (1 byte) + 72 bytes per sig (PUSH sig (1 byte) + sig (72 bytes))
             scriptSig_len = int(ceil(scriptSig / float(256)))
         elif segwit[0] and segwit[1] == "P2WPKH":
-            scriptSig = 27 # PUSH sig (1 byte) + sig (71 bytes) + PUSH pk (1 byte) + pk (33 bytes) (106 / 4 = 27)
+            scriptSig = 27 # PUSH sig (1 byte) + sig (72 bytes) + PUSH pk (1 byte) + pk (33 bytes) (107 / 4 = 27)
             scriptSig_len = 1
         else:
             # All other types (non-standard outs)
