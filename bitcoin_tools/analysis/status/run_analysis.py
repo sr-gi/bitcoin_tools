@@ -8,7 +8,6 @@ from os import mkdir, path
 from getopt import getopt
 from sys import argv
 
-
 def set_out_names(version, count_p2sh, non_std_only):
     """
     Set the name of the input / output files from the experiment depending on the given flags.
@@ -220,6 +219,38 @@ def dust_analysis(utxo_fin_name, f_dust, version, fltr=None):
                            xlabel='Fee rate (sat./byte)', ylabel=ylabel, version=str(version))
 
 
+def dust_analysis_all_fees(utxo_fin_name, version=0.15):
+    """
+    Performs a dust analysis for all fee rates, that is, up until all samples are considered dust
+     (plot shows cdf up until 1).
+
+    :param utxo_fin_name: Input file path which contains the chainstate utxo dump.
+    :type: str
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :type version: float
+    :return: None
+    :rtype: None
+    """
+
+    x_attributes = [["dust", "non_profitable", "non_profitable_est"]]
+    xlabels = ['Dust/non_prof_min/non_prof_est value']
+    out_names = ["dust_utxos_all"]
+    legends = [["Dust", "Non-profitable min.", "Non-profitable est."]]
+    log_axis = ['x']
+
+    for attribute, label, log, out, legend in zip(x_attributes, xlabels, log_axis, out_names, legends):
+        samples = get_samples(attribute, fin_name=utxo_fin_name)
+        xs = []
+        ys = []
+        for a in attribute:
+            x, y = get_cdf(samples[a], normalize=True)
+            xs.append(x)
+            ys.append(y)
+
+        plots_from_samples(xs=xs, ys=ys, xlabel=label, log_axis=log, save_fig=out, version=str(version),
+                           ylabel="Number of UTXOs", legend=legend, legend_loc=4)
+
+
 def utxo_based_analysis_with_filters(utxo_fin_name, version=0.15):
     """
     Performs an utxo data analysis using different filters, to obtain for examples the amount of SegWit outputs.
@@ -346,9 +377,10 @@ def run_experiment(version, chainstate, count_p2sh, non_std_only):
     print "Running UTXO based analysis."
     utxo_based_analysis(f_parsed_utxos, version)
 
-    # Aggregates dust and generates plots it.
+    # Aggregates dust and generates plots.
     print "Running dust analysis."
     dust_analysis(f_parsed_utxos, f_dust, version)
+    dust_analysis_all_fees(f_parsed_utxos, version)
 
     # Generate plots with filters
     print "Running analysis with filters."
