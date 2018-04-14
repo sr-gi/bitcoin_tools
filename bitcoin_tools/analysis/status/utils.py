@@ -799,20 +799,20 @@ def get_min_input_size(out, height, count_p2sh=False, coin = "bitcoin"):
     return fixed_size + var_size
 
 
-def load_estimation_data():
+def load_estimation_data(coin):
 
     # TODO: optimization: should we use ujson? (gives an error, I think it is related to NaNs)
 
-    with open(CFG.estimated_data_dir + "p2pkh_pubkey_avg_size_height_output.json") as f:
+    with open(CFG.estimated_data_dir + coin + "/p2pkh_pubkey_avg_size_height_output.json") as f:
         p2pkh_pksize = json.load(f)
 
-    with open(CFG.estimated_data_dir + "p2sh.json") as f:
+    with open(CFG.estimated_data_dir + coin + "/p2sh.json") as f:
         p2sh_scriptsize = json.load(f)
 
-    with open(CFG.estimated_data_dir + "nonstd.json") as f:
+    with open(CFG.estimated_data_dir + coin + "/nonstd.json") as f:
         nonstd_scriptsize = json.load(f)
 
-    with open(CFG.estimated_data_dir + "p2wsh.json") as f:
+    with open(CFG.estimated_data_dir + coin + "/p2wsh.json") as f:
         p2wsh_scriptsize = json.load(f)
 
     return p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize

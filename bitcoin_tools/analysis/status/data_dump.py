@@ -90,7 +90,8 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
     # Standard UTXO types
     std_types = [0, 1, 2, 3, 4, 5]
 
-    p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize = load_estimation_data()
+    coin = get_coin_from_file_name(fin_name)
+    p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize = load_estimation_data(coin)
 
     for line in fin:
         data = ujson.loads(line[:-1])
@@ -105,7 +106,6 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                                     and not check_multisig(out['data'])):
 
                 # Calculates the dust threshold for every UTXO value and every fee per byte ratio between min and max.
-                coin = get_coin_from_file_name(fin_name)
                 min_size = get_min_input_size(out, utxo["height"], count_p2sh, coin)
 
                 # https://github.com/bitcoin/bitcoin/blob/5961b23898ee7c0af2626c46d5d70e80136578d3/src/policy/policy.cpp#L20-L33
