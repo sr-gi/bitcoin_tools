@@ -90,7 +90,7 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
     # Standard UTXO types
     std_types = [0, 1, 2, 3, 4, 5]
 
-    p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize = load_estimation_data()
+    p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize = load_estimation_data()
 
     for line in fin:
         data = ujson.loads(line[:-1])
@@ -124,7 +124,7 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
 
                 raw_np = out["amount"] / float(min_size)
                 raw_np_est = out["amount"] / float(get_est_input_size(out, utxo["height"], p2pkh_pksize,
-                                                                      p2sh_scriptsize, nonstd_scriptsize))
+                                                                      p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize))
 
                 if out["amount"] != 0 and raw_dust == 0:
                     print 'dust', out["amount"], raw_dust

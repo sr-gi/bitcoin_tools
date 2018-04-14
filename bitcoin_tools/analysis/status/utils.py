@@ -812,10 +812,13 @@ def load_estimation_data():
     with open(CFG.estimated_data_dir + "nonstd.json") as f:
         nonstd_scriptsize = json.load(f)
 
-    return p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize
+    with open(CFG.estimated_data_dir + "p2wsh.json") as f:
+        p2wsh_scriptsize = json.load(f)
+
+    return p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize
 
 
-def get_est_input_size(out, height, p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize):
+def get_est_input_size(out, height, p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize):
     """
     Computes the estimated size an input created by a given output type (parsed from the chainstate) will have.
     The size is computed in two parts, a fixed size that is non type dependant, and a variable size which
@@ -873,6 +876,9 @@ def get_est_input_size(out, height, p2pkh_pksize, p2sh_scriptsize, nonstd_script
         elif segwit[0] and segwit[1] == "P2WPKH":
             scriptSig = 27 # PUSH sig (1 byte) + sig (72 bytes) + PUSH pk (1 byte) + pk (33 bytes) (107 / 4 = 27)
             scriptSig_len = 1
+        elif segwit[0] and segwit[1] == "P2WSH":
+            scriptSig = ceil(p2wsh_scriptsize/4.0)
+            scriptSig_len = int(ceil(scriptSig / float(256)))
         else:
             # All other types (non-standard outs)
             scriptSig = nonstd_scriptsize
