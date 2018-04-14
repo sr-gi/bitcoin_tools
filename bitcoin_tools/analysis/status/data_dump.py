@@ -172,7 +172,7 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                               #"dust_size": out_size + in_size,
                               #"min_size": min_size,
                               #"est_size": get_est_input_size(out, utxo["height"], p2pkh_pksize,
-                              #                                        p2sh_scriptsize, nonstd_scriptsize)}
+                              #                                        p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize)}
 
                 # Index added at the end when updated the result with the out, since the index is not part of the
                 # encoded data anymore (coin) but of the entry identifier (outpoint), we add it manually.
