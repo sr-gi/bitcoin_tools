@@ -1,13 +1,14 @@
 from bitcoin_tools.analysis.plots import get_cdf
-from data_processing import get_samples
+from bitcoin_tools.analysis.status.data_processing import get_samples, get_filtered_samples
 from bitcoin_tools.analysis.status.plots import plots_from_samples
+from bitcoin_tools.analysis.status.utils import aggregate_dust_np
 from bitcoin_tools import CFG
 from ujson import load
 from getopt import getopt
 from sys import argv
 
 
-def compare_dust(dust_files, legend, version):
+def compare_dust(dust_files, legend, version, sufix=''):
     """
     Compares dust of two given dust files.
 
@@ -21,7 +22,7 @@ def compare_dust(dust_files, legend, version):
     :rtype: None
     """
 
-    outs = ["cmp_dust_utxos", "cmp_dust_value", "cmp_dust_data_len"]
+    outs = ["cmp_dust_utxos"+sufix, "cmp_dust_value"+sufix, "cmp_dust_data_len"+sufix]
     totals = ['total_utxos', 'total_value', 'total_data_len']
 
     utxos = []
@@ -30,9 +31,9 @@ def compare_dust(dust_files, legend, version):
 
     for f in dust_files:
         data = load(open(CFG.data_path + f))
-        utxos.append(data['np_utxos'])
-        value.append(data['np_value'])
-        length.append(data['np_data_len'])
+        utxos.append(data['npest_utxos'])
+        value.append(data['npest_value'])
+        length.append(data['npest_data_len'])
 
     xs_utxos, ys_utxos = [sorted(u.keys(), key=int) for u in utxos], [sorted(u.values(), key=int) for u in utxos]
     xs_value, ys_value = [sorted(v.keys(), key=int) for v in value], [sorted(v.values(), key=int) for v in value]
@@ -135,18 +136,23 @@ def run_experiment(version, f_dust, f_parsed_utxos, f_parsed_txs):
 
     print "Running comparative data analysis."
     # Comparative dust analysis between different snapshots
+    fin_names = [str(version) + '/height-' + str(i) + 'K/' + f_parsed_utxos + '.json' for i in range(100, 550, 50)]
+    dust_files = [str(version) + '/height-' + str(i) + 'K/' + f_dust + '.json' for i in range(100, 550, 50)]
+    legend = [str(i) + 'K' for i in range(100, 550, 50)]
 
     print "Comparing dust from different snapshots."
     # Get dust files from different dates to compare (Change / Add the ones you'll need)
-    dust_files = [str(version) + '/height-' + str(i) + 'K/' + f_dust + '.json' for i in range(100, 550, 50)]
-    legend = [str(i) + 'K' for i in range(100, 550, 50)]
     compare_dust(dust_files=dust_files, legend=legend, version=version)
 
-    # Comparative analysis between different snapshots
-    # Get parsed_utxos files from different dates to compare (Change / Add the ones you'll need)
-    fin_names = [str(version) + '/height-' + str(i) + 'K/' + f_parsed_utxos + '.json' for i in range(100, 550, 50)]
-    legend = [str(i) + 'K' for i in range(100, 550, 50)]
+    # Dust comparision counting only P2PKH outputs
+    dust_files = [str(version) + '/height-' + str(i) + 'K/' + f_dust + '_p2pkh_only.json' for i in range(100, 550, 50)]
 
+    # for utxo_fin, dust_fin in zip(fin_names, dust_files):
+    #     aggregate_dust_np(utxo_fin, dust_fin, fltr=lambda x: x['out_type'] == 0)
+
+    compare_dust(dust_files=dust_files, legend=legend, version=version, sufix='_p2pkh')
+
+    # Comparative analysis between different snapshots
     # UTXO amount comparison
     print "Comparing UTXO amount from different snapshots."
     compare_attribute(fin_names=fin_names, x_attribute='amount', xlabel='Amount (Satoshi)', legend=legend,
