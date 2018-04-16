@@ -147,8 +147,8 @@ def run_experiment(version, f_dust, f_parsed_utxos, f_parsed_txs):
     # Dust comparision counting only P2PKH outputs
     dust_files = [str(version) + '/height-' + str(i) + 'K/' + f_dust + '_p2pkh_only.json' for i in range(100, 550, 50)]
 
-    # for utxo_fin, dust_fin in zip(fin_names, dust_files):
-    #     aggregate_dust_np(utxo_fin, dust_fin, fltr=lambda x: x['out_type'] == 0)
+    # for utxo_fin, dust_fout in zip(fin_names, dust_files):
+    #     aggregate_dust_np(utxo_fin, dust_fout, fltr=lambda x: x['out_type'] == 0)
 
     compare_dust(dust_files=dust_files, legend=legend, version=version, sufix='_p2pkh')
 
