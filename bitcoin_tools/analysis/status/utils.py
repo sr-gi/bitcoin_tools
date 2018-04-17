@@ -1081,7 +1081,7 @@ def get_coin_from_file_name(fname):
     if "litecoin" in fname:
         return "litecoin"
 
-    if "cash" in fname:
+    if "cash" in fname or "bu" in fname:
         return "bitcoincash"
 
     if "bitcoin" in fname:
