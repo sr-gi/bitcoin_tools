@@ -468,7 +468,7 @@ def parse_ldb(fout_name, fin_name='chainstate', decode=True, version=0.15):
     # Output file
     fout = open(CFG.data_path + fout_name, 'w')
     # Open the LevelDB
-    db = plyvel.DB(CFG.btc_core_path + "/" + fin_name, compression=None)  # Change with path to chainstate
+    db = plyvel.DB(CFG.btc_core_path + fin_name, compression=None)  # Change with path to chainstate
 
     # Load obfuscation key (if it exists)
     o_key = db.get((unhexlify("0e00") + "obfuscate_key"))
@@ -514,7 +514,7 @@ def get_chainstate_lastblock(fin_name='chainstate'):
     """
 
     # Open the chainstate
-    db = plyvel.DB(CFG.btc_core_path + "/" + fin_name, compression=None)
+    db = plyvel.DB(CFG.btc_core_path + fin_name, compression=None)
 
     # Load obfuscation key (if it exists)
     o_key = db.get((unhexlify("0e00") + "obfuscate_key"))
