@@ -1,7 +1,7 @@
+![bitcoin_tools](https://srgi.me/assets/images/bitcoin_tools_logo.png)
+
+
 [![Mentioned in Awesome](https://awesome.re/mentioned-badge.svg)](https://github.com/igorbarinov/awesome-bitcoin)
-
-
-# Bitcoin tools
 
 bitcoin_tools is a Python library created for teaching and researching purposes. It's main objective is twofold. First it 
 aims to ease the understanding of Bitcoin transaction creation, by using well-documented and easy to understand
