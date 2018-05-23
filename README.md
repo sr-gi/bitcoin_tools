@@ -1,3 +1,6 @@
+[![Mentioned in Awesome](https://awesome.re/mentioned-badge.svg)](https://github.com/igorbarinov/awesome-bitcoin)
+
+
 # Bitcoin tools
 
 bitcoin_tools is a Python library created for teaching and researching purposes. It's main objective is twofold. First it 
