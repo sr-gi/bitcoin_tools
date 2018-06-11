@@ -1,7 +1,7 @@
 from bitcoin_tools import CFG
 from bitcoin_tools.analysis.status import FEE_STEP
 from bitcoin_tools.analysis.status.utils import check_multisig, get_min_input_size, roundup_rate, check_multisig_type, \
-    get_serialized_size_fast, get_est_input_size, load_estimation_data, check_native_segwit, get_coin_from_file_name
+    get_serialized_size_fast, get_est_input_size, load_estimation_data, check_native_segwit
 import ujson
 from subprocess import call
 from os import remove
