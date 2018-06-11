@@ -1,11 +1,8 @@
 from bitcoin_tools.analysis.plots import get_cdf
-from bitcoin_tools.analysis.status.data_processing import get_samples, get_filtered_samples
+from bitcoin_tools.analysis.status.data_processing import get_samples
 from bitcoin_tools.analysis.status.plots import plots_from_samples
-from bitcoin_tools.analysis.status.utils import aggregate_dust_np
 from bitcoin_tools import CFG
 from ujson import load
-from getopt import getopt
-from sys import argv
 
 
 def compare_dust(dust_files, legend, version, sufix=''):
