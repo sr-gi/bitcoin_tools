@@ -18,6 +18,9 @@ where:
     file            is the bitcoind log file (default path of this file is /home/USER/.bitcoin/debug.log),
     -o              is a flag to start reading at the origin of the log file, and
     -e              is a flag to start reading at the end of the log file.
+
+It is useful to run bitcoind with:
+    bitcoind -daemon -prune=550 && pidof bitcoind
 """
 
 # Configuration parameters
