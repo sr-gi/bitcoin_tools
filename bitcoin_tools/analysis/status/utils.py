@@ -800,25 +800,29 @@ def get_min_input_size(out, height, count_p2sh=False, coin = "bitcoin"):
 
 def load_estimation_data(coin):
     """
-    Returns estimation data for public key sizes, and P2SH, non-std and P2WSH input/witness script sizes.
+    Returns estimation data for public key sizes, and P2SH, non-std and P2WSH input/witness script sizes. If no
+    estimation data is available, returns a tuple of None values.
+
     :param coin: string (bitcoin, bitcoincash or litecoin)
     :return: 4-element tuple: a dictionary and 4 floats, with estimation data by height (dict) and average estimation
     data (floats).
     """
 
-    p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize = None, None, None, None
+    try:
+        with open(CFG.estimated_data_dir + coin + "/p2pkh_pubkey_avg_size_height_output.json") as f:
+            p2pkh_pksize = ujson.load(f)
 
-    with open(CFG.estimated_data_dir + coin + "/p2pkh_pubkey_avg_size_height_output.json") as f:
-        p2pkh_pksize = ujson.load(f)
+        with open(CFG.estimated_data_dir + coin + "/p2sh.json") as f:
+            p2sh_scriptsize = ujson.load(f)
 
-    with open(CFG.estimated_data_dir + coin + "/p2sh.json") as f:
-        p2sh_scriptsize = ujson.load(f)
+        with open(CFG.estimated_data_dir + coin + "/nonstd.json") as f:
+            nonstd_scriptsize = ujson.load(f)
 
-    with open(CFG.estimated_data_dir + coin + "/nonstd.json") as f:
-        nonstd_scriptsize = ujson.load(f)
+        with open(CFG.estimated_data_dir + coin + "/p2wsh.json") as f:
+            p2wsh_scriptsize = ujson.load(f)
 
-    with open(CFG.estimated_data_dir + coin + "/p2wsh.json") as f:
-        p2wsh_scriptsize = ujson.load(f)
+    except IOError:
+        p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize = None, None, None, None
 
     return p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize
 
@@ -829,6 +833,8 @@ def get_est_input_size(out, height, p2pkh_pksize, p2sh_scriptsize, nonstd_script
     The size is computed in two parts, a fixed size that is non type dependant, and a variable size which
     depends on the output type.
 
+    If no estimation data is available, returns NaN.
+
     :param out: Output to be analyzed.
     :type out: dict
     :param height: Block height where the utxo was created. Used to set P2PKH min_size.
@@ -838,6 +844,10 @@ def get_est_input_size(out, height, p2pkh_pksize, p2sh_scriptsize, nonstd_script
     :return: The minimum input size of the given output type.
     :rtype: int
     """
+
+    if p2pkh_pksize is None:
+        # If no estimation data is available, return Nan.
+        return float('nan')
 
     out_type = out["out_type"]
     script = out["data"]
@@ -991,14 +1001,19 @@ def roundup_rate(fee_rate, fee_step=FEE_STEP):
     :rtype: int
     """
 
-    # If the value to be rounded is already multiple of the fee step, we just add another step. Otherwise the value
-    # is rounded up.
-    if fee_rate == 0:
-        rate = fee_rate
-    elif (fee_rate % fee_step) == 0:
-        rate = int(fee_rate + fee_step)
-    else:
-        rate = int(ceil(fee_rate / float(fee_step))) * fee_step
+    try:
+        # If the value to be rounded is already multiple of the fee step, we just add another step. Otherwise the value
+        # is rounded up.
+        if fee_rate == 0:
+            rate = fee_rate
+        elif (fee_rate % fee_step) == 0:
+            rate = int(fee_rate + fee_step)
+        else:
+            rate = int(ceil(fee_rate / float(fee_step))) * fee_step
+    except ValueError:
+        # fee_rate may be NaN (for the non-profitable estimation metric when no estimation data is available).
+        # In this case, return None (ujson can not deal with NaNs).
+        rate = None
 
     return rate
 
