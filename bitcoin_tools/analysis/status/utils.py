@@ -442,12 +442,12 @@ def display_decoded_utxo(decoded_utxo):
     print "Block height: " + str(decoded_utxo['height'])
 
 
-def parse_ldb(fout_name, fin_name='chainstate', decode=True, version=0.15):
+def parse_ldb(fout_name, fin_name=CFG.chainstate_path, decode=True, version=0.15):
     """
     Parsed data from the chainstate LevelDB and stores it in a output file.
     :param fout_name: Name of the file to output the data.
     :type fout_name: str
-    :param fin_name: Name of the LevelDB folder (chainstate by default)
+    :param fin_name: Name of the LevelDB folder (CFG.chainstate_path by default)
     :type fin_name: str
     :param decode: Whether the parsed data is decoded before stored or not (default: True)
     :type decode: bool
@@ -467,7 +467,7 @@ def parse_ldb(fout_name, fin_name='chainstate', decode=True, version=0.15):
     # Output file
     fout = open(CFG.data_path + fout_name, 'w')
     # Open the LevelDB
-    db = plyvel.DB(CFG.btc_core_path + fin_name, compression=None)  # Change with path to chainstate
+    db = plyvel.DB(fin_name, compression=None)  # Change with path to chainstate
 
     # Load obfuscation key (if it exists)
     o_key = db.get((unhexlify("0e00") + "obfuscate_key"))
@@ -503,17 +503,17 @@ def parse_ldb(fout_name, fin_name='chainstate', decode=True, version=0.15):
     db.close()
 
 
-def get_chainstate_lastblock(fin_name='chainstate'):
+def get_chainstate_lastblock(fin_name=CFG.chainstate_path):
     """
     Gets the block hash of the last block a given chainstate folder is updated to.
-    :param fin_name: chaisntate folder name
+    :param fin_name: chainstate folder name
     :type fin_name: str
     :return: The block hash (Big Endian)
     :rtype: str
     """
 
     # Open the chainstate
-    db = plyvel.DB(CFG.btc_core_path + fin_name, compression=None)
+    db = plyvel.DB(fin_name, compression=None)
 
     # Load obfuscation key (if it exists)
     o_key = db.get((unhexlify("0e00") + "obfuscate_key"))
@@ -868,7 +868,7 @@ def get_est_input_size(out, height, p2pkh_pksize, p2sh_scriptsize, nonstd_script
 
     if out_type is 0:
         # P2PKH
-        scriptSig = 74 + p2pkh_pksize[str(height)] # PUSH sig (1 byte) + sig (72 bytes) + PUSH pk (1 byte) + PK estimation
+        scriptSig = 74 + p2pkh_pksize[str(height)]  # PUSH sig (1 byte) + sig (72 bytes) + PUSH pk (1 byte) + PK est
         scriptSig_len = 1
     elif out_type is 1:
         # P2SH
@@ -904,7 +904,7 @@ def get_est_input_size(out, height, p2pkh_pksize, p2sh_scriptsize, nonstd_script
     return fixed_size + var_size
 
 
-def get_utxo(tx_id, index, fin_name='chainstate', version=0.15):
+def get_utxo(tx_id, index, fin_name=CFG.chainstate_path, version=0.15):
     """
     Gets a UTXO from the chainstate identified by a given transaction id and index.
     If the requested UTXO does not exist, return None.
@@ -931,7 +931,7 @@ def get_utxo(tx_id, index, fin_name='chainstate', version=0.15):
         outpoint = prefix + unhexlify(tx_id + b128_encode(index))
 
     # Open the LevelDB
-    db = plyvel.DB(CFG.btc_core_path + "/" + fin_name, compression=None)  # Change with path to chainstate
+    db = plyvel.DB(fin_name, compression=None)  # Change with path to chainstate
 
     # Load obfuscation key (if it exists)
     o_key = db.get((unhexlify("0e00") + "obfuscate_key"))
@@ -1088,24 +1088,4 @@ def get_serialized_size_fast(utxo):
     out_size += 8
 
     return out_size
-
-
-def get_coin_from_file_name(fname):
-    """
-    Identifies the coin under analysis from the data dump file name.
-
-    :param fname: file name
-    :return: str, coin name
-    """
-
-    if "litecoin" in fname:
-        return "litecoin"
-
-    if "cash" in fname or "bu" in fname:
-        return "bitcoincash"
-
-    if "bitcoin" in fname:
-        return "bitcoin"
-
-    return None
 

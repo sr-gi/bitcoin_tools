@@ -8,6 +8,7 @@ from os import mkdir, path
 from getopt import getopt
 from sys import argv
 
+
 def set_out_names(version, count_p2sh, non_std_only):
     """
     Set the name of the input / output files from the experiment depending on the given flags.
@@ -390,23 +391,28 @@ def run_experiment(version, chainstate, count_p2sh, non_std_only):
 
 if __name__ == '__main__':
 
-    if len(argv) > 1:
-        # Get params from call
-        _, args = getopt(argv, ['count_p2sh', 'non_std'])
-        count_p2sh = True if '--count_p2sh' in args else False
-        non_std_only = True if '--non_std' in args else False
-    else:
-        # Default params
-        non_std_only = False
-        count_p2sh = True
+    # Default params
+    non_std_only = False
+    count_p2sh = True
+    coin = CFG.default_coin
+
+    opts, _ = getopt(argv[1:], 'c:pn', ['coin=', 'count_p2sh', 'non_std'])
+
+    for opt, arg in opts:
+        if opt in ['c', '--coin']:
+            coin = arg
+        elif opt in ['-p', '--count_p2sh']:
+            count_p2sh = True
+        elif opt in ['n', '--non_std_only']:
+            non_std_only = True
 
     # Set version and chainstate dir name
     version = 0.16
 
+    # When not using a snapshot, we directly use the chainstate under btc_core_dir (actually that's its default value)
+    chainstate = CFG.chainstate_path
+
     # When using snapshots of the chainstate, we store it as 'chainstate/version
     # chainstate = 'chainstate/' + str(version)
-
-    # When not using a snapshot, we directly use the chainstate under btc_core_dir (actually that's its default value)
-    chainstate = 'chainstate'
 
     run_experiment(version, chainstate, count_p2sh, non_std_only)
