@@ -1,7 +1,6 @@
 import plyvel
 from binascii import hexlify, unhexlify
 import ujson
-import json
 from math import ceil
 from copy import deepcopy
 from bitcoin_tools.analysis.status import *
@@ -800,20 +799,26 @@ def get_min_input_size(out, height, count_p2sh=False, coin = "bitcoin"):
 
 
 def load_estimation_data(coin):
+    """
+    Returns estimation data for public key sizes, and P2SH, non-std and P2WSH input/witness script sizes.
+    :param coin: string (bitcoin, bitcoincash or litecoin)
+    :return: 4-element tuple: a dictionary and 4 floats, with estimation data by height (dict) and average estimation
+    data (floats).
+    """
 
-    # TODO: optimization: should we use ujson? (gives an error, I think it is related to NaNs)
+    p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize = None, None, None, None
 
     with open(CFG.estimated_data_dir + coin + "/p2pkh_pubkey_avg_size_height_output.json") as f:
-        p2pkh_pksize = json.load(f)
+        p2pkh_pksize = ujson.load(f)
 
     with open(CFG.estimated_data_dir + coin + "/p2sh.json") as f:
-        p2sh_scriptsize = json.load(f)
+        p2sh_scriptsize = ujson.load(f)
 
     with open(CFG.estimated_data_dir + coin + "/nonstd.json") as f:
-        nonstd_scriptsize = json.load(f)
+        nonstd_scriptsize = ujson.load(f)
 
     with open(CFG.estimated_data_dir + coin + "/p2wsh.json") as f:
-        p2wsh_scriptsize = json.load(f)
+        p2wsh_scriptsize = ujson.load(f)
 
     return p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize
 
