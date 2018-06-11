@@ -330,11 +330,13 @@ def tx_based_analysis_with_filters(tx_fin_name, version=0.15):
         plots_from_samples(xs=xs, ys=ys, xlabel=label, save_fig=out, version=str(version), ylabel="Number of txs")
 
 
-def run_experiment(version, chainstate, count_p2sh, non_std_only):
+def run_experiment(coin, version, chainstate, count_p2sh, non_std_only):
     """
     Runs the whole experiment. You may comment the parts of it you are not interested in to save time.
 
-     :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :param coin: Coin to be used in the experiment (bitcoin, litecoin, bitcoin cash, ...)
+    :type coin: str
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
     :type version: float
     :param chainstate: Chainstate path.
     :type chainstate: str
@@ -364,7 +366,7 @@ def run_experiment(version, chainstate, count_p2sh, non_std_only):
     # Parses transactions and utxos from the dumped data.
     print "Adding meta-data for transactions and UTXOs."
     transaction_dump(f_utxos, f_parsed_txs, version=version)
-    utxo_dump(f_utxos, f_parsed_utxos, count_p2sh=count_p2sh, non_std_only=non_std_only, version=version)
+    utxo_dump(f_utxos, f_parsed_utxos, coin, count_p2sh=count_p2sh, non_std_only=non_std_only, version=version)
 
     # Print basic stats from data
     print "Running overview analysis."
@@ -415,4 +417,4 @@ if __name__ == '__main__':
     # When using snapshots of the chainstate, we store it as 'chainstate/version
     # chainstate = 'chainstate/' + str(version)
 
-    run_experiment(version, chainstate, count_p2sh, non_std_only)
+    run_experiment(coin, version, chainstate, count_p2sh, non_std_only)

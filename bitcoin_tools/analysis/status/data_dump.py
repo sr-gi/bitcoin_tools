@@ -79,7 +79,7 @@ def transaction_dump(fin_name, fout_name, version=0.15):
         remove(CFG.data_path + str(version) + '/sorted_decoded_utxos.json')
 
 
-def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=False, ordered_dict=False):
+def utxo_dump(fin_name, fout_name, coin, version=0.15, count_p2sh=False, non_std_only=False, ordered_dict=False):
     # UTXO dump
 
     # Input file
@@ -90,7 +90,6 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
     # Standard UTXO types
     std_types = [0, 1, 2, 3, 4, 5]
 
-    coin = get_coin_from_file_name(fin_name)
     p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize = load_estimation_data(coin)
 
     for line in fin:
@@ -167,12 +166,15 @@ def utxo_dump(fin_name, fout_name, version=0.15, count_p2sh=False, non_std_only=
                               "non_profitable": np,
                               "non_profitable_est": np_est,
                               "non_std_type": non_std_type}
-                              # Data used to explain dust figures (describes the size taken into account by each metric
-                              # when computing dust/unprofitability). 
-                              #"dust_size": out_size + in_size,
-                              #"min_size": min_size,
-                              #"est_size": get_est_input_size(out, utxo["height"], p2pkh_pksize,
-                              #                                        p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize)}
+
+                    # Additional data used to explain dust figures (describes the size taken into account by each metric
+                    # when computing dust/unprofitability). It is not used in most of the cases, and generates overhead
+                    # in both size and time of execution, so ity is not added by default. Uncomment if necessary.
+
+                    # result["dust_size"] = out_size + in_size
+                    # result["min_size"] = min_size
+                    # result["est_size"] = get_est_input_size(out, utxo["height"], p2pkh_pksize, p2sh_scriptsize,
+                    #                                         nonstd_scriptsize, p2wsh_scriptsize)}
 
                 # Index added at the end when updated the result with the out, since the index is not part of the
                 # encoded data anymore (coin) but of the entry identifier (outpoint), we add it manually.
