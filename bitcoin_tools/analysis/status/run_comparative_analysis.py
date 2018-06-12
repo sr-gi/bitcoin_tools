@@ -4,8 +4,10 @@ from bitcoin_tools.analysis.status.plots import plots_from_samples
 from bitcoin_tools import CFG
 from ujson import load
 
+from bitcoin_tools.analysis.status.utils import aggregate_dust_np
 
-def compare_dust(dust_files, legend, version, suffix=''):
+
+def compare_dust(dust_files, legend, suffix=''):
     """
     Compares dust of two given dust files.
 
@@ -13,8 +15,6 @@ def compare_dust(dust_files, legend, version, suffix=''):
     :type dust_files: list of str
     :param legend: Legend for the charts
     :type legend: list of str
-    :param version: Bitcoin core version, used to decide the folder in which to store the data.
-    :type version: float
     :param suffix: Suffix for the output file names.
     :type suffix: str
     :return: None
@@ -43,7 +43,7 @@ def compare_dust(dust_files, legend, version, suffix=''):
 
     for xs, ys, out, total in zip(x_samples, y_samples, outs, totals):
         plots_from_samples(xs=xs, ys=ys, save_fig=out, legend=legend, xlabel='Fee rate(sat/byte)',
-                           ylabel="Number of UTXOs", version=str(version))
+                           ylabel="Number of UTXOs")
 
         # Get values in percentage
         ys_perc = []
@@ -51,11 +51,11 @@ def compare_dust(dust_files, legend, version, suffix=''):
             y_perc = [y / float(data[total]) for y in y_samples]
             ys_perc.append(y_perc)
 
-        plots_from_samples(xs=xs, ys=ys_perc, save_fig='perc_' + out, legend=legend,
-                           xlabel='Fee rate(sat/byte)', ylabel="Number of UTXOs", version=str(version))
+        plots_from_samples(xs=xs, ys=ys_perc, save_fig='perc_' + out, legend=legend, xlabel='Fee rate(sat/byte)',
+                           ylabel="Number of UTXOs")
 
 
-def compare_attribute(fin_names, x_attribute, out_name, version, xlabel='', legend=''):
+def compare_attribute(fin_names, x_attribute, out_name, xlabel='', legend=''):
     """
     Performs a comparative analysis between different files and a fixed attribute. Useful to compare the evolution
     of a parameter throughout different snapshots.
@@ -66,12 +66,10 @@ def compare_attribute(fin_names, x_attribute, out_name, version, xlabel='', lege
     :type x_attribute: str
     :param out_name: Name of the generated chart.
     :type out_name: str
-    :param version: Bitcoin core version, used to decide the folder in which to store the data.
-    :type version: float
     :param xlabel: Label of the x axis of the resulting chart.
     :type xlabel: str
     :param legend: Legend to be included in the chart.
-    :type legend: str
+    :type legend: str or list
     :return: None
     :rtyp: None
     """
@@ -85,11 +83,11 @@ def compare_attribute(fin_names, x_attribute, out_name, version, xlabel='', lege
         xs.append(x)
         ys.append(y)
 
-    plots_from_samples(xs=xs, ys=ys, xlabel=xlabel, save_fig=out_name, version=str(version), legend=legend,
-                       log_axis='x', ylabel="Number of UTXOs", legend_loc=2)
+    plots_from_samples(xs=xs, ys=ys, xlabel=xlabel, save_fig=out_name,  legend=legend, log_axis='x',
+                       ylabel="Number of UTXOs", legend_loc=2)
 
 
-def comparative_data_analysis(tx_fin_name, utxo_fin_name, version):
+def comparative_data_analysis(tx_fin_name, utxo_fin_name):
     """
     Performs a comparative data analysis between a transaction dump data file and an utxo dump one.
 
@@ -97,8 +95,6 @@ def comparative_data_analysis(tx_fin_name, utxo_fin_name, version):
     :type: str
     :param utxo_fin_name: Input file path which contains the chainstate utxo dump.
     :type: str
-    :param version: Bitcoin core version, used to decide the folder in which to store the data.
-    :type version: float
     :return: None
     :rtype: None
     """
@@ -120,16 +116,14 @@ def comparative_data_analysis(tx_fin_name, utxo_fin_name, version):
         xs_txs, ys_txs = get_cdf(tx_samples[tx_attr], normalize=True)
         xs_utxos, ys_utxos = get_cdf(utxo_samples[utxo_attr], normalize=True)
 
-        plots_from_samples(xs=[xs_txs, xs_utxos], ys=[ys_txs, ys_utxos], xlabel=label, save_fig=out,
-                           version=str(version), legend=legend, legend_loc=leg_loc, ylabel="Number of registers")
+        plots_from_samples(xs=[xs_txs, xs_utxos], ys=[ys_txs, ys_utxos], xlabel=label, save_fig=out, legend=legend,
+                           legend_loc=leg_loc, ylabel="Number of registers")
 
 
-def run_experiment(version, f_dust, f_parsed_utxos, f_parsed_txs):
+def run_experiment(f_dust, f_parsed_utxos, f_parsed_txs):
     """
     Runs the whole experiment. You may comment the parts of it you are not interested in to save time.
 
-    :param version: Bitcoin core version, used to decide the folder in which to store the data.
-    :type version: float
     :param f_dust: Dust file name.
     :type f_dust: str
     :param f_parsed_utxos: Parsed utxos file name.
@@ -142,35 +136,35 @@ def run_experiment(version, f_dust, f_parsed_utxos, f_parsed_txs):
 
     print "Running comparative data analysis."
     # Comparative dust analysis between different snapshots
-    fin_names = [str(version) + '/height-' + str(i) + 'K/' + f_parsed_utxos + '.json' for i in range(100, 550, 50)]
-    dust_files = [str(version) + '/height-' + str(i) + 'K/' + f_dust + '.json' for i in range(100, 550, 50)]
+    fin_names = ['height-' + str(i) + 'K/' + f_parsed_utxos + '.json' for i in range(100, 550, 50)]
+    dust_files = ['height-' + str(i) + 'K/' + f_dust + '.json' for i in range(100, 550, 50)]
     legend = [str(i) + 'K' for i in range(100, 550, 50)]
 
     print "Comparing dust from different snapshots."
     # Get dust files from different dates to compare (Change / Add the ones you'll need)
-    compare_dust(dust_files=dust_files, legend=legend, version=version)
+    compare_dust(dust_files=dust_files, legend=legend)
 
     # Dust comparision counting only P2PKH outputs
-    dust_files = [str(version) + '/height-' + str(i) + 'K/' + f_dust + '_p2pkh_only.json' for i in range(100, 550, 50)]
+    dust_files = ['height-' + str(i) + 'K/' + f_dust + '_p2pkh_only.json' for i in range(100, 550, 50)]
 
-    # for utxo_fin, dust_fout in zip(fin_names, dust_files):
-    #     aggregate_dust_np(utxo_fin, dust_fout, fltr=lambda x: x['out_type'] == 0)
+    for utxo_fin, dust_fout in zip(fin_names, dust_files):
+         aggregate_dust_np(utxo_fin, dust_fout, fltr=lambda x: x['out_type'] == 0)
 
-    compare_dust(dust_files=dust_files, legend=legend, version=version, sufix='_p2pkh')
+    compare_dust(dust_files=dust_files, legend=legend, suffix='_p2pkh')
 
     # Comparative analysis between different snapshots
     # UTXO amount comparison
     print "Comparing UTXO amount from different snapshots."
     compare_attribute(fin_names=fin_names, x_attribute='amount', xlabel='Amount (Satoshi)', legend=legend,
-                      out_name='cmp_utxo_amount', version=version)
+                      out_name='cmp_utxo_amount')
 
     # UTXO size comparison
     print "Comparing UTXO size from different snapshots."
     compare_attribute(fin_names=fin_names, x_attribute='register_len', xlabel='Size (bytes)', legend=legend,
-                      out_name='cmp_utxo_size', version=version)
+                      out_name='cmp_utxo_size')
 
     # Comparative data analysis (transactions and UTXOs)
-    comparative_data_analysis(f_parsed_txs, f_parsed_utxos, version)
+    comparative_data_analysis(f_parsed_txs, f_parsed_utxos)
 
 
 if __name__ == '__main__':
@@ -179,7 +173,4 @@ if __name__ == '__main__':
     f_parsed_utxos = 'parsed_utxos_wp2sh'
     f_parsed_txs = 'parsed_txs'
 
-    # Set version and chainstate dir name
-    version = 0.15
-
-    run_experiment(version, f_dust, f_parsed_utxos, f_parsed_txs)
+    run_experiment(f_dust, f_parsed_utxos, f_parsed_txs)
