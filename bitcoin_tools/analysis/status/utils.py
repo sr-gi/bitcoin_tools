@@ -361,6 +361,8 @@ def parse_ldb(fout_name, fin_name=CFG.chainstate_path, decode=True):
         if decode:
             value = decode_utxo(value, key)
 
+        # ToDo: Key is only used for ordering purposes when performing tx_based analysis. Finding an alternative way
+        # or performing such analysis will drastically reduce the amount of data stored.
         fout.write(ujson.dumps({"key": key[2:], "value": value, "len": serialized_length}, sort_keys=True) + "\n")
 
     fout.close()

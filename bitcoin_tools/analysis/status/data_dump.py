@@ -11,6 +11,7 @@ from collections import OrderedDict
 def transaction_dump(fin_name, fout_name):
     # Transaction dump
 
+    # ToDo: Find an alternative way of sorting this to avoid storing redundant data when dumping the level_db
     # Sort the decoded utxo data by transaction id.
     call(["sort", CFG.data_path + fin_name, "-o", CFG.data_path + '/sorted_decoded_utxos.json'])
 
@@ -68,7 +69,7 @@ def utxo_dump(fin_name, fout_name, coin, count_p2sh=False, non_std_only=False, o
         data = ujson.loads(line[:-1])
         utxo = data['value']
         tx_id = utxo.get('tx_id')
-        out = utxo.get("outs")
+        out = utxo.get("out")
 
         # Checks whether we are looking for every type of UTXO or just for non-standard ones.
         if not non_std_only or (non_std_only and out["out_type"] not in std_types and not check_multisig(out['data'])):

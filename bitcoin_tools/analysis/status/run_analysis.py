@@ -323,11 +323,11 @@ def run_experiment(coin, chainstate, count_p2sh, non_std_only):
 
     # Parse all the data in the chainstate.
     print "Parsing the chainstate."
-    parse_ldb(f_utxos, fin_name=chainstate)
+    # parse_ldb(f_utxos, fin_name=chainstate)
 
     # Parses transactions and utxos from the dumped data.
     print "Adding meta-data for transactions and UTXOs."
-    transaction_dump(f_utxos, f_parsed_txs)
+    # transaction_dump(f_utxos, f_parsed_txs)
     utxo_dump(f_utxos, f_parsed_utxos, coin, count_p2sh=count_p2sh, non_std_only=non_std_only)
 
     # Print basic stats from data
@@ -371,9 +371,9 @@ if __name__ == '__main__':
             non_std_only = True
 
     # When not using a snapshot, we directly use the chainstate under btc_core_dir (actually that's its default value)
-    chainstate = CFG.chainstate_path
+    # chainstate = CFG.chainstate_path
 
     # When using snapshots of the chainstate, specify the path to the chainstate snapshot
-    # chainstate = path_to_snapshot
+    chainstate = CFG.bitcoin_tools_dir + '/chainstate'
 
     run_experiment(coin, chainstate, count_p2sh, non_std_only)
