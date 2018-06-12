@@ -1,9 +1,7 @@
 from binascii import unhexlify, hexlify
 from copy import deepcopy
 from hashlib import sha256
-
 from ecdsa import SigningKey
-
 from bitcoin_tools.core.keys import serialize_pk, ecdsa_tx_sign
 from bitcoin_tools.core.script import InputScript, OutputScript, Script, SIGHASH_ALL, SIGHASH_SINGLE, SIGHASH_NONE, \
     SIGHASH_ANYONECANPAY
@@ -62,7 +60,7 @@ class TX:
         :type scriptSig: either InputScript or list of InputScript
         :param scriptPubKey: Output script containing the redeem fulfilment conditions.
         :type scriptPubKey: either OutputScript or list of OutputScript
-        :param fees: Fees that will be applied to the transaction
+        :param fees: Fees that will be applied to the transaction. If set, fees will be subtracted from the last output.
         :type fees: int
         :return: The transaction build using the provided scripts.
         :rtype: TX
@@ -86,7 +84,6 @@ class TX:
             raise Exception("The number ofs UTXOs to spend must match with the number os ScriptSigs to set.")
         elif len(scriptSig) == 0 or len(scriptPubKey) == 0:
             raise Exception("Scripts can't be empty")
-        # ToDo: add more strict checks
         else:
             tx.version = 1
 
@@ -111,11 +108,14 @@ class TX:
                 tx.scriptPubKey_len.append(len(scriptPubKey[i].content) / 2)
                 tx.scriptPubKey.append(scriptPubKey[i])  # Output script.
 
+            # If fees have been set, subtract them from the final value. Otherwise, assume they have been already
+            # subtracted when specifying the amounts.
+            if fees:
+                tx.value[-1] -= fees
+
             tx.nLockTime = 0
 
             tx.hex = tx.serialize()
-
-            # ToDo: add fees
 
         return tx
 
@@ -151,7 +151,7 @@ class TX:
         :type value: either int or list of int
         :param outputs: Information to build the output of the transaction.
         :type outputs: See above outputs format.
-        :param fees: Fees that will be applied to the transaction.
+        :param fees: Fees that will be applied to the transaction. If set, fees will be subtracted from the last output.
         :type fees: int
         :param network: Network into which the transaction will be published (either mainnet or testnet).
         :type network: str
@@ -172,7 +172,10 @@ class TX:
         if isinstance(outputs, str) or (isinstance(outputs, list) and isinstance(outputs[0], int)):
             outputs = [outputs]
 
-        # ToDo: Deal with fees
+        # If fees have been set, subtract them from the final value. Otherwise, assume they have been already
+        # subtracted when specifying the amounts.
+        if fees:
+            value[-1] -= fees
 
         if len(prev_tx_id) != len(prev_out_index):
             raise Exception("Previous transaction id and index number of elements must match. " + str(len(prev_tx_id))
@@ -390,7 +393,6 @@ class TX:
             elif unsigned_tx.scriptSig[index[i]].type is "unknown":
                 raise Exception("Unknown previous transaction output script type. Can't sign the transaction.")
             else:
-                # ToDo: Handle P2SH outputs as an additional elif
                 raise Exception("Can't sign input " + str(i) + " with the provided data.")
 
             # Finally, temporal scripts are stored as final and the length of the script is computed

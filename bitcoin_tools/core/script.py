@@ -208,7 +208,6 @@ class InputScript(Script):
             else:
                 # Otherwise, the element is encoded as data.
                 script.content += "<" + str(d) + "> "
-        # ToDo: Should we run any validation?
         script.type = "P2SH"
         script.content = script.serialize(script.content + "<" + script.serialize(s) + ">")
 

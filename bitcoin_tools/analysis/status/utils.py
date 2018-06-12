@@ -528,7 +528,6 @@ def check_multisig_type(script):
     """
 
     if len(OutputScript.deserialize(script).split()) > 2:
-        # TODO: should we be more restrictive?
         m = OutputScript.deserialize(script).split()[0]
         n = OutputScript.deserialize(script).split()[-2]
         op_multisig = OutputScript.deserialize(script).split()[-1]
