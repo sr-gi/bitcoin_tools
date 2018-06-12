@@ -5,6 +5,8 @@ from sets import Set
 import pickle
 
 
+# ToDo: sets is deprecated. Check if we can use regular python sets.
+
 def load_data(fin_name):
     """
     Returns a set of keys in a given UTXO set (specified by its decoded_utxos.json file)

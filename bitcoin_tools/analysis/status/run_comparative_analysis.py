@@ -5,7 +5,7 @@ from bitcoin_tools import CFG
 from ujson import load
 
 
-def compare_dust(dust_files, legend, version, sufix=''):
+def compare_dust(dust_files, legend, version, suffix=''):
     """
     Compares dust of two given dust files.
 
@@ -15,11 +15,13 @@ def compare_dust(dust_files, legend, version, sufix=''):
     :type legend: list of str
     :param version: Bitcoin core version, used to decide the folder in which to store the data.
     :type version: float
+    :param suffix: Suffix for the output file names.
+    :type suffix: str
     :return: None
     :rtype: None
     """
 
-    outs = ["cmp_dust_utxos"+sufix, "cmp_dust_value"+sufix, "cmp_dust_data_len"+sufix]
+    outs = ["cmp_dust_utxos" + suffix, "cmp_dust_value" + suffix, "cmp_dust_data_len" + suffix]
     totals = ['total_utxos', 'total_value', 'total_data_len']
 
     utxos = []
@@ -126,9 +128,16 @@ def run_experiment(version, f_dust, f_parsed_utxos, f_parsed_txs):
     """
     Runs the whole experiment. You may comment the parts of it you are not interested in to save time.
 
-     :param version: Bitcoin core version, used to decide the folder in which to store the data.
+    :param version: Bitcoin core version, used to decide the folder in which to store the data.
     :type version: float
-    :return:
+    :param f_dust: Dust file name.
+    :type f_dust: str
+    :param f_parsed_utxos: Parsed utxos file name.
+    :type f_parsed_utxos: str
+    :param f_parsed_txs: Parsed transactions file name.
+    :type f_parsed_txs: str
+    :return: None
+    :rtype: None
     """
 
     print "Running comparative data analysis."

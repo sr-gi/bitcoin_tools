@@ -69,6 +69,8 @@ def plot_pie_chart_from_samples(samples, title="", labels=None, groups=None, col
     :type save_fig: str
     :param font_size: Title, xlabel and ylabel font size
     :type font_size: int
+    :param labels_out: Whether the labels are placed inside the pie or not.
+    :type labels_out: bool
     :return: None
     :rtype: None
     """

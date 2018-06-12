@@ -285,8 +285,9 @@ def utxo_based_analysis_with_filters(utxo_fin_name, version=0.15):
                lambda x: x["out_type"] == 1,
                lambda x: x["amount"] == 1]
 
-    legends = [['P2PKH', 'P2SH', 'P2PK', 'P2WPKH', 'P2WSH', 'Multisig', 'Other'], ['$=1$','$1 < x \leq 10$','$10 < x \leq 10^2$', '$10^2 < x \leq 10^4$'
-, '$10^4 < x \leq 10^6$', '$10^6 < x \leq 10^8$', '$10^8 < x$'], ['P2SH'], ['Amount = 1']]
+    legends = [['P2PKH', 'P2SH', 'P2PK', 'P2WPKH', 'P2WSH', 'Multisig', 'Other'],
+               ['$=1$','$1 < x \leq 10$', '$10 < x \leq 10^2$', '$10^2 < x \leq 10^4$', '$10^4 < x \leq 10^6$',
+                '$10^6 < x \leq 10^8$', '$10^8 < x$'], ['P2SH'], ['Amount = 1']]
     comparative = [True, True, False, False]
     legend_loc = 2
 

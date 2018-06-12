@@ -707,7 +707,7 @@ def check_native_segwit(script):
     return (False, None)
 
 
-def get_min_input_size(out, height, count_p2sh=False, coin = "bitcoin"):
+def get_min_input_size(out, height, count_p2sh=False, coin="bitcoin", compressed_pk_height=0):
     """
     Computes the minimum size an input created by a given output type (parsed from the chainstate) will have.
     The size is computed in two parts, a fixed size that is non type dependant, and a variable size which
@@ -719,6 +719,12 @@ def get_min_input_size(out, height, count_p2sh=False, coin = "bitcoin"):
     :type height: int
     :param count_p2sh: Whether P2SH should be taken into account.
     :type count_p2sh: bool
+    :param: Coin to be used in the analysis (default: bitcoin).
+    :type coin: str
+    :param compressed_pk_height: Height at which compressed public keys where first used. For coins different that
+    Bitcoin, Bitcoin Cash and Litecoin, and analysis of when compressed pk where used for the first time has not been
+    performed yet. Set the compressed_pk_height as you pleased for those cases.
+    :type compressed_pk_height: int
     :return: The minimum input size of the given output type.
     :rtype: int
     """
@@ -746,9 +752,15 @@ def get_min_input_size(out, height, count_p2sh=False, coin = "bitcoin"):
         if coin in ["bitcoin", "bitcoincash"]:
             # Bitcoin core starts using compressed pk in version (0.6.0, 30/03/12, around block height 173480)
             height_limit = 173480
-        else:
+        elif coin == "litecoin":
             # v0.6.0 (march 2012) is block 110K for litecoin
             height_limit = 110000
+        else:
+            height_limit = compressed_pk_height
+            if height_limit == 0:
+                print "Warning: You are calculating the minimum input size for a coin other than Bitcoin, " \
+                      "Bitcoin Cash and Litecoin. By default the height ar which compressed public keys where first " \
+                      "used is not set, so 0 is used. Consider changing the compressed_pk_height "
 
         if height < height_limit:
             # uncompressed keys
