@@ -1,11 +1,8 @@
 from bitcoin_tools import CFG
 
 import ujson
-from sets import Set
 import pickle
 
-
-# ToDo: sets is deprecated. Check if we can use regular python sets.
 
 def load_data(fin_name):
     """
@@ -14,7 +11,7 @@ def load_data(fin_name):
     :param fin_name: path of the decoded_utxos.json file
     :return: a set with keys
     """
-    keys = Set()
+    keys = set()
     fin = open(CFG.data_path + fin_name, 'r')
     for line in fin:
         data = ujson.loads(line[:-1])
