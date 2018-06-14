@@ -682,13 +682,14 @@ def load_estimation_data(coin):
     estimation data is available, returns a tuple of None values.
 
     :param coin: string (bitcoin, bitcoincash or litecoin)
-    :return: 4-element tuple: a dictionary and 4 floats, with estimation data by height (dict) and average estimation
-    data (floats).
+    :return: 5-element tuple: a dictionary 3 floats and a int, with estimation data by height (dict), average estimation
+    data (floats) and the maximum height at which we have estimation data (int).
     """
 
     try:
         with open(CFG.estimated_data_dir + coin + "/p2pkh_pubkey_avg_size_height_output.json") as f:
             p2pkh_pksize = ujson.load(f)
+            max_height = len(p2pkh_pksize)
 
         with open(CFG.estimated_data_dir + coin + "/p2sh.json") as f:
             p2sh_scriptsize = ujson.load(f)
@@ -700,12 +701,13 @@ def load_estimation_data(coin):
             p2wsh_scriptsize = ujson.load(f)
 
     except IOError:
-        p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize = None, None, None, None
+        print "Warning: No estimation data found. Non-profitable estimation charts will always show 0."
+        p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize, max_height = None, None, None, None, None
 
-    return p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize
+    return p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize, max_height
 
 
-def get_est_input_size(out, height, p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize):
+def get_est_input_size(out, height, p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize, max_height):
     """
     Computes the estimated size an input created by a given output type (parsed from the chainstate) will have.
     The size is computed in two parts, a fixed size that is non type dependant, and a variable size which
@@ -717,8 +719,16 @@ def get_est_input_size(out, height, p2pkh_pksize, p2sh_scriptsize, nonstd_script
     :type out: dict
     :param height: Block height where the utxo was created. Used to set P2PKH min_size.
     :type height: int
-    :param count_p2sh: Whether P2SH should be taken into account.
-    :type count_p2sh: bool
+    :param p2pkh_pksize: Estimation data for P2PKH outputs.
+    :type p2pkh_pksize: dict
+    :param p2sh_scriptsize: Estimation data for P2SH outputs.
+    :type p2sh_scriptsize: float
+    :param nonstd_scriptsize: Estimation data for non-standard outputs.
+    :type nonstd_scriptsize: float
+    :param p2wsh_scriptsize: Estimation data fot P2WSH outputs.
+    :type p2wsh_scriptsize: float
+    :param max_height: Last block from which we have estimation data.
+    :type max_height: int
     :return: The minimum input size of the given output type.
     :rtype: int
     """
@@ -744,9 +754,18 @@ def get_est_input_size(out, height, p2pkh_pksize, p2sh_scriptsize, nonstd_script
     # Signatures size is contained between 71-73 bytes depending on the size of the S and R components of the signature.
     # Since the most common size is 72, we will consider all signatures to be 72-byte long.
 
+    # If we don't have updated estimation data, a warning will be displayed and the last estimation point will be used
+    # for the rest of values.
+    if height >= max_height:
+        print "Warning: There is no estimation data for that height. The last available estimation will be used."
+
     if out_type is 0:
         # P2PKH
-        scriptSig = 74 + p2pkh_pksize[str(height)]  # PUSH sig (1 byte) + sig (72 bytes) + PUSH pk (1 byte) + PK est
+        if height >= max_height:
+            p2pkh_est_data = p2pkh_pksize[str(max_height - 1)]
+        else:
+            p2pkh_est_data = p2pkh_pksize[str(height)]
+        scriptSig = 74 + p2pkh_est_data  # PUSH sig (1 byte) + sig (72 bytes) + PUSH pk (1 byte) + PK est
         scriptSig_len = 1
     elif out_type is 1:
         # P2SH

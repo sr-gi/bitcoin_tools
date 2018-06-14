@@ -57,7 +57,7 @@ def utxo_dump(fin_name, fout_name, coin, count_p2sh=False, non_std_only=False, o
     # Standard UTXO types
     std_types = [0, 1, 2, 3, 4, 5]
 
-    p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize = load_estimation_data(coin)
+    p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize, max_height = load_estimation_data(coin)
 
     for line in fin:
         utxo = ujson.loads(line[:-1])
@@ -80,7 +80,7 @@ def utxo_dump(fin_name, fout_name, coin, count_p2sh=False, non_std_only=False, o
 
             raw_np = out["amount"] / float(min_size)
             raw_np_est = out["amount"] / float(get_est_input_size(out, utxo["height"], p2pkh_pksize, p2sh_scriptsize,
-                                                                  nonstd_scriptsize, p2wsh_scriptsize))
+                                                                  nonstd_scriptsize, p2wsh_scriptsize, max_height))
 
             dust = roundup_rate(raw_dust, FEE_STEP)
             np = roundup_rate(raw_np, FEE_STEP)
