@@ -197,8 +197,8 @@ def dust_analysis(utxo_fin_name, f_dust, fltr=None):
 
 def dust_analysis_all_fees(utxo_fin_name):
     """
-    Performs a dust analysis for all fee rates, that is, up until all samples are considered dust
-     (plot shows cdf up until 1).
+    Performs a dust analysis for all fee rates, that is, up until all samples are considered dust (plot shows cdf up
+    until 1).
 
     :param utxo_fin_name: Input file path which contains the chainstate utxo dump.
     :type: str
@@ -323,11 +323,11 @@ def run_experiment(coin, chainstate, count_p2sh, non_std_only):
 
     # Parse all the data in the chainstate.
     print "Parsing the chainstate."
-    # parse_ldb(f_utxos, fin_name=chainstate)
+    parse_ldb(f_utxos, fin_name=chainstate)
 
     # Parses transactions and utxos from the dumped data.
     print "Adding meta-data for transactions and UTXOs."
-    # transaction_dump(f_utxos, f_parsed_txs)
+    transaction_dump(f_utxos, f_parsed_txs)
     utxo_dump(f_utxos, f_parsed_utxos, coin, count_p2sh=count_p2sh, non_std_only=non_std_only)
 
     # Print basic stats from data
@@ -342,7 +342,7 @@ def run_experiment(coin, chainstate, count_p2sh, non_std_only):
     print "Running UTXO based analysis."
     utxo_based_analysis(f_parsed_utxos)
 
-    # Aggregates dust and generates plots.
+    # # Aggregates dust and generates plots.
     print "Running dust analysis."
     dust_analysis(f_parsed_utxos, f_dust)
     dust_analysis_all_fees(f_parsed_utxos)
@@ -371,9 +371,9 @@ if __name__ == '__main__':
             non_std_only = True
 
     # When not using a snapshot, we directly use the chainstate under btc_core_dir (actually that's its default value)
-    # chainstate = CFG.chainstate_path
+    chainstate = CFG.chainstate_path
 
     # When using snapshots of the chainstate, specify the path to the chainstate snapshot
-    chainstate = CFG.bitcoin_tools_dir + '/chainstate'
+    # chainstate = path_to_snapshot
 
     run_experiment(coin, chainstate, count_p2sh, non_std_only)

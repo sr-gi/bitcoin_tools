@@ -11,12 +11,8 @@ from collections import OrderedDict
 def transaction_dump(fin_name, fout_name):
     # Transaction dump
 
-    # ToDo: Find an alternative way of sorting this to avoid storing redundant data when dumping the level_db
-    # Sort the decoded utxo data by transaction id.
-    call(["sort", CFG.data_path + fin_name, "-o", CFG.data_path + '/sorted_decoded_utxos.json'])
-
     # Set the input and output files
-    fin = open(CFG.data_path + '/sorted_decoded_utxos.json', 'r')
+    fin = open(CFG.data_path + fin_name, 'r')
     fout = open(CFG.data_path + fout_name, 'w')
 
     # Initial definition
@@ -24,14 +20,13 @@ def transaction_dump(fin_name, fout_name):
 
     # Read the ordered file and aggregate the data by transaction.
     for line in fin:
-        data = ujson.loads(line[:-1])
-        utxo = data['value']
+        utxo = ujson.loads(line[:-1])
 
         # If the read line contains information of the same transaction we are analyzing we add it to our dictionary
         if utxo.get('tx_id') == tx.get('tx_id'):
             tx['num_utxos'] += 1
             tx['total_value'] += utxo.get('out').get('amount')
-            tx['total_len'] += data['len']
+            tx['total_len'] += utxo['len']
 
         # Otherwise, we save the transaction data to the output file and start aggregating the next transaction data
         else:
@@ -43,13 +38,12 @@ def transaction_dump(fin_name, fout_name):
             tx['tx_id'] = utxo.get('tx_id')
             tx['num_utxos'] = 1
             tx['total_value'] = utxo.get('out').get('amount')
-            tx['total_len'] = data['len']
+            tx['total_len'] = utxo['len']
             tx['height'] = utxo["height"]
             tx['coinbase'] = utxo["coinbase"]
 
     fin.close()
     fout.close()
-    remove(CFG.data_path + '/sorted_decoded_utxos.json')
 
 
 def utxo_dump(fin_name, fout_name, coin, count_p2sh=False, non_std_only=False, ordered_dict=False):
@@ -66,8 +60,7 @@ def utxo_dump(fin_name, fout_name, coin, count_p2sh=False, non_std_only=False, o
     p2pkh_pksize, p2sh_scriptsize, nonstd_scriptsize, p2wsh_scriptsize = load_estimation_data(coin)
 
     for line in fin:
-        data = ujson.loads(line[:-1])
-        utxo = data['value']
+        utxo = ujson.loads(line[:-1])
         tx_id = utxo.get('tx_id')
         out = utxo.get("out")
 
@@ -111,7 +104,6 @@ def utxo_dump(fin_name, fout_name, coin, count_p2sh=False, non_std_only=False, o
                 # ToDo: Check if this could be optimized.
                 # Slower, but ensures that the order of keys is preserved (useful for ordering purposes)
                 result = OrderedDict()
-                result["key"] = data["key"]
                 result["tx_id"] = tx_id
                 result["tx_height"] = utxo["height"]
                 result["utxo_data_len"] = len(out["data"]) / 2
@@ -129,7 +121,7 @@ def utxo_dump(fin_name, fout_name, coin, count_p2sh=False, non_std_only=False, o
                           "non_profitable_est": np_est,
                           "non_std_type": non_std_type,
                           "index": utxo['index'],
-                          "register_len": data['len']}
+                          "register_len": utxo['len']}
 
                 # Additional data used to explain dust figures (describes the size taken into account by each metric
                 # when computing dust/unprofitability). It is not used in most of the cases, and generates overhead

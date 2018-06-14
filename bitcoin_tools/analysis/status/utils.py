@@ -351,19 +351,18 @@ def parse_ldb(fout_name, fin_name=CFG.chainstate_path, decode=True):
         serialized_length = len(key) + len(o_value)
         key = hexlify(key)
         if o_key is not None:
-            value = deobfuscate_value(o_key, hexlify(o_value))
+            utxo = deobfuscate_value(o_key, hexlify(o_value))
         else:
-            value = hexlify(o_value)
+            utxo = hexlify(o_value)
 
         # If the decode flag is passed, we also decode the utxo before storing it. This is really useful when running
         # a full analysis since will avoid decoding the whole utxo set twice (once for the utxo and once for the tx
         # based analysis)
         if decode:
-            value = decode_utxo(value, key)
+            utxo = decode_utxo(utxo, key)
+            utxo['len'] = serialized_length
 
-        # ToDo: Key is only used for ordering purposes when performing tx_based analysis. Finding an alternative way
-        # or performing such analysis will drastically reduce the amount of data stored.
-        fout.write(ujson.dumps({"key": key[2:], "value": value, "len": serialized_length}, sort_keys=True) + "\n")
+        fout.write(ujson.dumps(utxo, sort_keys=True) + "\n")
 
     fout.close()
     db.close()
