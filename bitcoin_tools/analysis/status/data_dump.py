@@ -3,9 +3,6 @@ from bitcoin_tools.analysis.status import FEE_STEP
 from bitcoin_tools.analysis.status.utils import check_multisig, get_min_input_size, roundup_rate, check_multisig_type, \
     get_serialized_size_fast, get_est_input_size, load_estimation_data, check_native_segwit
 import ujson
-from subprocess import call
-from os import remove
-from collections import OrderedDict
 
 
 def transaction_dump(fin_name, fout_name):
@@ -101,28 +98,15 @@ def utxo_dump(fin_name, fout_name, coin, count_p2sh=False, non_std_only=False, o
                     non_std_type = False
 
             # Builds the output dictionary
-            if ordered_dict:
-                # ToDo: Check if this could be optimized.
-                # Slower, but ensures that the order of keys is preserved (useful for ordering purposes)
-                result = OrderedDict()
-                result["tx_id"] = tx_id
-                result["tx_height"] = utxo["height"]
-                result["utxo_data_len"] = len(out["data"]) / 2
-                result["dust"] = dust
-                result["non_profitable"] = np
-                result["non_profitable_est"] = np_est
-                result["non_std_type"] = non_std_type
-
-            else:
-                result = {"tx_id": tx_id,
-                          "tx_height": utxo["height"],
-                          "utxo_data_len": len(out["data"]) / 2,
-                          "dust": dust,
-                          "non_profitable": np,
-                          "non_profitable_est": np_est,
-                          "non_std_type": non_std_type,
-                          "index": utxo['index'],
-                          "register_len": utxo['len']}
+            result = {"tx_id": tx_id,
+                      "tx_height": utxo["height"],
+                      "utxo_data_len": len(out["data"]) / 2,
+                      "dust": dust,
+                      "non_profitable": np,
+                      "non_profitable_est": np_est,
+                      "non_std_type": non_std_type,
+                      "index": utxo['index'],
+                      "register_len": utxo['len']}
 
                 # Additional data used to explain dust figures (describes the size taken into account by each metric
                 # when computing dust/unprofitability). It is not used in most of the cases, and generates overhead
