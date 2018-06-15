@@ -42,6 +42,7 @@ def transaction_dump(fin_name, fout_name):
             tx['height'] = utxo["height"]
             tx['coinbase'] = utxo["coinbase"]
 
+    fout.write(ujson.dumps(tx) + '\n')
     fin.close()
     fout.close()
 
