@@ -7,6 +7,16 @@ from collections import OrderedDict
 
 
 def transaction_dump(fin_name, fout_name):
+    """
+    Reads from a parsed utxo file and dumps additional metadata related to transactions.
+    :param fin_name: Name of the parsed utxo file.
+    :type fin_name: str
+    :param fout_name: Name of the file where the final data will be stored.
+    :type fout_name: str
+    :return: None
+    :rtype: None
+    """
+
     # Transaction dump
 
     # Input file
@@ -34,6 +44,17 @@ def transaction_dump(fin_name, fout_name):
 
 
 def utxo_dump(fin_name, fout_name, coin, count_p2sh=False, non_std_only=False, ordered_dict=False):
+    """
+    Reads from a parsed utxo file and dumps additional metadata related to utxos.
+    :param fin_name: Name of the parsed utxo file.
+    :type fin_name: str
+    :param fout_name: Name of the file where the final data will be stored.
+    :type fout_name: str
+    :param coin: Currency that will be analysed
+    :return: None
+    :rtype: None
+    """
+
     # UTXO dump
 
     # Input file

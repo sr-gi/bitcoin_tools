@@ -566,7 +566,6 @@ def check_multisig_type(script):
     """
 
     if len(OutputScript.deserialize(script).split()) > 2:
-        # TODO: should we be more restrictive?
         m = OutputScript.deserialize(script).split()[0]
         n = OutputScript.deserialize(script).split()[-2]
         op_multisig = OutputScript.deserialize(script).split()[-1]
@@ -820,15 +819,13 @@ def get_est_input_size(out, height, p2pkh_pksize, p2sh_scriptsize, nonstd_script
     return fixed_size + var_size
 
 
-def get_utxo(tx_id, index, fin_name=CFG.chainstate_path):
+def get_tx(tx_id, fin_name=CFG.chainstate_path):
     """
     Gets a UTXO from the chainstate identified by a given transaction id and index.
     If the requested UTXO does not exist, return None.
 
     :param tx_id: Transaction ID that identifies the UTXO you are looking for.
     :type tx_id: str
-    :param index: Index that identifies the specific output.
-    :type index: int
     :param fin_name: Name of the LevelDB folder (chainstate by default)
     :type fin_name: str
     :return: A outpoint:coin pair representing the requested UTXO
@@ -849,16 +846,14 @@ def get_utxo(tx_id, index, fin_name=CFG.chainstate_path):
     if o_key is not None:
         o_key = hexlify(o_key)[2:]
 
-    coin = db.get(outpoint)
+    tx = db.get(outpoint)
 
-    if coin is not None and o_key is not None:
-        coin = deobfuscate_value(o_key, hexlify(coin))
+    if tx is not None and o_key is not None:
+        tx = deobfuscate_value(o_key, hexlify(tx))
 
     db.close()
 
-    # ToDO: Add code to return a single output for 0.8 - 0.14
-
-    return coin
+    return tx
 
 
 def deobfuscate_value(obfuscation_key, value):
