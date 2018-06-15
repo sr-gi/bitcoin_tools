@@ -113,14 +113,14 @@ from bitcoin_tools.analysis.status.utils import parse_ldb
 
 # Set the version of the Bitcoin Core you are using (which defines the chainstate format)
 # and the IO files.
-version = 0.15
+
 f_utxos = "decoded_utxos.txt"
 f_parsed_utxos = "parsed_utxos.txt"
 
 # Parse all the data in the chainstate.
-parse_ldb(f_utxos, version=version)
+parse_ldb(f_utxos)
 # Parses transactions and utxos from the dumped data.
-utxo_dump(f_utxos, f_parsed_utxos, version=version)
+utxo_dump(f_utxos, f_parsed_utxos)
 
 # Data is stored in f_utxos and f_parsed_utxos files respectively
 ```

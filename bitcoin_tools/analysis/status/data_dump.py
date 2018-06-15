@@ -6,6 +6,16 @@ import ujson
 
 
 def transaction_dump(fin_name, fout_name):
+    """
+    Reads from a parsed utxo file and dumps additional metadata related to transactions.
+
+    :param fin_name: Name of the parsed utxo file.
+    :type fin_name: str
+    :param fout_name: Name of the file where the final data will be stored.
+    :type fout_name: str
+    :return: None
+    :rtype: None
+    """
     # Transaction dump
 
     # Set the input and output files
@@ -44,7 +54,19 @@ def transaction_dump(fin_name, fout_name):
     fout.close()
 
 
-def utxo_dump(fin_name, fout_name, coin, count_p2sh=False, non_std_only=False, ordered_dict=False):
+def utxo_dump(fin_name, fout_name, coin, count_p2sh=False, non_std_only=False):
+    """
+    Reads from a parsed utxo file and dumps additional metadata related to utxos.
+
+    :param fin_name: Name of the parsed utxo file.
+    :type fin_name: str
+    :param fout_name: Name of the file where the final data will be stored.
+    :type fout_name: str
+    :param coin: Currency that will be analysed 
+    :return: None
+    :rtype: None
+    """
+
     # UTXO dump
 
     # Input file
@@ -108,14 +130,14 @@ def utxo_dump(fin_name, fout_name, coin, count_p2sh=False, non_std_only=False, o
                       "index": utxo['index'],
                       "register_len": utxo['len']}
 
-                # Additional data used to explain dust figures (describes the size taken into account by each metric
-                # when computing dust/unprofitability). It is not used in most of the cases, and generates overhead
-                # in both size and time of execution, so ity is not added by default. Uncomment if necessary.
+            # Additional data used to explain dust figures (describes the size taken into account by each metric
+            # when computing dust/unprofitability). It is not used in most of the cases, and generates overhead
+            # in both size and time of execution, so ity is not added by default. Uncomment if necessary.
 
-                # result["dust_size"] = out_size + in_size
-                # result["min_size"] = min_size
-                # result["est_size"] = get_est_input_size(out, utxo["height"], p2pkh_pksize, p2sh_scriptsize,
-                #                                         nonstd_scriptsize, p2wsh_scriptsize)}
+            # result["dust_size"] = out_size + in_size
+            # result["min_size"] = min_size
+            # result["est_size"] = get_est_input_size(out, utxo["height"], p2pkh_pksize, p2sh_scriptsize,
+            #                                         nonstd_scriptsize, p2wsh_scriptsize)}
 
             # Updates the dictionary with the remaining data from out, and stores it in disk.
             result.update(out)

@@ -3,9 +3,11 @@
 **STATUS** (**ST**atistical **A**nalysis **T**ool for **U**txo **S**et) is an open source tool that provides an easy way to access, decode and analyze data from the Bitcoin's `utxo set`. The accompanying working paper further explains its design, application, and presents results of a recently performed analysis: [https://eprint.iacr.org/2017/1095.pdf](https://eprint.iacr.org/2017/1095.pdf)
 
 
-STATUS is coded in Python 2 and works for both the existing versions of Bitcoin Core's `utxo set`, that is, the first defined format (versions 0.8 - 0.14) and the recently defined one (version 0.15). 
+STATUS is coded in Python 2 and works for both the existing versions of Bitcoin Core's `utxo set`, that is, the first defined format (versions 0.8 - 0.14) and the recently defined one (version 0.15).
 
-STATUS reads from a LevelDB folder (usually located under `.bitcoin/chainstate`) and parses all the `utxo` entries into a `json` file. From the parsed file, STATUS allows you to perform two type of analysis, a `utxo` based one, and a `transaction` based one, by decoding all the parsed information from the chainstate. 
+STATUS works, from now on, with 0.15 format. For 0.8-0.14 version refer to `ldb_0.14` branch.
+
+STATUS reads from a LevelDB folder (usually located under `.bitcoin/chainstate`) and parses all the `utxo` entries into a `json` file. From the parsed file, STATUS allows you to perform two type of analysis, a `utxo` based one, and a `transaction` based one, by decoding all the parsed information from the chainstate.
 
 ## UTXO based analysis
 
