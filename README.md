@@ -131,7 +131,7 @@ If you find this repository useful, show us some love, give us a star!
 
 Small Bitcoin donations to the following address are also welcome:
 
-[1srgihPwqtNkY3MWDNu6sxgCFcmp5Ne8n](https://blockchain.info/address/1srgihPwqtNkY3MWDNu6sxgCFcmp5Ne8n)
+[1srgi8sqPkCKq7gsVfhUZB7dvoi72UsqP](https://blockchain.info/address/1srgi8sqPkCKq7gsVfhUZB7dvoi72UsqP)
 
 ### Disclaimer
 
