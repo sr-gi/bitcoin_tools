@@ -308,10 +308,10 @@ def display_decoded_utxo(decoded_utxo):
     print "isCoinbase: " + str(decoded_utxo['coinbase'])
 
     out = decoded_utxo['out']
-    print "vout[" + str(out['index']) + "]:"
+    print "vout[" + str(decoded_utxo['index']) + "]:"
     print "\tSatoshi amount: " + str(out['amount'])
-    print "\tOutput code type: " + out['out_type']
-    print "\tHash160 (Address): " + out['address']
+    print "\tOutput code type: " + str(out['out_type'])
+    print "\tHash160 (Address): " + out['data']
 
     print "Block height: " + str(decoded_utxo['height'])
 
