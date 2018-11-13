@@ -837,7 +837,7 @@ def get_utxo(tx_id, index, fin_name=CFG.chainstate_path):
 
     db.close()
 
-    return coin
+    return hexlify(outpoint), coin
 
 
 def deobfuscate_value(obfuscation_key, value):
