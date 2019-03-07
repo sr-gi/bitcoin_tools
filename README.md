@@ -117,10 +117,13 @@ from bitcoin_tools.analysis.status.utils import parse_ldb
 f_utxos = "decoded_utxos.txt"
 f_parsed_utxos = "parsed_utxos.txt"
 
+# Set the coin we're working with
+coin = 'bitcoin'
+
 # Parse all the data in the chainstate.
 parse_ldb(f_utxos)
 # Parses transactions and utxos from the dumped data.
-utxo_dump(f_utxos, f_parsed_utxos)
+utxo_dump(f_utxos, f_parsed_utxos, coin)
 
 # Data is stored in f_utxos and f_parsed_utxos files respectively
 ```
