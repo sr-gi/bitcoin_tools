@@ -10,15 +10,15 @@ analysing interesting data such as the `utxo set` are also provided, along with 
 
 bitcoin_tools allows you to:
 
-* Bitcoin keys creation and management.
-* Creation of Bitcoin transactions from scratch.
+* Create and manage Bitcoin keys (ECDSA Secp256k1).
+* Create Bitcoin transactions from scratch.
 * Customize any field of your transaction.
-* Transaction serialization / deserialization.
-* Creation of standard and custom scripts (`scriptSig` and `scriptPubKey`).
-* Transaction analysis from hex encoded transactions.
+* Serialize / deserialize transactions.
+* Create standard and custom scripts (`scriptSig` and `scriptPubKey`).
+* Analyze transactions from their hex representation.
 
-Additionally, bitcoin_tools contains ``STATUS`` an
-**ST**atistical **A**nalysis **T**ool for **U**txo **S**et under [`analysis/status`](bitcoin_tools/analysis/status)
+Additionally, bitcoin_tools used to contain ``STATUS`` an
+**ST**atistical **A**nalysis **T**ool for **U**txo **S**et. The tool has now being moved to a separate repository: [`https://github.com/sr-gi/status`](https://github.com/sr-gi/status)
 
 ### Dependencies
 
@@ -104,28 +104,6 @@ tx = TX.deserialize(hex_tx)
 # Then, the transaction can be displayed using the display method to analyze how it's been constructed.
 tx.display()
 ``` 
-
-#### Using STATUS to dump the UTXOs LevelDB
-```python
-from bitcoin_tools.analysis.status.data_dump import utxo_dump
-from bitcoin_tools.analysis.status.utils import parse_ldb
-
-# Set the version of the Bitcoin Core you are using (which defines the chainstate format)
-# and the IO files.
-
-f_utxos = "decoded_utxos.txt"
-f_parsed_utxos = "parsed_utxos.txt"
-
-# Set the coin we're working with
-coin = 'bitcoin'
-
-# Parse all the data in the chainstate.
-parse_ldb(f_utxos)
-# Parses transactions and utxos from the dumped data.
-utxo_dump(f_utxos, f_parsed_utxos, coin)
-
-# Data is stored in f_utxos and f_parsed_utxos files respectively
-```
 
 ### Support
 

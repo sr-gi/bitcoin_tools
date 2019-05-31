@@ -1,5 +1,7 @@
 # STATUS
 
+## STATUS has been moved to [https://github.com/sr-gi/status](https://github.com/sr-gi/status)
+
 **STATUS** (**ST**atistical **A**nalysis **T**ool for **U**txo **S**et) is an open source tool that provides an easy way to access, decode and analyze data from the Bitcoin's `utxo set`. The accompanying working paper further explains its design, application, and presents results of a recently performed analysis: [https://eprint.iacr.org/2017/1095.pdf](https://eprint.iacr.org/2017/1095.pdf)
 
 

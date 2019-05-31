@@ -18,9 +18,7 @@ etc. `sample_conf.py` contains come hints of what the folders should be for each
 
 ### Is there any OS required to use the library?
 
-Not really, it has been tested both in `OSX` and `Linux` (specially `arch`, `debian` and `ubuntu`). However, `leveldb` does
-not work properly with `Windows` systems (at lest it doesn't at the time of writing this, Hi people from the future!), so if
-you are planning to use `STATUS`, better avoid `Windows`. (If someone can make it work on it, PR are more than welcome!)
+Not really, it has been tested both in `OSX` and `Linux` (specially `arch`, `debian` and `ubuntu`).
 
 
 ### I'm trying to use some code I found in the examples / Issues and it's not working. Why you do this to me?!

@@ -1,8 +1,16 @@
 from bitcoin_tools.wallet import btc_addr_to_hash_160
 from bitcoin_tools.utils import check_public_key, check_signature, check_address
 from abc import ABCMeta, abstractmethod
+from bitcoin_tools.core.opcodes import *
+
 from binascii import unhexlify, hexlify
 from bitcoin.core.script import *
+
+
+SIGHASH_ALL = 1
+SIGHASH_NONE = 2
+SIGHASH_SINGLE = 3
+SIGHASH_ANYONECANPAY = 0x80
 
 
 class Script:
@@ -51,12 +59,12 @@ class Script:
         return script
 
     @staticmethod
-    def deserialize(script):
+    def deserialize_old(script):
         """ Deserializes a serialized script (goes from hex to human).
-        
-        e.g: deserialize('76a914b34bbaac4e9606c9a8a6a720acaf3018c9bc77c988ac') =   OP_DUP OP_HASH160 
+
+        e.g: deserialize('76a914b34bbaac4e9606c9a8a6a720acaf3018c9bc77c988ac') =   OP_DUP OP_HASH160
             <b34bbaac4e9606c9a8a6a720acaf3018c9bc77c9> OP_EQUALVERIFY OP_CHECKSIG
-            
+
         :param script: Serialized script to be deserialized.
         :type script: hex str
         :return: Deserialized script
@@ -76,8 +84,7 @@ class Script:
 
         return " ".join(ps)
 
-    @staticmethod
-    def serialize(data):
+    def serialize_old(data):
         """ Serializes a scrip from a deserialized one (human readable) (goes from human to hex)
         :param data: Human readable script.
         :type data: hex str
@@ -95,6 +102,101 @@ class Script:
                 raise Exception
 
         return hex_string
+
+    # ToDo: Test that the new functions properly work
+
+    @staticmethod
+    def deserialize(script):
+        """ Deserializes a serialized script (goes from hex to human).
+
+        e.g: deserialize('76a914b34bbaac4e9606c9a8a6a720acaf3018c9bc77c988ac') =   OP_DUP OP_HASH160
+            <b34bbaac4e9606c9a8a6a720acaf3018c9bc77c9> OP_EQUALVERIFY OP_CHECKSIG
+
+        :param script: Serialized script to be deserialized.
+        :type script: hex str
+        :return: Deserialized script
+        :rtype: hex str
+        """
+
+        deserialized = ''
+        push_scripts = [OP_PUSHDATA1, OP_PUSHDATA2, OP_PUSHDATA4]
+
+        # Sanity checks
+        try:
+            int(script, 16)
+        except ValueError:
+            raise ValueError('The script must contain hex characters only.')
+
+        if len(script) % 2:
+            raise Exception("Odd-length script passed. Script length must be even.")
+
+        while len(script) > 0:
+            # Read data byte by byte
+            rbyte = int(script[:2], 16)
+            script = script[2:]
+
+            # opcodes are always 1-byte long and can be split in two groups: regular and push opcodes. Regular opcodes
+            # can be easily decoded by checking the mapping in OPCODES_NAMES. Push opcodes are followed by data, and
+            # have to be treated different.
+            if 0 < rbyte <= OP_PUSHDATA4:
+                # There are two types of push opcodes. 01-75 (0x01-0x4b) are opcodes where the length of the data is
+                # specified by the value of the opcode. On the other hand, OP_PUSHDATAN where the next N bytes contain
+                # number of bytes to be pushed to the stack. Note that N can only be 1, 2 or 4 (OP_PUSHDATA1,
+                # OP_PUSHDATA2 or OP_PUSHDATA4)
+
+                if rbyte in push_scripts:
+                    # offset is either 2, 4 or 8
+                    offset = pow(2, push_scripts.index(rbyte)) * 2
+
+                    if len(script) <= offset:
+                        raise Exception("Not enough data to push (%s)." % OPCODE_NAMES[rbyte])
+
+                    rbyte = int(script[:offset], 16)
+                    script = script[offset:]
+
+                if len(script) <= rbyte:
+                    raise Exception("Not enough data to push (OP_PUSH(%s))." % format(rbyte, 'x'))
+
+                deserialized += '<' + script[:rbyte * 2] + '> '
+                script = script[rbyte * 2:]
+
+            else:
+                deserialized += OPCODE_NAMES[rbyte] + ' '
+
+        # Remove the extra end space
+        deserialized = deserialized[:-1]
+
+        return deserialized
+
+    @staticmethod
+    def serialize(data):
+        """ Serializes a scrip from a deserialized one (human readable) (goes from human to hex)
+        :param data: Human readable script.
+        :type data: hex str
+        :return: Serialized script.
+        :rtype: hex str
+        """
+
+        serialized = ""
+        for element in data.split():
+            if element[0] == "<" and element[-1] == ">":
+                element = element[1:-1]
+                if len(element) < OP_PUSHDATA1:
+                    serialized += format(len(element), '02x') + element
+                elif len(element) <= 0xff:
+                    serialized += format(OP_PUSHDATA1, '02x') + format(len(element), '02x') + element
+                elif len(element) <= 0xffff:
+                    serialized += format(OP_PUSHDATA2, '02x') + format(len(element), '02x') + element
+                elif len(element) <= 0xffffffff:
+                    serialized += format(OP_PUSHDATA4, '02x') + format(len(element), '02x') + element
+                else:
+                    raise ValueError("Data too long to encode in a push data")
+            elif element in OPCODES_BY_NAME:
+                serialized += format(OPCODES_BY_NAME[element], '02x')
+            else:
+                raise ValueError('Wrong element found in the script: %s' % element)
+
+        return serialized
 
     def get_element(self, i):
         """
