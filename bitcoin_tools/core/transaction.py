@@ -229,6 +229,14 @@ class TX:
 
         tx.version = int(change_endianness(parse_element(tx, 4)), 16)
 
+        # FIXME: Adding minimal segwit decoding support. Replace with a proper desarialization that includes the witness
+        if tx.version is 2:
+            if len(tx.hex) >= tx.offset+4:
+                if tx.hex[tx.offset: tx.offset+2] == '00' and tx.hex[tx.offset+2: tx.offset+4] == '01':
+                    tx.offset += 4
+            else:
+                raise Exception("There is some error in the serialized transaction passed as input. Transaction can't"
+                                " be built")
         # INPUTS
         tx.inputs = int(parse_varint(tx), 16)
 
@@ -248,6 +256,10 @@ class TX:
             # ScriptPubKey
             tx.scriptPubKey_len.append(int(parse_varint(tx), 16))
             tx.scriptPubKey.append(OutputScript.from_hex(parse_element(tx, tx.scriptPubKey_len[i])))
+
+        # FIXME: Adding minimal segwit decoding support. Replace with a proper desarialization that includes the witness
+        if tx.version is 2:
+            tx.offset = len(tx.hex) - 8
 
         tx.nLockTime = int(parse_element(tx, 4), 16)
 
