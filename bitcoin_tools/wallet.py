@@ -190,6 +190,45 @@ def sk_to_wif(sk, compressed=True, mode='image', v='test'):
     return response
 
 
+def wif_to_sk(wif, network='test'):
+    if network not in ['main', 'test']:
+        # Add more networks if needed.
+        raise Exception('Bad network')
+    else:
+        if network is 'main':
+            version = WIF
+        else:
+            version = TESTNET_WIF
+
+    decoded_wif = b58decode(wif)
+
+    c = decoded_wif[-4:]
+    v = decoded_wif[:1]
+
+    # The byte defines the version, assert that is correct.
+    assert v == chr(version)
+
+    # The four last bytes of the WIF are the four first bytes of the checksum, check that it holds
+    checksum = sha256(sha256(decoded_wif[:-4]).digest()).digest()
+    assert checksum[:4] == c
+
+    # If the private key in the WIF corresponds to a compressed public key, you must also drop the last byte, that will
+    # be 01. We can check that by checking the length of the current key. 32 bytes wil mean uncompressed, while 33 and
+    # a leading 01 means compressed.
+    sk = hexlify(decoded_wif[1:-4])
+
+    compressed = False
+
+    # Notice that since we have hexlified the sk, the sizes are doubled.
+    if len(sk) is 66 and sk[-2:] == '01':
+        sk = unhexlify(sk[:-2])
+        compressed = True
+    else:
+        sk = unhexlify(sk)
+
+    return sk, compressed
+
+
 def generate_wif(btc_addr, sk, mode='image', v='test', vault_path=None):
     """ Generates a Wallet Import Format (WIF) file into disk. Uses an elliptic curve private key from disk as an input
     using the btc_addr associated to the public key of the same key pair as an identifier.
