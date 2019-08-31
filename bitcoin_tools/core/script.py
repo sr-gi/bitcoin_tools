@@ -1,11 +1,8 @@
+from abc import ABCMeta, abstractmethod
+from binascii import unhexlify, hexlify
 from bitcoin_tools.wallet import btc_addr_to_hash_160
 from bitcoin_tools.utils import check_public_key, check_signature, check_address
-from abc import ABCMeta, abstractmethod
 from bitcoin_tools.core.opcodes import *
-
-from binascii import unhexlify, hexlify
-from bitcoin.core.script import *
-
 
 SIGHASH_ALL = 1
 SIGHASH_NONE = 2
@@ -59,53 +56,6 @@ class Script:
         return script
 
     @staticmethod
-    def deserialize_old(script):
-        """ Deserializes a serialized script (goes from hex to human).
-
-        e.g: deserialize('76a914b34bbaac4e9606c9a8a6a720acaf3018c9bc77c988ac') =   OP_DUP OP_HASH160
-            <b34bbaac4e9606c9a8a6a720acaf3018c9bc77c9> OP_EQUALVERIFY OP_CHECKSIG
-
-        :param script: Serialized script to be deserialized.
-        :type script: hex str
-        :return: Deserialized script
-        :rtype: hex str
-        """
-
-        start = "CScript(["
-        end = "])"
-
-        ps = CScript(unhexlify(script)).__repr__()
-        ps = ps[ps.index(start) + len(start): ps.index(end)].split(", ")
-
-        for i in range(len(ps)):
-            if ps[i].startswith('x('):
-                ps[i] = ps[i][3:-2]
-                ps[i] = '<' + ps[i] + '>'
-
-        return " ".join(ps)
-
-    def serialize_old(data):
-        """ Serializes a scrip from a deserialized one (human readable) (goes from human to hex)
-        :param data: Human readable script.
-        :type data: hex str
-        :return: Serialized script.
-        :rtype: hex str
-        """
-
-        hex_string = ""
-        for e in data.split(" "):
-            if e[0] == "<" and e[-1] == ">":
-                hex_string += hexlify(CScriptOp.encode_op_pushdata(unhexlify(e[1:-1])))
-            elif eval(e) in OPCODE_NAMES:
-                hex_string += format(eval(e), '02x')
-            else:
-                raise Exception
-
-        return hex_string
-
-    # ToDo: Test that the new functions properly work
-
-    @staticmethod
     def deserialize(script):
         """ Deserializes a serialized script (goes from hex to human).
 
@@ -154,11 +104,14 @@ class Script:
                     rbyte = int(script[:offset], 16)
                     script = script[offset:]
 
-                if len(script) <= rbyte:
+                else:
+                    rbyte = rbyte * 2
+
+                if len(script) < rbyte:
                     raise Exception("Not enough data to push (OP_PUSH(%s))." % format(rbyte, 'x'))
 
-                deserialized += '<' + script[:rbyte * 2] + '> '
-                script = script[rbyte * 2:]
+                deserialized += '<' + script[:rbyte] + '> '
+                script = script[rbyte:]
 
             else:
                 deserialized += OPCODE_NAMES[rbyte] + ' '
@@ -181,14 +134,15 @@ class Script:
         for element in data.split():
             if element[0] == "<" and element[-1] == ">":
                 element = element[1:-1]
-                if len(element) < OP_PUSHDATA1:
-                    serialized += format(len(element), '02x') + element
-                elif len(element) <= 0xff:
-                    serialized += format(OP_PUSHDATA1, '02x') + format(len(element), '02x') + element
-                elif len(element) <= 0xffff:
-                    serialized += format(OP_PUSHDATA2, '02x') + format(len(element), '02x') + element
-                elif len(element) <= 0xffffffff:
-                    serialized += format(OP_PUSHDATA4, '02x') + format(len(element), '02x') + element
+                len_element = len(element)/2
+                if len_element < OP_PUSHDATA1:
+                    serialized += format(len_element, '02x') + element
+                elif len_element <= 0xff:
+                    serialized += format(OP_PUSHDATA1, '02x') + format(len_element, '02x') + element
+                elif len_element <= 0xffff:
+                    serialized += format(OP_PUSHDATA2, '02x') + format(len_element, '02x') + element
+                elif len_element <= 0xffffffff:
+                    serialized += format(OP_PUSHDATA4, '02x') + format(len_element, '02x') + element
                 else:
                     raise ValueError("Data too long to encode in a push data")
             elif element in OPCODES_BY_NAME:

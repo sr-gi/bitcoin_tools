@@ -1,7 +1,6 @@
 from bitcoin_tools import CFG
 from bitcoin_tools.utils import change_endianness, int2bytes
-from bitcoin.core.script import SIGHASH_ALL, SIGHASH_SINGLE, SIGHASH_NONE
-
+from bitcoin_tools.core.script import SIGHASH_ALL, SIGHASH_SINGLE, SIGHASH_NONE
 from binascii import hexlify, unhexlify
 from hashlib import sha256
 from os import mkdir, path
