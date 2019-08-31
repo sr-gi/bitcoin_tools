@@ -2,9 +2,9 @@ from binascii import unhexlify, hexlify
 from copy import deepcopy
 from hashlib import sha256
 from ecdsa import SigningKey
-from bitcoin_tools.core.keys import serialize_pk, ecdsa_tx_sign
-from bitcoin_tools.core.script import InputScript, OutputScript, Script, SIGHASH_ALL, SIGHASH_SINGLE, SIGHASH_NONE, \
+from bitcoin_tools.core.keys import serialize_pk, ecdsa_tx_sign, SIGHASH_ALL, SIGHASH_SINGLE, SIGHASH_NONE, \
     SIGHASH_ANYONECANPAY
+from bitcoin_tools.core.script import InputScript, OutputScript, Script
 from bitcoin_tools.utils import change_endianness, encode_varint, int2bytes, is_public_key, is_btc_addr, is_script, \
     parse_element, parse_varint, get_prev_ScriptPubKey
 

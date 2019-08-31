@@ -1,13 +1,7 @@
 from abc import ABCMeta, abstractmethod
-from binascii import unhexlify, hexlify
 from bitcoin_tools.wallet import btc_addr_to_hash_160
 from bitcoin_tools.utils import check_public_key, check_signature, check_address
 from bitcoin_tools.core.opcodes import *
-
-SIGHASH_ALL = 1
-SIGHASH_NONE = 2
-SIGHASH_SINGLE = 3
-SIGHASH_ANYONECANPAY = 0x80
 
 
 class Script:

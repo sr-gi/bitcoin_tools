@@ -1,11 +1,16 @@
 from bitcoin_tools import CFG
 from bitcoin_tools.utils import change_endianness, int2bytes
-from bitcoin_tools.core.script import SIGHASH_ALL, SIGHASH_SINGLE, SIGHASH_NONE
 from binascii import hexlify, unhexlify
 from hashlib import sha256
 from os import mkdir, path
 from ecdsa import SigningKey, VerifyingKey, SECP256k1
 from ecdsa.util import sigencode_der_canonize, number_to_string
+
+
+SIGHASH_ALL = 1
+SIGHASH_NONE = 2
+SIGHASH_SINGLE = 3
+SIGHASH_ANYONECANPAY = 0x80
 
 
 def generate_keys():
