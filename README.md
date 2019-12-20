@@ -1,6 +1,6 @@
 ![bitcoin_tools](https://srgi.me/assets/images/bitcoin_tools_logo.png)
 
-[![Mentioned in Awesome](https://awesome.re/mentioned-badge.svg)](https://github.com/igorbarinov/awesome-bitcoin) <a href="https://blockstream.info/address/1srgi8sqPkCKq7gsVfhUZB7dvoi72UsqP"><img width=110 src="https://srgi.me/assets/images/beer_badge.png"></a>
+[![Mentioned in Awesome](https://awesome.re/mentioned-badge.svg)](https://github.com/igorbarinov/awesome-bitcoin) <a href="https://blockstream.info/address/1srgi8sqPkCKq7gsVfhUZB7dvoi72UsqP"><img width=110 src="https://srgi.me/assets/images/beer_badge.png"></a> [![tippin.me](https://badgen.net/badge/%E2%9A%A1%EF%B8%8Ftippin.me/@sr_gi/F0918E)](https://tippin.me/@sr_gi)
 
 bitcoin_tools is a Python library created for teaching and researching purposes. It's main objective is twofold. First it 
 aims to ease the understanding of Bitcoin transaction creation, by using well-documented and easy to understand
