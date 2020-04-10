@@ -862,14 +862,7 @@ def deobfuscate_value(obfuscation_key, value):
     else:
         extended_key = obfuscation_key[:l_value]
 
-    r = format(int(value, 16) ^ int(extended_key, 16), 'x')
-
-    # In some cases, the obtained value could be 1 byte smaller than the original, since the leading 0 is dropped off
-    # when the formatting.
-    if len(r) == l_value-1:
-        r = r.zfill(l_value)
-
-    assert len(value) == len(r)
+    r = format(int(value, 16) ^ int(extended_key, 16), 'x').zfill(l_value)
 
     return r
 
