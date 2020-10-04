@@ -249,7 +249,7 @@ class TX:
             tx.scriptPubKey_len.append(int(parse_varint(tx), 16))
             tx.scriptPubKey.append(OutputScript.from_hex(parse_element(tx, tx.scriptPubKey_len[i])))
 
-        tx.nLockTime = int(parse_element(tx, 4), 16)
+        tx.nLockTime = int(change_endianness(parse_element(tx, 4)), 16)
 
         if tx.offset != len(tx.hex):
             raise Exception("There is some error in the serialized transaction passed as input. Transaction can't"
