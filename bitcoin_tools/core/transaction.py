@@ -81,7 +81,8 @@ class TX:
             scriptPubKey = [scriptPubKey]
 
         if len(prev_tx_id) is not len(prev_out_index) or len(prev_tx_id) is not len(scriptSig):
-            raise Exception("The number ofs UTXOs to spend must match with the number os ScriptSigs to set.")
+            raise Exception(
+                "The number ofs UTXOs to spend must match with the number os ScriptSigs to set.")
         elif len(scriptSig) == 0 or len(scriptPubKey) == 0:
             raise Exception("Scripts can't be empty")
         else:
@@ -181,7 +182,8 @@ class TX:
             raise Exception("Previous transaction id and index number of elements must match. " + str(len(prev_tx_id))
                             + "!= " + str(len(prev_out_index)))
         elif len(value) != len(outputs):
-            raise Exception("Each output must have set a Satoshi amount. Use 0 if no value is going to be transferred.")
+            raise Exception(
+                "Each output must have set a Satoshi amount. Use 0 if no value is going to be transferred.")
 
         for o in outputs:
             # Multisig outputs are passes ad an integer m representing the m-of-n transaction, amb m public keys.
@@ -209,7 +211,8 @@ class TX:
 
         # Once all inputs and outputs has been formatted as scripts, we could construct the transaction with the proper
         # builder.
-        tx = cls.build_from_scripts(prev_tx_id, prev_out_index, value, ins, outs)
+        tx = cls.build_from_scripts(
+            prev_tx_id, prev_out_index, value, ins, outs)
 
         return tx
 
@@ -230,24 +233,27 @@ class TX:
         tx.version = int(change_endianness(parse_element(tx, 4)), 16)
 
         # INPUTS
-        tx.inputs = int(parse_varint(tx), 16)
+        tx.inputs = decode_varint(parse_varint(tx))
 
         for i in range(tx.inputs):
             tx.prev_tx_id.append(change_endianness(parse_element(tx, 32)))
-            tx.prev_out_index.append(int(change_endianness(parse_element(tx, 4)), 16))
+            tx.prev_out_index.append(
+                int(change_endianness(parse_element(tx, 4)), 16))
             # ScriptSig
-            tx.scriptSig_len.append(int(parse_varint(tx), 16))
-            tx.scriptSig.append(InputScript.from_hex(parse_element(tx, tx.scriptSig_len[i])))
+            tx.scriptSig_len.append(decode_varint(parse_varint(tx)))
+            tx.scriptSig.append(InputScript.from_hex(
+                parse_element(tx, tx.scriptSig_len[i])))
             tx.nSequence.append(int(parse_element(tx, 4), 16))
 
         # OUTPUTS
-        tx.outputs = int(parse_varint(tx), 16)
+        tx.outputs = decode_varint(parse_varint(tx))
 
         for i in range(tx.outputs):
             tx.value.append(int(change_endianness(parse_element(tx, 8)), 16))
             # ScriptPubKey
-            tx.scriptPubKey_len.append(int(parse_varint(tx), 16))
-            tx.scriptPubKey.append(OutputScript.from_hex(parse_element(tx, tx.scriptPubKey_len[i])))
+            tx.scriptPubKey_len.append(decode_varint(parse_varint(tx)))
+            tx.scriptPubKey.append(OutputScript.from_hex(
+                parse_element(tx, tx.scriptPubKey_len[i])))
 
         tx.nLockTime = int(parse_element(tx, 4), 16)
 
@@ -272,28 +278,39 @@ class TX:
         """
 
         if rtype not in [hex, bin]:
-            raise Exception("Invalid return type (rtype). It should be either hex or bin.")
-        serialized_tx = change_endianness(int2bytes(self.version, 4))  # 4-byte version number (LE).
+            raise Exception(
+                "Invalid return type (rtype). It should be either hex or bin.")
+        # 4-byte version number (LE).
+        serialized_tx = change_endianness(int2bytes(self.version, 4))
 
         # INPUTS
         serialized_tx += encode_varint(self.inputs)  # Varint number of inputs.
 
         for i in range(self.inputs):
-            serialized_tx += change_endianness(self.prev_tx_id[i])  # 32-byte hash of the previous transaction (LE).
-            serialized_tx += change_endianness(int2bytes(self.prev_out_index[i], 4))  # 4-byte output index (LE)
-            serialized_tx += encode_varint(len(self.scriptSig[i].content) / 2)   # Varint input script length.
+            # 32-byte hash of the previous transaction (LE).
+            serialized_tx += change_endianness(self.prev_tx_id[i])
+            # 4-byte output index (LE)
+            serialized_tx += change_endianness(
+                int2bytes(self.prev_out_index[i], 4))
+            # Varint input script length.
+            serialized_tx += encode_varint(len(self.scriptSig[i].content) / 2)
             # ScriptSig
             serialized_tx += self.scriptSig[i].content  # Input script.
-            serialized_tx += int2bytes(self.nSequence[i], 4)  # 4-byte sequence number.
+            # 4-byte sequence number.
+            serialized_tx += int2bytes(self.nSequence[i], 4)
 
         # OUTPUTS
-        serialized_tx += encode_varint(self.outputs)  # Varint number of outputs.
+        # Varint number of outputs.
+        serialized_tx += encode_varint(self.outputs)
 
         if self.outputs != 0:
             for i in range(self.outputs):
-                serialized_tx += change_endianness(int2bytes(self.value[i], 8))  # 8-byte field Satoshi value (LE)
+                # 8-byte field Satoshi value (LE)
+                serialized_tx += change_endianness(int2bytes(self.value[i], 8))
                 # ScriptPubKey
-                serialized_tx += encode_varint(len(self.scriptPubKey[i].content) / 2)   # Varint Output script length.
+                # Varint Output script length.
+                serialized_tx += encode_varint(
+                    len(self.scriptPubKey[i].content) / 2)
                 serialized_tx += self.scriptPubKey[i].content  # Output script.
 
         serialized_tx += int2bytes(self.nLockTime, 4)  # 4-byte lock time field
@@ -315,12 +332,15 @@ class TX:
         """
 
         if rtype not in [hex, bin]:
-            raise Exception("Invalid return type (rtype). It should be either hex or bin.")
+            raise Exception(
+                "Invalid return type (rtype). It should be either hex or bin.")
         if endianness not in ["BE", "LE"]:
-            raise Exception("Invalid endianness type. It should be either BE or LE.")
+            raise Exception(
+                "Invalid endianness type. It should be either BE or LE.")
 
         if rtype is hex:
-            tx_id = hexlify(sha256(sha256(self.serialize(rtype=bin)).digest()).digest())
+            tx_id = hexlify(
+                sha256(sha256(self.serialize(rtype=bin)).digest()).digest())
             if endianness == "BE":
                 tx_id = change_endianness(tx_id)
         else:
@@ -381,19 +401,24 @@ class TX:
             if isinstance(sk[i], list) and unsigned_tx.scriptSig[index[i]].type is "P2MS":
                 sigs = []
                 for k in sk[i]:
-                    sigs.append(ecdsa_tx_sign(unsigned_tx.serialize(), k, hashflag, deterministic))
+                    sigs.append(ecdsa_tx_sign(
+                        unsigned_tx.serialize(), k, hashflag, deterministic))
                 iscript = InputScript.P2MS(sigs)
             elif isinstance(sk[i], SigningKey) and unsigned_tx.scriptSig[index[i]].type is "P2PK":
-                s = ecdsa_tx_sign(unsigned_tx.serialize(), sk[i], hashflag, deterministic)
+                s = ecdsa_tx_sign(unsigned_tx.serialize(),
+                                  sk[i], hashflag, deterministic)
                 iscript = InputScript.P2PK(s)
             elif isinstance(sk[i], SigningKey) and unsigned_tx.scriptSig[index[i]].type is "P2PKH":
-                s = ecdsa_tx_sign(unsigned_tx.serialize(), sk[i], hashflag, deterministic)
+                s = ecdsa_tx_sign(unsigned_tx.serialize(),
+                                  sk[i], hashflag, deterministic)
                 pk = serialize_pk(sk[i].get_verifying_key(), compressed)
                 iscript = InputScript.P2PKH(s, pk)
             elif unsigned_tx.scriptSig[index[i]].type is "unknown":
-                raise Exception("Unknown previous transaction output script type. Can't sign the transaction.")
+                raise Exception(
+                    "Unknown previous transaction output script type. Can't sign the transaction.")
             else:
-                raise Exception("Can't sign input " + str(i) + " with the provided data.")
+                raise Exception("Can't sign input " + str(i) +
+                                " with the provided data.")
 
             # Finally, temporal scripts are stored as final and the length of the script is computed
             self.scriptSig[i] = iscript
@@ -429,7 +454,8 @@ class TX:
         for i in range(tx.inputs):
             if i is index:
                 if not orphan:
-                    script, t = get_prev_ScriptPubKey(tx.prev_tx_id[i], tx.prev_out_index[i], network)
+                    script, t = get_prev_ScriptPubKey(
+                        tx.prev_tx_id[i], tx.prev_out_index[i], network)
                     # Once we get the previous UTXO script, the inputScript is temporarily set to it in order to sign
                     # the transaction.
                     tx.scriptSig[i] = InputScript.from_hex(script)
@@ -451,7 +477,8 @@ class TX:
 
             if index >= tx.outputs:
                 raise Exception("You are trying to use SIGHASH_SINGLE to sign an input that does not have a "
-                                "corresponding output (" + str(index) + "). This could lead to a irreversible lose "
+                                "corresponding output (" + str(index) +
+                                "). This could lead to a irreversible lose "
                                 "of funds. Signature process aborted.")
             # Otherwise, all outputs will set to empty scripts but the ith one (identified by index),
             # since SIGHASH_SINGLE should only sign the ith input with the ith output.
@@ -472,7 +499,8 @@ class TX:
                     # Once the all outputs have been deleted, we create empty outputs for every single index before
                     # the one that will be signed. Furthermore, the value of the output if set to maximum (2^64-1)
                     tx.scriptPubKey.append(OutputScript())
-                    tx.scriptPubKey_len.append(len(tx.scriptPubKey[o].content) / 2)
+                    tx.scriptPubKey_len.append(
+                        len(tx.scriptPubKey[o].content) / 2)
                     tx.value.append(pow(2, 64) - 1)
 
                 # Once we reach the index of the output that will be signed, we restore it with the one that we backed
@@ -523,7 +551,8 @@ class TX:
             print "\t previous txid (little endian): " + self.prev_tx_id[i] + \
                   " (" + change_endianness(self.prev_tx_id[i]) + ")"
             print "\t previous tx output (little endian): " + str(self.prev_out_index[i]) + \
-                  " (" + change_endianness(int2bytes(self.prev_out_index[i], 4)) + ")"
+                  " (" + \
+                change_endianness(int2bytes(self.prev_out_index[i], 4)) + ")"
             print "\t input script (scriptSig) length: " + str(self.scriptSig_len[i]) \
                   + " (" + encode_varint((self.scriptSig_len[i])) + ")"
             print "\t input script (scriptSig): " + self.scriptSig[i].content
