@@ -73,9 +73,6 @@ def parse_varint(tx):
     # Then, the integer is encoded as a varint using the proper prefix, if needed.
     if size <= 252:  # No prefix
         storage_length = 1
-        varint = data[:storage_length * 2]
-        tx.offset += storage_length * 2
-        return varint
     elif size == 253:  # 0xFD
         storage_length = 3
     elif size == 254:  # 0xFE
@@ -87,7 +84,7 @@ def parse_varint(tx):
 
     # Finally, the storage length is used to extract the proper number of bytes from the transaction hex and the
     # transaction offset is updated.
-    varint = change_endianness(data[2:storage_length * 2])
+    varint = data[:storage_length * 2]
     tx.offset += storage_length * 2
 
     return varint
