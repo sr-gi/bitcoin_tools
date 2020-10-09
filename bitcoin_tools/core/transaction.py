@@ -6,7 +6,7 @@ from bitcoin_tools.core.keys import serialize_pk, ecdsa_tx_sign
 from bitcoin_tools.core.script import InputScript, OutputScript, Script, SIGHASH_ALL, SIGHASH_SINGLE, SIGHASH_NONE, \
     SIGHASH_ANYONECANPAY
 from bitcoin_tools.utils import change_endianness, encode_varint, int2bytes, is_public_key, is_btc_addr, is_script, \
-    parse_element, parse_varint, get_prev_ScriptPubKey
+    parse_element, parse_varint, get_prev_ScriptPubKey, decode_varint
 
 
 class TX:
@@ -230,23 +230,23 @@ class TX:
         tx.version = int(change_endianness(parse_element(tx, 4)), 16)
 
         # INPUTS
-        tx.inputs = int(parse_varint(tx), 16)
+        tx.inputs = decode_verint(parse_varint(tx))
 
         for i in range(tx.inputs):
             tx.prev_tx_id.append(change_endianness(parse_element(tx, 32)))
             tx.prev_out_index.append(int(change_endianness(parse_element(tx, 4)), 16))
             # ScriptSig
-            tx.scriptSig_len.append(int(parse_varint(tx), 16))
+            tx.scriptSig_len.append(decode_varint(parse_varint(tx)))
             tx.scriptSig.append(InputScript.from_hex(parse_element(tx, tx.scriptSig_len[i])))
             tx.nSequence.append(int(parse_element(tx, 4), 16))
 
         # OUTPUTS
-        tx.outputs = int(parse_varint(tx), 16)
+        tx.outputs = decode_varint(parse_varint(tx))
 
         for i in range(tx.outputs):
             tx.value.append(int(change_endianness(parse_element(tx, 8)), 16))
             # ScriptPubKey
-            tx.scriptPubKey_len.append(int(parse_varint(tx), 16))
+            tx.scriptPubKey_len.append(decode_varint(parse_varint(tx)))
             tx.scriptPubKey.append(OutputScript.from_hex(parse_element(tx, tx.scriptPubKey_len[i])))
 
         tx.nLockTime = int(change_endianness(parse_element(tx, 4)), 16)
